@@ -207,6 +207,25 @@
 
         </a>
 
+
+        <form method="POST" action="{{ route('logout') }}" style="margin:0;">
+            @csrf
+            <button
+                type="submit"
+                class="nav-item"
+                style="width:100%;background:none;border:none;cursor:pointer;text-align:left;font-family:inherit;">
+
+                <span class="nav-icon">
+                    ⎋
+                </span>
+
+                <span>
+                    Cerrar sesión
+                </span>
+
+            </button>
+        </form>
+
     </nav>
 
 

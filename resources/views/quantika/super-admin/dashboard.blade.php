@@ -1,0 +1,290 @@
+@extends('quantika.super-admin.layout')
+
+@section('title', 'Dashboard')
+@section('page-title', 'Dashboard')
+
+@section('content')
+
+    {{-- HERO --}}
+    <section class="hero">
+
+        <div class="hero-content">
+
+            <div class="hero-text">
+
+                <div class="status">
+                    <span></span>
+                    SISTEMA ACTIVO
+                </div>
+
+                <h2>
+                    Control total<br>
+                    de <span class="cyan">Quantika Pool.</span>
+                </h2>
+
+                <p class="hero-description">
+                    Administra ambas sucursales, usuarios, niveles y el estatus financiero
+                    desde un solo lugar.
+                </p>
+
+                <div class="hero-buttons">
+
+                    <a href="{{ route('alumnos.index', ['crear' => 1]) }}" class="btn btn-primary">
+                        + Registrar alumno
+                        <span>→</span>
+                    </a>
+
+                    <a href="{{ route('super-admin.sucursales.index') }}" class="btn btn-outline">
+                        Gestionar sucursales
+                        <span>→</span>
+                    </a>
+
+                </div>
+
+            </div>
+
+            <div class="hero-logo-box">
+                <img src="{{ asset('images/quantika-logo.png') }}" alt="Quantika Pool">
+            </div>
+
+        </div>
+
+    </section>
+
+    <section class="panel" style="margin: 24px 0;">
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:14px;">
+            <div>
+                <div style="color:var(--cyan); font-size:11px; font-weight:900; letter-spacing:2px; margin-bottom:6px;">
+                    {{ $esGlobal ? 'VISTA CONSOLIDADA' : 'VISTA FILTRADA' }}
+                </div>
+                <h2 style="font-family:'Outfit',sans-serif; font-size:24px; font-weight:900;">
+                    @if($esGlobal)
+                        Todas las sucursales
+                    @else
+                        {{ $sucursalActual->nombre ?? 'Sucursal' }}
+                    @endif
+                </h2>
+                <p style="color:var(--muted); font-size:13px; margin-top:6px;">
+                    Usa el selector de sucursal en la esquina superior derecha para alternar entre el consolidado
+                    de Quantika Pool y el detalle de cada sede.
+                </p>
+            </div>
+            <a href="{{ route('alumnos.index', ['crear' => 1]) }}" class="btn btn-primary">
+                + Registrar alumno
+            </a>
+        </div>
+    </section>
+
+    {{-- ESTADÍSTICAS GENERALES --}}
+    <section class="stats-grid">
+
+        <div class="stat-card">
+            <div class="stat-top">
+                <span class="stat-name">Alumnos activos</span>
+                <div class="stat-icon">♟</div>
+            </div>
+            <div class="stat-value">{{ $stats['alumnos_activos'] }}</div>
+            <div class="stat-change">{{ $stats['alumnos_total'] }} en total</div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-top">
+                <span class="stat-name">Instructores</span>
+                <div class="stat-icon">🏊</div>
+            </div>
+            <div class="stat-value">{{ $stats['instructores'] }}</div>
+            <div class="stat-change">Activos en plantilla</div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-top">
+                <span class="stat-name">Citas de hoy</span>
+                <div class="stat-icon">▣</div>
+            </div>
+            <div class="stat-value">{{ $stats['citas_hoy'] }}</div>
+            <div class="stat-change">Clases programadas</div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-top">
+                <span class="stat-name">Ingresos del mes</span>
+                <div class="stat-icon">$</div>
+            </div>
+            <div class="stat-value">${{ number_format($stats['ingresos_mes'], 2) }}</div>
+            <div class="stat-change">Pagos cobrados este mes</div>
+        </div>
+
+    </section>
+
+    {{-- CONTROL FINANCIERO --}}
+    <div class="section-header">
+        <h3>Control financiero</h3>
+        <a href="{{ route('pagos.index') }}" class="section-link">Ver detalle de pagos →</a>
+    </div>
+
+    <section class="stats-grid">
+
+        <div class="stat-card">
+            <div class="stat-top">
+                <span class="stat-name">Pendientes</span>
+                <div class="stat-icon" style="color:var(--yellow); background:rgba(255,194,41,.12);">●</div>
+            </div>
+            <div class="stat-value">{{ $stats['pagos_pendientes'] }}</div>
+            <div class="stat-change" style="color:var(--yellow);">${{ number_format($stats['monto_pendiente'], 2) }}</div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-top">
+                <span class="stat-name">Pagados</span>
+                <div class="stat-icon">✓</div>
+            </div>
+            <div class="stat-value">{{ $stats['pagos_pagados'] }}</div>
+            <div class="stat-change">Este periodo</div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-top">
+                <span class="stat-name">En revisión</span>
+                <div class="stat-icon" style="color:var(--blue); background:rgba(22,207,255,.12);">◔</div>
+            </div>
+            <div class="stat-value">{{ $stats['pagos_en_revision'] }}</div>
+            <div class="stat-change">Pendientes de validar</div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-top">
+                <span class="stat-name">Vencidos</span>
+                <div class="stat-icon" style="color:var(--red); background:rgba(255,107,107,.12);">!</div>
+            </div>
+            <div class="stat-value">{{ $stats['pagos_vencidos'] }}</div>
+            <div class="stat-change" style="color:var(--red);">${{ number_format($stats['monto_vencido'], 2) }}</div>
+        </div>
+
+    </section>
+
+    @if($esGlobal)
+        <div class="section-header">
+            <h3>Desglose por sucursal</h3>
+        </div>
+
+        <div class="panel">
+            <div class="table-wrap">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Sucursal</th>
+                            <th>Alumnos activos</th>
+                            <th>Instructores</th>
+                            <th>Ingresos del mes</th>
+                            <th>Pendientes</th>
+                            <th>Vencidos</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach ($sucursales as $s)
+                            @php $st = $statsPorSucursal[$s->id]; @endphp
+                            <tr>
+                                <td><strong>{{ $s->nombre }}</strong></td>
+                                <td>{{ $st['alumnos_activos'] }}</td>
+                                <td>{{ $st['instructores'] }}</td>
+                                <td>${{ number_format($st['ingresos_mes'], 2) }}</td>
+                                <td>{{ $st['pagos_pendientes'] }}</td>
+                                <td>{{ $st['pagos_vencidos'] }}</td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    @endif
+
+    {{-- NIVELES --}}
+    <div class="section-header">
+        <h3>Niveles de aprendizaje</h3>
+        <a href="{{ route('niveles.index') }}" class="section-link">Gestionar niveles →</a>
+    </div>
+
+    <div class="panel">
+        <div class="table-wrap">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Nivel</th>
+                        <th>Categoría</th>
+                        <th>Alumnos</th>
+                        <th>Estado</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach ($niveles as $nivel)
+                        <tr>
+                            <td>{{ str_pad((string) $nivel->orden, 2, '0', STR_PAD_LEFT) }}</td>
+                            <td>
+                                <div style="display:flex; align-items:center; gap:10px;">
+                                    @if($nivel->imagen)
+                                        <img src="{{ asset($nivel->imagen) }}" alt="" style="width:26px; height:26px; object-fit:contain;">
+                                    @endif
+                                    <strong>{{ $nivel->nombre }}</strong>
+                                </div>
+                            </td>
+                            <td>{{ $nivel->categoria }}</td>
+                            <td>{{ $nivel->alumnos_count ?? $nivel->alumnos()->count() }}</td>
+                            <td>
+                                @if($nivel->activo)
+                                    <span class="badge">● Activo</span>
+                                @else
+                                    <span class="badge badge-muted">● Inactivo</span>
+                                @endif
+                            </td>
+                        </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    {{-- ALUMNOS RECIENTES --}}
+    <div class="section-header">
+        <h3>Alumnos recientes</h3>
+        <a href="{{ route('alumnos.index') }}" class="section-link">Ver todos los alumnos →</a>
+    </div>
+
+    <div class="panel">
+        <div class="table-wrap">
+            @if($alumnosRecientes->isEmpty())
+                <div class="empty-state">Aún no hay alumnos registrados.</div>
+            @else
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Alumno</th>
+                            <th>Nivel</th>
+                            <th>Sucursal</th>
+                            <th>Estado</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach ($alumnosRecientes as $alumno)
+                            <tr>
+                                <td><strong>{{ $alumno->nombreCompleto() }}</strong></td>
+                                <td>{{ $alumno->nivel->nombre ?? '—' }}</td>
+                                <td>{{ $alumno->sucursal->nombre ?? '—' }}</td>
+                                <td>
+                                    <span class="badge {{ $alumno->estado->value !== 'activo' ? 'badge-muted' : '' }}">
+                                        ● {{ $alumno->estado->label() }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <a href="{{ route('alumnos.show', $alumno) }}" class="section-link">Ver →</a>
+                                </td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            @endif
+        </div>
+    </div>
+
+@endsection

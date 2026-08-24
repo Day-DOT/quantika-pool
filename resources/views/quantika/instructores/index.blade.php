@@ -1,390 +1,293 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+@extends('quantika.super-admin.layout')
 
-    <title>Instructores | Quantika Pool</title>
+@section('title', 'Instructores')
+@section('page-title', 'Instructores')
 
-    <style>
+@push('styles')
+<style>
 
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
+    /* =========================
+       ENCABEZADO
+    ========================= */
 
-        body {
-            font-family: Arial, Helvetica, sans-serif;
-            background: #031f2f;
-            color: #ffffff;
-            min-height: 100vh;
-        }
+    .header-left p {
+        color: #8fb2c4;
+        font-size: 16px;
+        margin-bottom: 30px;
+    }
 
-        /* =========================
-           CONTENEDOR
-        ========================= */
+    /* =========================
+       BOTONES
+    ========================= */
 
-        .page {
-            min-height: 100vh;
-            padding: 35px;
-            background:
-                radial-gradient(
-                    circle at top right,
-                    rgba(39, 201, 235, .08),
-                    transparent 35%
-                ),
-                #031f2f;
-        }
+    .actions {
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+        margin-bottom: 30px;
+    }
 
-        /* =========================
-           ENCABEZADO
-        ========================= */
+    .btn-secondary {
+        border: 1px solid rgba(66,213,238,.40);
+        color: white;
+        background: rgba(2,29,43,.25);
+        min-height: 48px;
+        padding: 0 21px;
+        border-radius: 13px;
+        font-size: 14px;
+        font-weight: 900;
+        cursor: pointer;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 15px;
+        transition: .2s ease;
+    }
 
-        .top-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 30px;
-            gap: 20px;
-        }
+    .btn-secondary:hover { background: rgba(66,213,238,.10); }
 
-        .header-left h1 {
-            font-size: 38px;
-            font-weight: 800;
-            margin-bottom: 8px;
-        }
+    /* =========================
+       ESTADÍSTICAS
+    ========================= */
 
-        .header-left p {
-            color: #8fb2c4;
-            font-size: 16px;
-        }
+    .stats {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 18px;
+        margin-bottom: 30px;
+    }
 
-        .back-button {
-            text-decoration: none;
-            color: #ffffff;
-            border: 1px solid rgba(65, 208, 235, .3);
-            background: #07384d;
-            padding: 12px 18px;
-            border-radius: 12px;
-            transition: .2s;
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-        }
+    .stat-card {
+        background: linear-gradient(
+            145deg,
+            #07394e,
+            #052d40
+        );
 
-        .back-button:hover {
-            background: #0b526c;
-            transform: translateY(-2px);
-        }
+        border: 1px solid rgba(69, 207, 234, .18);
+        border-radius: 18px;
+        padding: 22px;
+        position: relative;
+        overflow: hidden;
+    }
 
-        /* =========================
-           BOTONES
-        ========================= */
+    .stat-card::after {
+        content: "";
+        position: absolute;
+        width: 100px;
+        height: 100px;
+        right: -45px;
+        bottom: -55px;
+        background: rgba(39, 205, 235, .08);
+        border-radius: 50%;
+    }
 
-        .actions {
-            display: flex;
-            gap: 12px;
-            flex-wrap: wrap;
-            margin-bottom: 30px;
-        }
+    .stat-title {
+        color: #8db1c3;
+        font-size: 14px;
+        margin-bottom: 12px;
+    }
 
-        .btn {
-            border: none;
-            padding: 13px 20px;
-            border-radius: 12px;
-            font-weight: 700;
-            cursor: pointer;
-            text-decoration: none;
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-        }
+    .stat-number {
+        font-size: 30px;
+        font-weight: 800;
+    }
 
-        .btn-primary {
-            background: #42d4eb;
-            color: #032435;
-        }
+    .stat-description {
+        color: #40d9c0;
+        font-size: 13px;
+        margin-top: 5px;
+    }
 
-        .btn-secondary {
-            background: #083b50;
-            border: 1px solid rgba(65, 208, 235, .25);
-            color: white;
-        }
+    /* =========================
+       PANEL
+    ========================= */
 
-        /* =========================
-           ESTADÍSTICAS
-        ========================= */
+    .panel {
+        background: rgba(5, 45, 62, .9);
+        border: 1px solid rgba(65, 208, 235, .18);
+        border-radius: 20px;
+        overflow: hidden;
+        margin-bottom: 30px;
+    }
+
+    .panel-header {
+        padding: 22px 25px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-bottom: 1px solid rgba(255,255,255,.08);
+    }
+
+    .panel-header h2 {
+        font-size: 21px;
+    }
+
+    .panel-header span {
+        color: #71a5ba;
+        font-size: 14px;
+    }
+
+    /* =========================
+       TABLA
+    ========================= */
+
+    .table-container {
+        overflow-x: auto;
+    }
+
+    .table-container table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    .table-container th {
+        text-align: left;
+        padding: 16px 22px;
+        font-size: 12px;
+        color: #72a5b8;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+
+    .table-container td {
+        padding: 18px 22px;
+        border-top: 1px solid rgba(255,255,255,.06);
+        color: #d8e8ee;
+    }
+
+    .table-container tr:hover {
+        background: rgba(47, 207, 235, .04);
+    }
+
+    /* =========================
+       INSTRUCTOR
+    ========================= */
+
+    .instructor {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    /* Renombrado a .row-avatar para no chocar con .avatar del sidebar/topbar del layout */
+    .row-avatar {
+        width: 44px;
+        height: 44px;
+        border-radius: 12px;
+        background: #42d4eb;
+        color: #063044;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 800;
+    }
+
+    .instructor-info strong {
+        display: block;
+        margin-bottom: 4px;
+    }
+
+    .instructor-info small {
+        color: #719caf;
+    }
+
+    /* =========================
+       SUCURSAL
+    ========================= */
+
+    .branch {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        background: rgba(65,208,235,.08);
+        border: 1px solid rgba(65,208,235,.15);
+        padding: 7px 11px;
+        border-radius: 20px;
+        font-size: 13px;
+    }
+
+    .dot {
+        width: 7px;
+        height: 7px;
+        background: #42d4eb;
+        border-radius: 50%;
+    }
+
+    /* =========================
+       DISPONIBILIDAD
+    ========================= */
+
+    .available {
+        color: #39e1bd;
+        font-weight: 700;
+    }
+
+    .busy {
+        color: #ffbf38;
+        font-weight: 700;
+    }
+
+    /* =========================
+       ACCIONES TABLA
+    ========================= */
+
+    .table-actions {
+        display: flex;
+        gap: 8px;
+    }
+
+    .icon-btn {
+        width: 36px;
+        height: 36px;
+        border-radius: 10px;
+        border: 1px solid rgba(255,255,255,.08);
+        background: #08384d;
+        color: white;
+        cursor: pointer;
+    }
+
+    .icon-btn:hover {
+        background: #0c526a;
+    }
+
+    /* =========================
+       RESPONSIVE
+    ========================= */
+
+    @media(max-width: 1100px) {
 
         .stats {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 18px;
-            margin-bottom: 30px;
+            grid-template-columns: repeat(2, 1fr);
         }
 
-        .stat-card {
-            background: linear-gradient(
-                145deg,
-                #07394e,
-                #052d40
-            );
+    }
 
-            border: 1px solid rgba(69, 207, 234, .18);
-            border-radius: 18px;
-            padding: 22px;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .stat-card::after {
-            content: "";
-            position: absolute;
-            width: 100px;
-            height: 100px;
-            right: -45px;
-            bottom: -55px;
-            background: rgba(39, 205, 235, .08);
-            border-radius: 50%;
-        }
-
-        .stat-title {
-            color: #8db1c3;
-            font-size: 14px;
-            margin-bottom: 12px;
-        }
-
-        .stat-number {
-            font-size: 30px;
-            font-weight: 800;
-        }
-
-        .stat-description {
-            color: #40d9c0;
-            font-size: 13px;
-            margin-top: 5px;
-        }
-
-        /* =========================
-           PANEL
-        ========================= */
-
-        .panel {
-            background: rgba(5, 45, 62, .9);
-            border: 1px solid rgba(65, 208, 235, .18);
-            border-radius: 20px;
-            overflow: hidden;
-            margin-bottom: 30px;
-        }
+    @media(max-width: 700px) {
 
         .panel-header {
-            padding: 22px 25px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-bottom: 1px solid rgba(255,255,255,.08);
-        }
-
-        .panel-header h2 {
-            font-size: 21px;
-        }
-
-        .panel-header span {
-            color: #71a5ba;
-            font-size: 14px;
-        }
-
-        /* =========================
-           TABLA
-        ========================= */
-
-        .table-container {
-            overflow-x: auto;
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-
-        th {
-            text-align: left;
-            padding: 16px 22px;
-            font-size: 12px;
-            color: #72a5b8;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-
-        td {
-            padding: 18px 22px;
-            border-top: 1px solid rgba(255,255,255,.06);
-            color: #d8e8ee;
-        }
-
-        tr:hover {
-            background: rgba(47, 207, 235, .04);
-        }
-
-        /* =========================
-           INSTRUCTOR
-        ========================= */
-
-        .instructor {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-
-        .avatar {
-            width: 44px;
-            height: 44px;
-            border-radius: 12px;
-            background: #42d4eb;
-            color: #063044;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 800;
-        }
-
-        .instructor-info strong {
-            display: block;
-            margin-bottom: 4px;
-        }
-
-        .instructor-info small {
-            color: #719caf;
-        }
-
-        /* =========================
-           SUCURSAL
-        ========================= */
-
-        .branch {
-            display: inline-flex;
-            align-items: center;
-            gap: 7px;
-            background: rgba(65,208,235,.08);
-            border: 1px solid rgba(65,208,235,.15);
-            padding: 7px 11px;
-            border-radius: 20px;
-            font-size: 13px;
-        }
-
-        .dot {
-            width: 7px;
-            height: 7px;
-            background: #42d4eb;
-            border-radius: 50%;
-        }
-
-        /* =========================
-           DISPONIBILIDAD
-        ========================= */
-
-        .available {
-            color: #39e1bd;
-            font-weight: 700;
-        }
-
-        .busy {
-            color: #ffbf38;
-            font-weight: 700;
-        }
-
-        /* =========================
-           ACCIONES TABLA
-        ========================= */
-
-        .table-actions {
-            display: flex;
+            align-items: flex-start;
+            flex-direction: column;
             gap: 8px;
         }
 
-        .icon-btn {
-            width: 36px;
-            height: 36px;
-            border-radius: 10px;
-            border: 1px solid rgba(255,255,255,.08);
-            background: #08384d;
-            color: white;
-            cursor: pointer;
+        .table-container th,
+        .table-container td {
+            white-space: nowrap;
         }
 
-        .icon-btn:hover {
-            background: #0c526a;
-        }
+    }
 
-        /* =========================
-           RESPONSIVE
-        ========================= */
+</style>
+@endpush
 
-        @media(max-width: 1100px) {
+@section('content')
 
-            .stats {
-                grid-template-columns: repeat(2, 1fr);
-            }
-
-        }
-
-        @media(max-width: 700px) {
-
-            .page {
-                padding: 20px;
-            }
-
-            .top-header {
-                align-items: flex-start;
-                flex-direction: column;
-            }
-
-            .header-left h1 {
-                font-size: 30px;
-            }
-
-            .stats {
-                grid-template-columns: 1fr;
-            }
-
-            .panel-header {
-                align-items: flex-start;
-                flex-direction: column;
-                gap: 8px;
-            }
-
-            th,
-            td {
-                white-space: nowrap;
-            }
-
-        }
-
-    </style>
-</head>
-
-<body>
-
-<div class="page">
-
-    <!-- ENCABEZADO -->
-
-    <div class="top-header">
-
-        <div class="header-left">
-
-            <h1>Instructores</h1>
-
-            <p>
-                Administración de instructores y disponibilidad.
-            </p>
-
-        </div>
-
-        <a href="{{ route('admin.dashboard') }}" class="back-button">
-            ← Volver al Dashboard
-        </a>
-
+    <div class="header-left">
+        <p>
+            Administración de instructores y disponibilidad.
+        </p>
     </div>
 
 
@@ -392,17 +295,9 @@
 
     <div class="actions">
 
-        <a href="#" class="btn btn-primary">
+        <button type="button" class="btn btn-primary" onclick="abrirModalInstructor()">
             + Registrar instructor
-        </a>
-
-        <a href="#" class="btn btn-secondary">
-            Disponibilidad
-        </a>
-
-        <a href="#" class="btn btn-secondary">
-            Horarios
-        </a>
+        </button>
 
     </div>
 
@@ -418,11 +313,11 @@
             </div>
 
             <div class="stat-number">
-                18
+                {{ $totalRegistrados }}
             </div>
 
             <div class="stat-description">
-                ↑ 3 este mes
+                {{ $esVistaGlobal ? 'Ambas sucursales' : $sucursalesVisibles->first()->nombre }}
             </div>
 
         </div>
@@ -431,11 +326,11 @@
         <div class="stat-card">
 
             <div class="stat-title">
-                Disponibles hoy
+                Disponibles ahora
             </div>
 
             <div class="stat-number">
-                16
+                {{ $totalDisponibles }}
             </div>
 
             <div class="stat-description">
@@ -445,38 +340,57 @@
         </div>
 
 
-        <div class="stat-card">
+        @if ($esVistaGlobal)
+            @foreach ($sucursales->take(2) as $sucursalCard)
+                <div class="stat-card">
 
-            <div class="stat-title">
-                Sucursal 1
+                    <div class="stat-title">
+                        {{ $sucursalCard->nombre }}
+                    </div>
+
+                    <div class="stat-number">
+                        {{ $porSucursal[$sucursalCard->id] ?? 0 }}
+                    </div>
+
+                    <div class="stat-description">
+                        Instructores asignados
+                    </div>
+
+                </div>
+            @endforeach
+        @else
+            <div class="stat-card">
+
+                <div class="stat-title">
+                    Activos
+                </div>
+
+                <div class="stat-number">
+                    {{ $instructores->filter(fn ($fila) => $fila['instructor']->estado === 'activo')->count() }}
+                </div>
+
+                <div class="stat-description">
+                    Habilitados para dar clase
+                </div>
+
             </div>
 
-            <div class="stat-number">
-                10
+            <div class="stat-card">
+
+                <div class="stat-title">
+                    Inactivos
+                </div>
+
+                <div class="stat-number">
+                    {{ $instructores->filter(fn ($fila) => $fila['instructor']->estado !== 'activo')->count() }}
+                </div>
+
+                <div class="stat-description">
+                    Desactivados temporalmente
+                </div>
+
             </div>
-
-            <div class="stat-description">
-                Instructores asignados
-            </div>
-
-        </div>
-
-
-        <div class="stat-card">
-
-            <div class="stat-title">
-                Sucursal 2
-            </div>
-
-            <div class="stat-number">
-                8
-            </div>
-
-            <div class="stat-description">
-                Instructores asignados
-            </div>
-
-        </div>
+        @endif
 
     </div>
 
@@ -536,238 +450,100 @@
                 <tbody>
 
 
-                    <tr>
+                    @forelse ($instructores as $fila)
+                        @php($instructor = $fila['instructor'])
+                        <tr
+                            data-id="{{ $instructor->id }}"
+                            data-name="{{ $instructor->user?->name }}"
+                            data-email="{{ $instructor->user?->email }}"
+                            data-telefono="{{ $instructor->user?->telefono }}"
+                            data-especialidad="{{ $instructor->especialidad }}">
 
-                        <td>
+                            <td>
 
-                            <div class="instructor">
+                                <div class="instructor">
 
-                                <div class="avatar">
-                                    MG
-                                </div>
+                                    <div class="row-avatar">
+                                        {{ $fila['iniciales'] }}
+                                    </div>
 
-                                <div class="instructor-info">
+                                    <div class="instructor-info">
 
-                                    <strong>
-                                        Mariana García
-                                    </strong>
+                                        <strong>
+                                            {{ $instructor->user?->name ?? 'Sin usuario' }}
+                                        </strong>
 
-                                    <small>
-                                        mariana@quantika.com
-                                    </small>
+                                        <small>
+                                            {{ $instructor->user?->email }}
+                                        </small>
 
-                                </div>
-
-                            </div>
-
-                        </td>
-
-
-                        <td>
-
-                            <span class="branch">
-
-                                <span class="dot"></span>
-
-                                Sucursal 1
-
-                            </span>
-
-                        </td>
-
-
-                        <td>
-                            Nivel avanzado
-                        </td>
-
-
-                        <td class="available">
-                            Disponible
-                        </td>
-
-
-                        <td class="available">
-                            ● Activo
-                        </td>
-
-
-                        <td>
-
-                            <div class="table-actions">
-
-                                <button class="icon-btn">
-                                    👁
-                                </button>
-
-                                <button class="icon-btn">
-                                    ✎
-                                </button>
-
-                                <button class="icon-btn">
-                                    ⋮
-                                </button>
-
-                            </div>
-
-                        </td>
-
-                    </tr>
-
-
-                    <tr>
-
-                        <td>
-
-                            <div class="instructor">
-
-                                <div class="avatar">
-                                    CR
-                                </div>
-
-                                <div class="instructor-info">
-
-                                    <strong>
-                                        Carlos Ramírez
-                                    </strong>
-
-                                    <small>
-                                        carlos@quantika.com
-                                    </small>
+                                    </div>
 
                                 </div>
 
-                            </div>
-
-                        </td>
+                            </td>
 
 
-                        <td>
+                            <td>
 
-                            <span class="branch">
+                                <span class="branch">
 
-                                <span class="dot"></span>
+                                    <span class="dot"></span>
 
-                                Sucursal 1
+                                    {{ $instructor->sucursal?->nombre }}
 
-                            </span>
+                                </span>
 
-                        </td>
-
-
-                        <td>
-                            Nivel intermedio
-                        </td>
+                            </td>
 
 
-                        <td class="busy">
-                            En clase
-                        </td>
+                            <td>
+                                {{ $instructor->especialidad ?? 'Sin especialidad' }}
+                            </td>
 
 
-                        <td class="available">
-                            ● Activo
-                        </td>
+                            <td class="{{ $fila['enClase'] ? 'busy' : 'available' }}">
+                                {{ $fila['enClase'] ? 'En clase' : 'Disponible' }}
+                            </td>
 
 
-                        <td>
-
-                            <div class="table-actions">
-
-                                <button class="icon-btn">
-                                    👁
-                                </button>
-
-                                <button class="icon-btn">
-                                    ✎
-                                </button>
-
-                                <button class="icon-btn">
-                                    ⋮
-                                </button>
-
-                            </div>
-
-                        </td>
-
-                    </tr>
+                            <td class="{{ $instructor->estado === 'activo' ? 'available' : 'busy' }}">
+                                ● {{ $instructor->estado === 'activo' ? 'Activo' : 'Inactivo' }}
+                            </td>
 
 
-                    <tr>
+                            <td>
 
-                        <td>
+                                <div class="table-actions">
 
-                            <div class="instructor">
+                                    <a href="{{ route('evaluaciones.instructor', $instructor) }}" class="icon-btn" title="Ver evaluaciones" style="display:inline-flex;align-items:center;justify-content:center;text-decoration:none;">
+                                        👁
+                                    </a>
 
-                                <div class="avatar">
-                                    VS
-                                </div>
+                                    <button type="button" class="icon-btn" title="Editar" onclick="abrirModalInstructor(this.closest('tr'))">
+                                        ✎
+                                    </button>
 
-                                <div class="instructor-info">
-
-                                    <strong>
-                                        Valentina Sánchez
-                                    </strong>
-
-                                    <small>
-                                        valentina@quantika.com
-                                    </small>
+                                    <form action="{{ route('instructores.toggle-estado', $instructor) }}" method="POST" style="display:inline;" onsubmit="return confirm('¿Cambiar el estado de {{ $instructor->user?->name }}?');">
+                                        @csrf
+                                        @method('PATCH')
+                                        <button type="submit" class="icon-btn" title="Activar/Desactivar">
+                                            ⋮
+                                        </button>
+                                    </form>
 
                                 </div>
 
-                            </div>
+                            </td>
 
-                        </td>
-
-
-                        <td>
-
-                            <span class="branch">
-
-                                <span class="dot"></span>
-
-                                Sucursal 2
-
-                            </span>
-
-                        </td>
-
-
-                        <td>
-                            Nivel avanzado
-                        </td>
-
-
-                        <td class="available">
-                            Disponible
-                        </td>
-
-
-                        <td class="available">
-                            ● Activo
-                        </td>
-
-
-                        <td>
-
-                            <div class="table-actions">
-
-                                <button class="icon-btn">
-                                    👁
-                                </button>
-
-                                <button class="icon-btn">
-                                    ✎
-                                </button>
-
-                                <button class="icon-btn">
-                                    ⋮
-                                </button>
-
-                            </div>
-
-                        </td>
-
-                    </tr>
+                        </tr>
+                    @empty
+                        <tr>
+                            <td colspan="6" style="text-align:center;color:#71a5ba;">
+                                No hay instructores registrados todavía.
+                            </td>
+                        </tr>
+                    @endforelse
 
 
                 </tbody>
@@ -779,113 +555,129 @@
     </div>
 
 
-    <!-- FUNCIONES DEL PORTAL -->
+    <!-- =========================================================
+         MODAL INSTRUCTOR (crear / editar)
+    ========================================================== -->
 
-    <div class="panel">
+    <div id="modalInstructor" style="display:none;position:fixed;inset:0;z-index:200;background:rgba(1,15,23,.7);align-items:center;justify-content:center;">
 
-        <div class="panel-header">
+        <div style="width:100%;max-width:480px;max-height:90vh;overflow-y:auto;background:#052d40;border:1px solid rgba(65,208,235,.25);border-radius:20px;padding:28px;">
 
-            <h2>Portal de instructores</h2>
-
-            <span>
-                Funciones disponibles
-            </span>
-
-        </div>
-
-
-        <div style="
-            display:grid;
-            grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
-            gap:15px;
-            padding:25px;
-        ">
-
-
-            <div class="stat-card">
-
-                <div class="stat-title">
-                    Agenda
-                </div>
-
-                <div style="font-size:15px;">
-                    Agenda diaria y semanal.
-                </div>
-
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;">
+                <h2 id="modalInstructorTitulo" style="font-size:20px;">Registrar instructor</h2>
+                <button type="button" onclick="cerrarModalInstructor()" style="background:none;border:none;color:white;font-size:22px;cursor:pointer;">×</button>
             </div>
 
+            @if ($errors->any())
+                <div style="margin-bottom:14px;padding:12px 16px;border-radius:12px;background:rgba(255,95,109,.10);border:1px solid rgba(255,95,109,.35);color:#ff9aa1;font-size:12px;">
+                    <ul style="margin:0 0 0 16px;">
+                        @foreach ($errors->all() as $error)
+                            <li>{{ $error }}</li>
+                        @endforeach
+                    </ul>
+                </div>
+            @endif
 
-            <div class="stat-card">
+            <form id="formInstructorCrear" method="POST" action="{{ route('instructores.store') }}">
+                @csrf
 
-                <div class="stat-title">
-                    Alumnos
+                <?php
+                    $campoEstilo = 'width:100%;margin-top:6px;margin-bottom:14px;height:48px;padding:0 14px;border-radius:12px;border:1px solid rgba(83,214,238,.20);background:#042337;color:white;';
+                ?>
+
+                <label>Nombre completo</label>
+                <input type="text" name="name" required style="{{ $campoEstilo }}" placeholder="Nombre del instructor">
+
+                <label>Correo electrónico</label>
+                <input type="email" name="email" required style="{{ $campoEstilo }}" placeholder="correo@quantika.com">
+
+                <label>Teléfono</label>
+                <input type="text" name="telefono" style="{{ $campoEstilo }}" placeholder="10 dígitos">
+
+                <label>Especialidad</label>
+                <input type="text" name="especialidad" style="{{ $campoEstilo }}" placeholder="Nivel avanzado, natación adaptada, etc.">
+
+                @if ($esVistaGlobal)
+                    <label>Sucursal</label>
+                    <select name="sucursal_id" required style="{{ $campoEstilo }}">
+                        <option value="">Seleccionar sucursal</option>
+                        @foreach ($sucursales as $sucursalOpcion)
+                            <option value="{{ $sucursalOpcion->id }}">{{ $sucursalOpcion->nombre }}</option>
+                        @endforeach
+                    </select>
+                @endif
+
+                <div style="display:flex;gap:12px;margin-top:10px;">
+                    <button type="submit" class="btn btn-primary">Registrar instructor</button>
+                    <button type="button" class="btn-secondary" onclick="cerrarModalInstructor()">Cancelar</button>
                 </div>
 
-                <div style="font-size:15px;">
-                    Consulta de alumnos por grupo y carril.
+            </form>
+
+            <form id="formInstructorEditar" method="POST" style="display:none;">
+                @csrf
+                @method('PUT')
+
+                <label>Nombre completo</label>
+                <input type="text" name="name" required style="{{ $campoEstilo }}">
+
+                <label>Correo electrónico</label>
+                <input type="email" name="email" required style="{{ $campoEstilo }}">
+
+                <label>Teléfono</label>
+                <input type="text" name="telefono" style="{{ $campoEstilo }}">
+
+                <label>Especialidad</label>
+                <input type="text" name="especialidad" style="{{ $campoEstilo }}">
+
+                <div style="display:flex;gap:12px;margin-top:10px;">
+                    <button type="submit" class="btn btn-primary">Guardar cambios</button>
+                    <button type="button" class="btn-secondary" onclick="cerrarModalInstructor()">Cancelar</button>
                 </div>
 
-            </div>
-
-
-            <div class="stat-card">
-
-                <div class="stat-title">
-                    Asistencia
-                </div>
-
-                <div style="font-size:15px;">
-                    Registro de asistencia.
-                </div>
-
-            </div>
-
-
-            <div class="stat-card">
-
-                <div class="stat-title">
-                    Evaluaciones
-                </div>
-
-                <div style="font-size:15px;">
-                    Evaluación por clase y criterio.
-                </div>
-
-            </div>
-
-
-            <div class="stat-card">
-
-                <div class="stat-title">
-                    Habilidades
-                </div>
-
-                <div style="font-size:15px;">
-                    No iniciado · En proceso · Logrado.
-                </div>
-
-            </div>
-
-
-            <div class="stat-card">
-
-                <div class="stat-title">
-                    Observaciones
-                </div>
-
-                <div style="font-size:15px;">
-                    Comentarios y observaciones.
-                </div>
-
-            </div>
-
+            </form>
 
         </div>
 
     </div>
 
+@endsection
 
-</div>
+@push('scripts')
+<script>
 
-</body>
-</html>
+function abrirModalInstructor(fila) {
+
+    const modal = document.getElementById('modalInstructor');
+    const formCrear = document.getElementById('formInstructorCrear');
+    const formEditar = document.getElementById('formInstructorEditar');
+    const titulo = document.getElementById('modalInstructorTitulo');
+
+    if (fila) {
+        titulo.textContent = 'Editar instructor';
+        formCrear.style.display = 'none';
+        formEditar.style.display = 'block';
+        formEditar.action = '/instructores/' + fila.dataset.id;
+        formEditar.querySelector('[name="name"]').value = fila.dataset.name || '';
+        formEditar.querySelector('[name="email"]').value = fila.dataset.email || '';
+        formEditar.querySelector('[name="telefono"]').value = fila.dataset.telefono || '';
+        formEditar.querySelector('[name="especialidad"]').value = fila.dataset.especialidad || '';
+    } else {
+        titulo.textContent = 'Registrar instructor';
+        formCrear.style.display = 'block';
+        formEditar.style.display = 'none';
+    }
+
+    modal.style.display = 'flex';
+}
+
+function cerrarModalInstructor() {
+    document.getElementById('modalInstructor').style.display = 'none';
+}
+
+@if ($errors->any())
+    document.addEventListener('DOMContentLoaded', function () { abrirModalInstructor(); });
+@endif
+
+</script>
+@endpush
