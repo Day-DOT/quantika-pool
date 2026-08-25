@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,7 +8,6 @@
     <title>Instructores | Quantika Pool</title>
 
     <style>
-
         * {
             box-sizing: border-box;
             margin: 0;
@@ -29,11 +29,9 @@
             min-height: 100vh;
             padding: 35px;
             background:
-                radial-gradient(
-                    circle at top right,
+                radial-gradient(circle at top right,
                     rgba(39, 201, 235, .08),
-                    transparent 35%
-                ),
+                    transparent 35%),
                 #031f2f;
         }
 
@@ -124,11 +122,9 @@
         }
 
         .stat-card {
-            background: linear-gradient(
-                145deg,
-                #07394e,
-                #052d40
-            );
+            background: linear-gradient(145deg,
+                    #07394e,
+                    #052d40);
 
             border: 1px solid rgba(69, 207, 234, .18);
             border-radius: 18px;
@@ -182,7 +178,7 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            border-bottom: 1px solid rgba(255,255,255,.08);
+            border-bottom: 1px solid rgba(255, 255, 255, .08);
         }
 
         .panel-header h2 {
@@ -218,7 +214,7 @@
 
         td {
             padding: 18px 22px;
-            border-top: 1px solid rgba(255,255,255,.06);
+            border-top: 1px solid rgba(255, 255, 255, .06);
             color: #d8e8ee;
         }
 
@@ -265,8 +261,8 @@
             display: inline-flex;
             align-items: center;
             gap: 7px;
-            background: rgba(65,208,235,.08);
-            border: 1px solid rgba(65,208,235,.15);
+            background: rgba(65, 208, 235, .08);
+            border: 1px solid rgba(65, 208, 235, .15);
             padding: 7px 11px;
             border-radius: 20px;
             font-size: 13px;
@@ -306,7 +302,7 @@
             width: 36px;
             height: 36px;
             border-radius: 10px;
-            border: 1px solid rgba(255,255,255,.08);
+            border: 1px solid rgba(255, 255, 255, .08);
             background: #08384d;
             color: white;
             cursor: pointer;
@@ -359,442 +355,442 @@
             }
 
         }
-
     </style>
 </head>
 
 <body>
 
-<div class="page">
+    <div class="page">
 
-    <!-- ENCABEZADO -->
+        <!-- ENCABEZADO -->
 
-    <div class="top-header">
+        <div class="top-header">
 
-        <div class="header-left">
+            <div class="header-left">
 
-            <h1>Instructores</h1>
+                <h1>Instructores</h1>
 
-            <p>
-                Administración de instructores y disponibilidad.
-            </p>
+                <p>
+                    Administración de instructores y disponibilidad.
+                </p>
 
-        </div>
-
-        <a href="{{ route('admin.dashboard') }}" class="back-button">
-            ← Volver al Dashboard
-        </a>
-
-    </div>
-
-
-    <!-- BOTONES -->
-
-    <div class="actions">
-
-        <a href="#" class="btn btn-primary">
-            + Registrar instructor
-        </a>
-
-        <a href="#" class="btn btn-secondary">
-            Disponibilidad
-        </a>
-
-        <a href="#" class="btn btn-secondary">
-            Horarios
-        </a>
-
-    </div>
-
-
-    <!-- ESTADÍSTICAS -->
-
-    <div class="stats">
-
-        <div class="stat-card">
-
-            <div class="stat-title">
-                Instructores registrados
             </div>
 
-            <div class="stat-number">
-                18
-            </div>
-
-            <div class="stat-description">
-                ↑ 3 este mes
-            </div>
+            <a href="{{ route('admin.dashboard') }}" class="back-button">
+                ← Volver al Dashboard
+            </a>
 
         </div>
 
 
-        <div class="stat-card">
+        <!-- BOTONES -->
 
-            <div class="stat-title">
-                Disponibles hoy
+        <div class="actions">
+
+            <a href="#" class="btn btn-primary">
+                + Registrar instructor
+            </a>
+
+            <a href="#" class="btn btn-secondary">
+                Disponibilidad
+            </a>
+
+            <a href="#" class="btn btn-secondary">
+                Horarios
+            </a>
+
+        </div>
+
+
+        <!-- ESTADÍSTICAS -->
+
+        <div class="stats">
+
+            <div class="stat-card">
+
+                <div class="stat-title">
+                    Instructores registrados
+                </div>
+
+                <div class="stat-number">
+                    18
+                </div>
+
+                <div class="stat-description">
+                    ↑ 3 este mes
+                </div>
+
             </div>
 
-            <div class="stat-number">
-                16
+
+            <div class="stat-card">
+
+                <div class="stat-title">
+                    Disponibles hoy
+                </div>
+
+                <div class="stat-number">
+                    16
+                </div>
+
+                <div class="stat-description">
+                    Disponibilidad activa
+                </div>
+
             </div>
 
-            <div class="stat-description">
-                Disponibilidad activa
+
+            <div class="stat-card">
+
+                <div class="stat-title">
+                    Sucursal 1
+                </div>
+
+                <div class="stat-number">
+                    10
+                </div>
+
+                <div class="stat-description">
+                    Instructores asignados
+                </div>
+
+            </div>
+
+
+            <div class="stat-card">
+
+                <div class="stat-title">
+                    Sucursal 2
+                </div>
+
+                <div class="stat-number">
+                    8
+                </div>
+
+                <div class="stat-description">
+                    Instructores asignados
+                </div>
+
             </div>
 
         </div>
 
 
-        <div class="stat-card">
+        <!-- LISTA -->
 
-            <div class="stat-title">
-                Sucursal 1
+        <div class="panel">
+
+            <div class="panel-header">
+
+                <h2>Equipo de instructores</h2>
+
+                <span>
+                    Administración del personal
+                </span>
+
             </div>
 
-            <div class="stat-number">
-                10
-            </div>
 
-            <div class="stat-description">
-                Instructores asignados
-            </div>
+            <div class="table-container">
 
-        </div>
+                <table>
 
+                    <thead>
 
-        <div class="stat-card">
+                        <tr>
 
-            <div class="stat-title">
-                Sucursal 2
-            </div>
+                            <th>
+                                Instructor
+                            </th>
 
-            <div class="stat-number">
-                8
-            </div>
+                            <th>
+                                Sucursal
+                            </th>
 
-            <div class="stat-description">
-                Instructores asignados
-            </div>
+                            <th>
+                                Especialidad
+                            </th>
 
-        </div>
+                            <th>
+                                Disponibilidad
+                            </th>
 
-    </div>
+                            <th>
+                                Estado
+                            </th>
 
+                            <th>
+                                Acciones
+                            </th>
 
-    <!-- LISTA -->
+                        </tr>
 
-    <div class="panel">
+                    </thead>
 
-        <div class="panel-header">
 
-            <h2>Equipo de instructores</h2>
+                    <tbody>
 
-            <span>
-                Administración del personal
-            </span>
 
-        </div>
+                        <tr>
 
+                            <td>
 
-        <div class="table-container">
+                                <div class="instructor">
 
-            <table>
+                                    <div class="avatar">
+                                        MG
+                                    </div>
 
-                <thead>
+                                    <div class="instructor-info">
 
-                    <tr>
+                                        <strong>
+                                            Mariana García
+                                        </strong>
 
-                        <th>
-                            Instructor
-                        </th>
+                                        <small>
+                                            mariana@quantika.com
+                                        </small>
 
-                        <th>
-                            Sucursal
-                        </th>
-
-                        <th>
-                            Especialidad
-                        </th>
-
-                        <th>
-                            Disponibilidad
-                        </th>
-
-                        <th>
-                            Estado
-                        </th>
-
-                        <th>
-                            Acciones
-                        </th>
-
-                    </tr>
-
-                </thead>
-
-
-                <tbody>
-
-
-                    <tr>
-
-                        <td>
-
-                            <div class="instructor">
-
-                                <div class="avatar">
-                                    MG
-                                </div>
-
-                                <div class="instructor-info">
-
-                                    <strong>
-                                        Mariana García
-                                    </strong>
-
-                                    <small>
-                                        mariana@quantika.com
-                                    </small>
-
-                                </div>
-
-                            </div>
-
-                        </td>
-
-
-                        <td>
-
-                            <span class="branch">
-
-                                <span class="dot"></span>
-
-                                Sucursal 1
-
-                            </span>
-
-                        </td>
-
-
-                        <td>
-                            Nivel avanzado
-                        </td>
-
-
-                        <td class="available">
-                            Disponible
-                        </td>
-
-
-                        <td class="available">
-                            ● Activo
-                        </td>
-
-
-                        <td>
-
-                            <div class="table-actions">
-
-                                <button class="icon-btn">
-                                    👁
-                                </button>
-
-                                <button class="icon-btn">
-                                    ✎
-                                </button>
-
-                                <button class="icon-btn">
-                                    ⋮
-                                </button>
-
-                            </div>
-
-                        </td>
-
-                    </tr>
-
-
-                    <tr>
-
-                        <td>
-
-                            <div class="instructor">
-
-                                <div class="avatar">
-                                    CR
-                                </div>
-
-                                <div class="instructor-info">
-
-                                    <strong>
-                                        Carlos Ramírez
-                                    </strong>
-
-                                    <small>
-                                        carlos@quantika.com
-                                    </small>
+                                    </div>
 
                                 </div>
 
-                            </div>
-
-                        </td>
+                            </td>
 
 
-                        <td>
+                            <td>
 
-                            <span class="branch">
+                                <span class="branch">
 
-                                <span class="dot"></span>
+                                    <span class="dot"></span>
 
-                                Sucursal 1
+                                    Sucursal 1
 
-                            </span>
+                                </span>
 
-                        </td>
-
-
-                        <td>
-                            Nivel intermedio
-                        </td>
+                            </td>
 
 
-                        <td class="busy">
-                            En clase
-                        </td>
+                            <td>
+                                Nivel avanzado
+                            </td>
 
 
-                        <td class="available">
-                            ● Activo
-                        </td>
+                            <td class="available">
+                                Disponible
+                            </td>
 
 
-                        <td>
-
-                            <div class="table-actions">
-
-                                <button class="icon-btn">
-                                    👁
-                                </button>
-
-                                <button class="icon-btn">
-                                    ✎
-                                </button>
-
-                                <button class="icon-btn">
-                                    ⋮
-                                </button>
-
-                            </div>
-
-                        </td>
-
-                    </tr>
+                            <td class="available">
+                                ● Activo
+                            </td>
 
 
-                    <tr>
+                            <td>
 
-                        <td>
+                                <div class="table-actions">
 
-                            <div class="instructor">
+                                    <button class="icon-btn">
+                                        👁
+                                    </button>
 
-                                <div class="avatar">
-                                    VS
-                                </div>
+                                    <button class="icon-btn">
+                                        ✎
+                                    </button>
 
-                                <div class="instructor-info">
-
-                                    <strong>
-                                        Valentina Sánchez
-                                    </strong>
-
-                                    <small>
-                                        valentina@quantika.com
-                                    </small>
+                                    <button class="icon-btn">
+                                        ⋮
+                                    </button>
 
                                 </div>
 
-                            </div>
+                            </td>
 
-                        </td>
-
-
-                        <td>
-
-                            <span class="branch">
-
-                                <span class="dot"></span>
-
-                                Sucursal 2
-
-                            </span>
-
-                        </td>
+                        </tr>
 
 
-                        <td>
-                            Nivel avanzado
-                        </td>
+                        <tr>
+
+                            <td>
+
+                                <div class="instructor">
+
+                                    <div class="avatar">
+                                        CR
+                                    </div>
+
+                                    <div class="instructor-info">
+
+                                        <strong>
+                                            Carlos Ramírez
+                                        </strong>
+
+                                        <small>
+                                            carlos@quantika.com
+                                        </small>
+
+                                    </div>
+
+                                </div>
+
+                            </td>
 
 
-                        <td class="available">
-                            Disponible
-                        </td>
+                            <td>
+
+                                <span class="branch">
+
+                                    <span class="dot"></span>
+
+                                    Sucursal 1
+
+                                </span>
+
+                            </td>
 
 
-                        <td class="available">
-                            ● Activo
-                        </td>
+                            <td>
+                                Nivel intermedio
+                            </td>
 
 
-                        <td>
-
-                            <div class="table-actions">
-
-                                <button class="icon-btn">
-                                    👁
-                                </button>
-
-                                <button class="icon-btn">
-                                    ✎
-                                </button>
-
-                                <button class="icon-btn">
-                                    ⋮
-                                </button>
-
-                            </div>
-
-                        </td>
-
-                    </tr>
+                            <td class="busy">
+                                En clase
+                            </td>
 
 
-                </tbody>
+                            <td class="available">
+                                ● Activo
+                            </td>
 
-            </table>
+
+                            <td>
+
+                                <div class="table-actions">
+
+                                    <button class="icon-btn">
+                                        👁
+                                    </button>
+
+                                    <button class="icon-btn">
+                                        ✎
+                                    </button>
+
+                                    <button class="icon-btn">
+                                        ⋮
+                                    </button>
+
+                                </div>
+
+                            </td>
+
+                        </tr>
+
+
+                        <tr>
+
+                            <td>
+
+                                <div class="instructor">
+
+                                    <div class="avatar">
+                                        VS
+                                    </div>
+
+                                    <div class="instructor-info">
+
+                                        <strong>
+                                            Valentina Sánchez
+                                        </strong>
+
+                                        <small>
+                                            valentina@quantika.com
+                                        </small>
+
+                                    </div>
+
+                                </div>
+
+                            </td>
+
+
+                            <td>
+
+                                <span class="branch">
+
+                                    <span class="dot"></span>
+
+                                    Sucursal 2
+
+                                </span>
+
+                            </td>
+
+
+                            <td>
+                                Nivel avanzado
+                            </td>
+
+
+                            <td class="available">
+                                Disponible
+                            </td>
+
+
+                            <td class="available">
+                                ● Activo
+                            </td>
+
+
+                            <td>
+
+                                <div class="table-actions">
+
+                                    <button class="icon-btn">
+                                        👁
+                                    </button>
+
+                                    <button class="icon-btn">
+                                        ✎
+                                    </button>
+
+                                    <button class="icon-btn">
+                                        ⋮
+                                    </button>
+
+                                </div>
+
+                            </td>
+
+                        </tr>
+
+
+                    </tbody>
+
+                </table>
+
+            </div>
 
         </div>
 
-    </div>
+
+        <!-- FUNCIONES DEL PORTAL -->
+
+        <div class="panel">
+
+            <div class="panel-header">
+
+                <h2>Portal de instructores</h2>
+
+                <span>
+                    Funciones disponibles
+                </span>
+
+            </div>
 
 
-    <!-- FUNCIONES DEL PORTAL -->
-
-    <div class="panel">
-
-        <div class="panel-header">
-
-            <h2>Portal de instructores</h2>
-
-            <span>
-                Funciones disponibles
-            </span>
-
-        </div>
-
-
-        <div style="
+            <div
+                style="
             display:grid;
             grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
             gap:15px;
@@ -802,90 +798,91 @@
         ">
 
 
-            <div class="stat-card">
+                <div class="stat-card">
 
-                <div class="stat-title">
-                    Agenda
+                    <div class="stat-title">
+                        Agenda
+                    </div>
+
+                    <div style="font-size:15px;">
+                        Agenda diaria y semanal.
+                    </div>
+
                 </div>
 
-                <div style="font-size:15px;">
-                    Agenda diaria y semanal.
+
+                <div class="stat-card">
+
+                    <div class="stat-title">
+                        Alumnos
+                    </div>
+
+                    <div style="font-size:15px;">
+                        Consulta de alumnos por grupo y carril.
+                    </div>
+
                 </div>
+
+
+                <div class="stat-card">
+
+                    <div class="stat-title">
+                        Asistencia
+                    </div>
+
+                    <div style="font-size:15px;">
+                        Registro de asistencia.
+                    </div>
+
+                </div>
+
+
+                <div class="stat-card">
+
+                    <div class="stat-title">
+                        Evaluaciones
+                    </div>
+
+                    <div style="font-size:15px;">
+                        Evaluación por clase y criterio.
+                    </div>
+
+                </div>
+
+
+                <div class="stat-card">
+
+                    <div class="stat-title">
+                        Habilidades
+                    </div>
+
+                    <div style="font-size:15px;">
+                        No iniciado · En proceso · Logrado.
+                    </div>
+
+                </div>
+
+
+                <div class="stat-card">
+
+                    <div class="stat-title">
+                        Observaciones
+                    </div>
+
+                    <div style="font-size:15px;">
+                        Comentarios y observaciones.
+                    </div>
+
+                </div>
+
 
             </div>
-
-
-            <div class="stat-card">
-
-                <div class="stat-title">
-                    Alumnos
-                </div>
-
-                <div style="font-size:15px;">
-                    Consulta de alumnos por grupo y carril.
-                </div>
-
-            </div>
-
-
-            <div class="stat-card">
-
-                <div class="stat-title">
-                    Asistencia
-                </div>
-
-                <div style="font-size:15px;">
-                    Registro de asistencia.
-                </div>
-
-            </div>
-
-
-            <div class="stat-card">
-
-                <div class="stat-title">
-                    Evaluaciones
-                </div>
-
-                <div style="font-size:15px;">
-                    Evaluación por clase y criterio.
-                </div>
-
-            </div>
-
-
-            <div class="stat-card">
-
-                <div class="stat-title">
-                    Habilidades
-                </div>
-
-                <div style="font-size:15px;">
-                    No iniciado · En proceso · Logrado.
-                </div>
-
-            </div>
-
-
-            <div class="stat-card">
-
-                <div class="stat-title">
-                    Observaciones
-                </div>
-
-                <div style="font-size:15px;">
-                    Comentarios y observaciones.
-                </div>
-
-            </div>
-
 
         </div>
 
+
     </div>
 
-
-</div>
-
 </body>
+
 </html>

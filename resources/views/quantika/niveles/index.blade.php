@@ -325,7 +325,7 @@
     <div class="top-actions">
 
         <div class="section-title">
-            Niveles de natación
+            Niveles de nataciónnn
         </div>
 
         <button class="add-btn">
@@ -339,565 +339,109 @@
 
     <div class="levels-grid">
 
+        @php
+            $levels = [
+                [
+                    'number' => 1,
+                    'name' => 'Estrella',
+                    'image' => 'images/Niveles/estrella.png',
+                    'description' => 'Se estimula su confianza a través de juegos y su adaptación al agua. Aprende ejercicios básicos como respiración y el uso correcto del material para la enseñanza de la natación.',
+                    'tag' => 'INICIAL',
+                ],
+                [
+                    'number' => 2,
+                    'name' => 'Caballito de mar',
+                    'image' => 'images/Niveles/caballito-mar.png',
+                    'description' => 'Los ejercicios incrementan la confianza aun en áreas más profundas de la alberca. Aprende flotación y desplazamientos con apoyo de material.',
+                    'tag' => 'INICIAL',
+                ],
+                [
+                    'number' => 3,
+                    'name' => 'Medusa',
+                    'image' => 'images/Niveles/medusa.png',
+                    'description' => 'Incrementa la confianza para realizar desplazamientos con seguridad sin ayuda de material, trabajando flotación y desplazamientos más ágiles.',
+                    'tag' => 'DESARROLLO',
+                ],
+                [
+                    'number' => 4,
+                    'name' => 'Pulpo',
+                    'image' => 'images/Niveles/pulpo.png',
+                    'description' => 'Aprendizaje de movimientos básicos e intermedios para el desplazamiento en agua en estilo crol. También se trabajan clavados hincados y sentados.',
+                    'tag' => 'DESARROLLO',
+                ],
+                [
+                    'number' => 5,
+                    'name' => 'Pez',
+                    'image' => 'images/Niveles/pez.png',
+                    'description' => 'Dominio del estilo de crol y aprendizaje de movimientos básicos e intermedios para mejorar la eficiencia en el desplazamiento en estilo de dorso.',
+                    'tag' => 'DESARROLLO',
+                ],
+                [
+                    'number' => 6,
+                    'name' => 'Mantarraya',
+                    'image' => 'images/Niveles/mantarraya.png',
+                    'description' => 'Dominio del estilo de dorso e incremento de la eficiencia en la práctica de los niveles anteriores.',
+                    'tag' => 'INTERMEDIO',
+                ],
+                [
+                    'number' => 7,
+                    'name' => 'Tortuga',
+                    'image' => 'images/Niveles/tortuga.png',
+                    'description' => 'Nivel enfocado en el aprendizaje de habilidades y técnicas para el dominio del estilo de pecho.',
+                    'tag' => 'INTERMEDIO',
+                ],
+                [
+                    'number' => 8,
+                    'name' => 'Foca',
+                    'image' => 'images/Niveles/foca.png',
+                    'description' => 'Domina los estilos de crol, dorso y pecho, incrementando velocidad, resistencia y habilidades mediante diferentes ejercicios.',
+                    'tag' => 'INTERMEDIO',
+                ],
+                [
+                    'number' => 9,
+                    'name' => 'Delfín',
+                    'image' => 'images/Niveles/delfin.png',
+                    'description' => 'Aprendizaje de movimientos básicos e intermedios para el desplazamiento en el agua mediante el estilo de mariposa.',
+                    'tag' => 'AVANZADO',
+                ],
+                [
+                    'number' => 10,
+                    'name' => 'Orca',
+                    'image' => 'images/Niveles/orca.png',
+                    'description' => 'Dominio de los cuatro estilos de natación: crol, dorso, pecho y mariposa. Se inicia la enseñanza de salida competitiva, vueltas y llegadas reglamentarias.',
+                    'tag' => 'AVANZADO',
+                ],
+                [
+                    'number' => 11,
+                    'name' => 'Ballena',
+                    'image' => 'images/Niveles/ballena.png',
+                    'description' => 'Se comprueba que en los niveles anteriores se haya adquirido una técnica adecuada mediante pruebas de diferentes distancias y estilos.',
+                    'tag' => 'AVANZADO',
+                ],
+                [
+                    'number' => 12,
+                    'name' => 'Tiburón',
+                    'image' => 'images/Niveles/tiburon.png',
+                    'description' => 'En este nivel se logra un dominio total dentro del agua, adquiriendo un alto nivel de destreza para nadar.',
+                    'tag' => 'DOMINIO',
+                ],
+            ];
+        @endphp
+
+        @foreach ($levels as $level)
+            <x-level-card
+                :number="$level['number']"
+                :name="$level['name']"
+                :image="$level['image']"
+                :description="$level['description']"
+                :tag="$level['tag']"
+            />
+        @endforeach
 
-        <!-- 01 ESTRELLA -->
 
-        <div class="level-card">
 
-            <div class="animal-area">
 
-                <img
-                    src="{{ asset('images/Niveles/estrella.png') }}"
-                    alt="Estrella"
-                    class="animal-image"
-                >
 
-            </div>
-
-            <div class="level-content">
-
-                <span class="level-number">
-                    NIVEL 01
-                </span>
-
-                <h2 class="level-name">
-                    Estrella
-                </h2>
-
-                <p class="level-description">
-                    Se estimula su confianza a través de juegos y su adaptación
-                    al agua. Aprende ejercicios básicos como respiración y el uso
-                    correcto del material para la enseñanza de la natación.
-                </p>
-
-                <div class="level-footer">
-
-                    <span class="level-tag">
-                        INICIAL
-                    </span>
-
-                    <a href="#" class="view-btn">
-                        Ver nivel →
-                    </a>
-
-                </div>
-
-            </div>
-
-        </div>
-
-
-        <!-- 02 CABALLITO DE MAR -->
-
-        <div class="level-card">
-
-            <div class="animal-area">
-
-                <img
-                    src="{{ asset('images/Niveles/caballito-mar.png') }}"
-                    alt="Caballito de mar"
-                    class="animal-image"
-                >
-
-            </div>
-
-            <div class="level-content">
-
-                <span class="level-number">
-                    NIVEL 02
-                </span>
-
-                <h2 class="level-name">
-                    Caballito de mar
-                </h2>
-
-                <p class="level-description">
-                    Los ejercicios incrementan la confianza aun en áreas más
-                    profundas de la alberca. Aprende flotación y desplazamientos
-                    con apoyo de material.
-                </p>
-
-                <div class="level-footer">
-
-                    <span class="level-tag">
-                        INICIAL
-                    </span>
-
-                    <a href="#" class="view-btn">
-                        Ver nivel →
-                    </a>
-
-                </div>
-
-            </div>
-
-        </div>
-
-
-        <!-- 03 MEDUSA -->
-
-        <div class="level-card">
-
-            <div class="animal-area">
-
-                <img
-                    src="{{ asset('images/Niveles/medusa.png') }}"
-                    alt="Medusa"
-                    class="animal-image"
-                >
-
-            </div>
-
-            <div class="level-content">
-
-                <span class="level-number">
-                    NIVEL 03
-                </span>
-
-                <h2 class="level-name">
-                    Medusa
-                </h2>
-
-                <p class="level-description">
-                    Incrementa la confianza para realizar desplazamientos con
-                    seguridad sin ayuda de material, trabajando flotación y
-                    desplazamientos más ágiles.
-                </p>
-
-                <div class="level-footer">
-
-                    <span class="level-tag">
-                        DESARROLLO
-                    </span>
-
-                    <a href="#" class="view-btn">
-                        Ver nivel →
-                    </a>
-
-                </div>
-
-            </div>
-
-        </div>
-
-
-        <!-- 04 PULPO -->
-
-        <div class="level-card">
-
-            <div class="animal-area">
-
-                <img
-                    src="{{ asset('images/Niveles/pulpo.png') }}"
-                    alt="Pulpo"
-                    class="animal-image"
-                >
-
-            </div>
-
-            <div class="level-content">
-
-                <span class="level-number">
-                    NIVEL 04
-                </span>
-
-                <h2 class="level-name">
-                    Pulpo
-                </h2>
-
-                <p class="level-description">
-                    Aprendizaje de movimientos básicos e intermedios para el
-                    desplazamiento en agua en estilo crol. También se trabajan
-                    clavados hincados y sentados.
-                </p>
-
-                <div class="level-footer">
-
-                    <span class="level-tag">
-                        DESARROLLO
-                    </span>
-
-                    <a href="#" class="view-btn">
-                        Ver nivel →
-                    </a>
-
-                </div>
-
-            </div>
-
-        </div>
-
-
-        <!-- 05 PEZ -->
-
-        <div class="level-card">
-
-            <div class="animal-area">
-
-                <img
-                    src="{{ asset('images/Niveles/pez.png') }}"
-                    alt="Pez"
-                    class="animal-image"
-                >
-
-            </div>
-
-            <div class="level-content">
-
-                <span class="level-number">
-                    NIVEL 05
-                </span>
-
-                <h2 class="level-name">
-                    Pez
-                </h2>
-
-                <p class="level-description">
-                    Dominio del estilo de crol y aprendizaje de movimientos
-                    básicos e intermedios para mejorar la eficiencia en el
-                    desplazamiento en estilo de dorso.
-                </p>
-
-                <div class="level-footer">
-
-                    <span class="level-tag">
-                        DESARROLLO
-                    </span>
-
-                    <a href="#" class="view-btn">
-                        Ver nivel →
-                    </a>
-
-                </div>
-
-            </div>
-
-        </div>
-
-
-        <!-- 06 MANTARRAYA -->
-
-        <div class="level-card">
-
-            <div class="animal-area">
-
-                <img
-                    src="{{ asset('images/Niveles/mantarraya.png') }}"
-                    alt="Mantarraya"
-                    class="animal-image"
-                >
-
-            </div>
-
-            <div class="level-content">
-
-                <span class="level-number">
-                    NIVEL 06
-                </span>
-
-                <h2 class="level-name">
-                    Mantarraya
-                </h2>
-
-                <p class="level-description">
-                    Dominio del estilo de dorso e incremento de la eficiencia
-                    en la práctica de los niveles anteriores.
-                </p>
-
-                <div class="level-footer">
-
-                    <span class="level-tag">
-                        INTERMEDIO
-                    </span>
-
-                    <a href="#" class="view-btn">
-                        Ver nivel →
-                    </a>
-
-                </div>
-
-            </div>
-
-        </div>
-
-
-        <!-- 07 TORTUGA -->
-
-        <div class="level-card">
-
-            <div class="animal-area">
-
-                <img
-                    src="{{ asset('images/Niveles/tortuga.png') }}"
-                    alt="Tortuga"
-                    class="animal-image"
-                >
-
-            </div>
-
-            <div class="level-content">
-
-                <span class="level-number">
-                    NIVEL 07
-                </span>
-
-                <h2 class="level-name">
-                    Tortuga
-                </h2>
-
-                <p class="level-description">
-                    Nivel enfocado en el aprendizaje de habilidades y técnicas
-                    para el dominio del estilo de pecho.
-                </p>
-
-                <div class="level-footer">
-
-                    <span class="level-tag">
-                        INTERMEDIO
-                    </span>
-
-                    <a href="#" class="view-btn">
-                        Ver nivel →
-                    </a>
-
-                </div>
-
-            </div>
-
-        </div>
-
-
-        <!-- 08 FOCA -->
-
-        <div class="level-card">
-
-            <div class="animal-area">
-
-                <img
-                    src="{{ asset('images/Niveles/foca.png') }}"
-                    alt="Foca"
-                    class="animal-image"
-                >
-
-            </div>
-
-            <div class="level-content">
-
-                <span class="level-number">
-                    NIVEL 08
-                </span>
-
-                <h2 class="level-name">
-                    Foca
-                </h2>
-
-                <p class="level-description">
-                    Domina los estilos de crol, dorso y pecho, incrementando
-                    velocidad, resistencia y habilidades mediante diferentes
-                    ejercicios.
-                </p>
-
-                <div class="level-footer">
-
-                    <span class="level-tag">
-                        INTERMEDIO
-                    </span>
-
-                    <a href="#" class="view-btn">
-                        Ver nivel →
-                    </a>
-
-                </div>
-
-            </div>
-
-        </div>
-
-
-        <!-- 09 DELFÍN -->
-
-        <div class="level-card">
-
-            <div class="animal-area">
-
-                <img
-                    src="{{ asset('images/Niveles/delfin.png') }}"
-                    alt="Delfín"
-                    class="animal-image"
-                >
-
-            </div>
-
-            <div class="level-content">
-
-                <span class="level-number">
-                    NIVEL 09
-                </span>
-
-                <h2 class="level-name">
-                    Delfín
-                </h2>
-
-                <p class="level-description">
-                    Aprendizaje de movimientos básicos e intermedios para el
-                    desplazamiento en el agua mediante el estilo de mariposa.
-                </p>
-
-                <div class="level-footer">
-
-                    <span class="level-tag">
-                        AVANZADO
-                    </span>
-
-                    <a href="#" class="view-btn">
-                        Ver nivel →
-                    </a>
-
-                </div>
-
-            </div>
-
-        </div>
-
-
-        <!-- 10 ORCA -->
-
-        <div class="level-card">
-
-            <div class="animal-area">
-
-                <img
-                    src="{{ asset('images/Niveles/orca.png') }}"
-                    alt="Orca"
-                    class="animal-image"
-                >
-
-            </div>
-
-            <div class="level-content">
-
-                <span class="level-number">
-                    NIVEL 10
-                </span>
-
-                <h2 class="level-name">
-                    Orca
-                </h2>
-
-                <p class="level-description">
-                    Dominio de los cuatro estilos de natación: crol, dorso,
-                    pecho y mariposa. Se inicia la enseñanza de salida
-                    competitiva, vueltas y llegadas reglamentarias.
-                </p>
-
-                <div class="level-footer">
-
-                    <span class="level-tag">
-                        AVANZADO
-                    </span>
-
-                    <a href="#" class="view-btn">
-                        Ver nivel →
-                    </a>
-
-                </div>
-
-            </div>
-
-        </div>
-
-
-        <!-- 11 BALLENA -->
-
-        <div class="level-card">
-
-            <div class="animal-area">
-
-                <img
-                    src="{{ asset('images/Niveles/ballena.png') }}"
-                    alt="Ballena"
-                    class="animal-image"
-                >
-
-            </div>
-
-            <div class="level-content">
-
-                <span class="level-number">
-                    NIVEL 11
-                </span>
-
-                <h2 class="level-name">
-                    Ballena
-                </h2>
-
-                <p class="level-description">
-                    Se comprueba que en los niveles anteriores se haya adquirido
-                    una técnica adecuada mediante pruebas de diferentes
-                    distancias y estilos.
-                </p>
-
-                <div class="level-footer">
-
-                    <span class="level-tag">
-                        AVANZADO
-                    </span>
-
-                    <a href="#" class="view-btn">
-                        Ver nivel →
-                    </a>
-
-                </div>
-
-            </div>
-
-        </div>
-
-
-        <!-- 12 TIBURÓN -->
-
-        <div class="level-card">
-
-            <div class="animal-area">
-
-                <img
-                    src="{{ asset('images/Niveles/tiburon.png') }}"
-                    alt="Tiburón"
-                    class="animal-image"
-                >
-
-            </div>
-
-            <div class="level-content">
-
-                <span class="level-number">
-                    NIVEL 12
-                </span>
-
-                <h2 class="level-name">
-                    Tiburón
-                </h2>
-
-                <p class="level-description">
-                    En este nivel se logra un dominio total dentro del agua,
-                    adquiriendo un alto nivel de destreza para nadar.
-                </p>
-
-                <div class="level-footer">
-
-                    <span class="level-tag">
-                        DOMINIO
-                    </span>
-
-                    <a href="#" class="view-btn">
-                        Ver nivel →
-                    </a>
-
-                </div>
-
-            </div>
-
-        </div>
 
 
     </div>
