@@ -22,6 +22,16 @@ class DemoDataSeeder extends Seeder
 {
     public function run(): void
     {
+        // Esto crea decenas de registros interrelacionados (alumnos, citas,
+        // pagos...) que no se pueden volver a insertar sin duplicar datos o
+        // tronar por un correo único repetido. Si ya corrió una vez (por
+        // ejemplo, en un despliegue anterior), no lo vuelve a intentar.
+        if (User::where('email', 'superadmin@aqualix.test')->exists()) {
+            $this->command?->info('DemoDataSeeder: ya existen datos de demostración, se omite.');
+
+            return;
+        }
+
         $sucursales = Sucursal::all();
         $niveles = Nivel::ordenados()->get();
 
