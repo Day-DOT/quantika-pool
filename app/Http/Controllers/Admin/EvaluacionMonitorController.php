@@ -62,15 +62,13 @@ class EvaluacionMonitorController extends Controller
                     $q2->where('instructor_id', $instructor->id);
                 });
             })
-            ->with('nivel')
+            ->with(['nivel', 'evaluaciones' => function ($q) use ($instructor) {
+                $q->where('instructor_id', $instructor->id)->orderByDesc('fecha');
+            }])
             ->orderBy('nombre')
             ->get()
-            ->map(function (Alumno $alumno) use ($instructor) {
-                $ultimaEvaluacion = Evaluacion::query()
-                    ->where('alumno_id', $alumno->id)
-                    ->where('instructor_id', $instructor->id)
-                    ->orderByDesc('fecha')
-                    ->first();
+            ->map(function (Alumno $alumno) {
+                $ultimaEvaluacion = $alumno->evaluaciones->first();
 
                 return [
                     'alumno' => $alumno,

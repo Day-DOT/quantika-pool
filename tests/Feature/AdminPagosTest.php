@@ -167,6 +167,67 @@ class AdminPagosTest extends TestCase
         $response->assertDontSee('Pagos próximos a vencer');
     }
 
+    public function test_admin_ve_alumno_proximo_a_su_pago_estimado_desde_su_ultimo_pago(): void
+    {
+        $sucursal = Sucursal::factory()->create();
+        $admin = User::factory()->admin($sucursal->id)->create();
+        $alumno = Alumno::factory()->create(['sucursal_id' => $sucursal->id]);
+
+        // Su último pago venció hace casi un mes: un mes después cae
+        // dentro de los próximos 7 días.
+        Pago::factory()->create([
+            'alumno_id' => $alumno->id,
+            'sucursal_id' => $sucursal->id,
+            'estado' => EstadoPago::Pagado->value,
+            'fecha_vencimiento' => now()->addDays(3)->subMonthNoOverflow()->toDateString(),
+            'fecha_pago' => now()->subMonthNoOverflow()->toDateString(),
+        ]);
+
+        $response = $this->actingAs($admin)->get(route('pagos.index'));
+
+        $response->assertOk();
+        $response->assertSee('Alumnos próximos a su nuevo pago');
+        $response->assertSee($alumno->nombreCompleto());
+    }
+
+    public function test_admin_ve_alumno_proximo_a_su_primer_pago_basado_en_fecha_de_inscripcion(): void
+    {
+        $sucursal = Sucursal::factory()->create();
+        $admin = User::factory()->admin($sucursal->id)->create();
+
+        // Sin pagos registrados todavía: se estima un mes después de su
+        // inscripción, que cae dentro de los próximos 7 días.
+        $alumno = Alumno::factory()->create([
+            'sucursal_id' => $sucursal->id,
+            'fecha_inscripcion' => now()->addDays(2)->subMonthNoOverflow()->toDateString(),
+        ]);
+
+        $response = $this->actingAs($admin)->get(route('pagos.index'));
+
+        $response->assertOk();
+        $response->assertSee($alumno->nombreCompleto());
+    }
+
+    public function test_un_alumno_con_proximo_pago_lejano_no_aparece_en_la_lista(): void
+    {
+        $sucursal = Sucursal::factory()->create();
+        $admin = User::factory()->admin($sucursal->id)->create();
+        $alumno = Alumno::factory()->create(['sucursal_id' => $sucursal->id]);
+
+        Pago::factory()->create([
+            'alumno_id' => $alumno->id,
+            'sucursal_id' => $sucursal->id,
+            'estado' => EstadoPago::Pagado->value,
+            'fecha_vencimiento' => now()->addDays(20)->subMonthNoOverflow()->toDateString(),
+            'fecha_pago' => now()->subMonthNoOverflow()->toDateString(),
+        ]);
+
+        $response = $this->actingAs($admin)->get(route('pagos.index'));
+
+        $response->assertOk();
+        $response->assertDontSee($alumno->nombreCompleto());
+    }
+
     public function test_admin_marca_un_pago_como_pagado(): void
     {
         $sucursal = Sucursal::factory()->create();

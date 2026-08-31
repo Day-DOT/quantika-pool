@@ -13,7 +13,7 @@
         ← Volver a mis alumnos
     </a>
 
-    <div class="stats-grid" style="grid-template-columns:repeat(4,minmax(0,1fr));">
+    <div class="stats-grid cols-4">
 
         <div class="stat-card">
             <div class="stat-top"><span class="stat-name">Nivel actual</span><div class="stat-icon">◉</div></div>
@@ -62,7 +62,7 @@
                     @csrf
                     @method('PATCH')
                     <button type="submit" class="btn btn-sm {{ $puedePromover ? 'btn-primary' : 'btn-outline' }}"
-                            {{ $puedePromover ? '' : 'disabled title="Completa la evaluación del nivel actual (100%) para poder promoverlo."' }}>
+                            {{ $puedePromover ? '' : 'disabled title="Obtén al menos el 80% en la evaluación del nivel actual para poder promoverlo."' }}>
                         Promover a {{ $siguienteNivel->nombre }} →
                     </button>
                 </form>

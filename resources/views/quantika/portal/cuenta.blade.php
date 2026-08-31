@@ -35,7 +35,7 @@
                     <h3>Estado de cuenta de {{ $alumno->nombreCompleto() }}</h3>
                 </div>
 
-                <div class="stats-grid" style="grid-template-columns: repeat(3, minmax(0,1fr));">
+                <div class="stats-grid cols-3">
                     <div class="stat-card">
                         <div class="stat-top">
                             <span class="stat-name">Próximas clases</span>

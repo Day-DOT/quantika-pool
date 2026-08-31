@@ -19,7 +19,7 @@
 
         <h3 style="margin-bottom:25px;">Información del alumno</h3>
 
-        <form method="POST" action="{{ route('alumnos.update', $alumno) }}">
+        <form method="POST" action="{{ route('alumnos.update', $alumno) }}" enctype="multipart/form-data">
             @csrf
             @method('PUT')
 
@@ -73,7 +73,17 @@
                     </select>
                 </div>
 
-                <div></div>
+                <div class="form-group">
+                    <label>Plan de mensualidad</label>
+                    <select name="plan_id" class="form-select">
+                        <option value="">Sin plan asignado</option>
+                        @foreach ($planes as $planOpcion)
+                            <option value="{{ $planOpcion->id }}" @selected(old('plan_id', $alumno->plan_id) == $planOpcion->id)>
+                                {{ $planOpcion->nombre }} ({{ $planOpcion->clases_por_semana }} clases/semana)
+                            </option>
+                        @endforeach
+                    </select>
+                </div>
 
                 <div class="form-group">
                     <label>Nombre del tutor / responsable</label>
@@ -93,6 +103,30 @@
                 <div class="form-group full">
                     <label>Observaciones</label>
                     <input type="text" class="form-input" name="observaciones" value="{{ old('observaciones', $alumno->observaciones) }}">
+                </div>
+
+                <div class="form-group">
+                    <label>Certificado médico {{ $alumno->certificado_medico_path ? '(reemplazar)' : '(opcional)' }}</label>
+                    <input type="file" class="form-input" name="certificado_medico" accept=".pdf,.jpg,.jpeg,.png">
+                    @if ($alumno->certificado_medico_path)
+                        <span class="form-hint"><a href="{{ \Illuminate\Support\Facades\Storage::url($alumno->certificado_medico_path) }}" target="_blank">Ver archivo actual</a></span>
+                    @endif
+                </div>
+
+                <div class="form-group">
+                    <label>Identificación / acta de nacimiento {{ $alumno->identificacion_path ? '(reemplazar)' : '(opcional)' }}</label>
+                    <input type="file" class="form-input" name="identificacion" accept=".pdf,.jpg,.jpeg,.png">
+                    @if ($alumno->identificacion_path)
+                        <span class="form-hint"><a href="{{ \Illuminate\Support\Facades\Storage::url($alumno->identificacion_path) }}" target="_blank">Ver archivo actual</a></span>
+                    @endif
+                </div>
+
+                <div class="form-group">
+                    <label>Foto del alumno {{ $alumno->foto_path ? '(reemplazar)' : '(opcional)' }}</label>
+                    <input type="file" class="form-input" name="foto" accept=".jpg,.jpeg,.png">
+                    @if ($alumno->foto_path)
+                        <span class="form-hint"><a href="{{ \Illuminate\Support\Facades\Storage::url($alumno->foto_path) }}" target="_blank">Ver archivo actual</a></span>
+                    @endif
                 </div>
 
             </div>

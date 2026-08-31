@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
     <title>Iniciar sesión | QUANTIKA POOL</title>
+    <link rel="icon" href="{{ asset('favicon.ico') }}">
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -149,8 +150,14 @@
         .login-footer {
             margin-top: 26px;
             text-align: center;
-            color: #50778b;
+            color: #9db5c2;
             font-size: 11px;
+        }
+
+        .login-footer a {
+            color: var(--cyan);
+            font-weight: 700;
+            text-decoration: none;
         }
     </style>
 </head>
@@ -195,6 +202,10 @@
 
             <button type="submit" class="btn-submit">Iniciar sesión</button>
         </form>
+
+        <div class="login-footer">
+            ¿Eres tutor y tu cuenta está pendiente de activación? <a href="{{ route('registro') }}">Crear cuenta</a>
+        </div>
 
         <div class="login-footer">QUANTIKA POOL © {{ date('Y') }}</div>
 

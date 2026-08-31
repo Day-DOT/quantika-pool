@@ -4,6 +4,7 @@ use App\Http\Controllers\SuperAdmin\CarrilController;
 use App\Http\Controllers\SuperAdmin\CriterioEvaluacionController;
 use App\Http\Controllers\SuperAdmin\DashboardController;
 use App\Http\Controllers\SuperAdmin\NivelController;
+use App\Http\Controllers\SuperAdmin\PlanController;
 use App\Http\Controllers\SuperAdmin\SeguridadController;
 use App\Http\Controllers\SuperAdmin\SucursalContextController;
 use App\Http\Controllers\SuperAdmin\SucursalController;
@@ -112,6 +113,23 @@ Route::middleware(['auth', 'role:super_admin'])->group(function () {
         ->name('super-admin.criterios.update');
     Route::delete('/super-administrador/criterios/{criterio}', [CriterioEvaluacionController::class, 'destroy'])
         ->name('super-admin.criterios.destroy');
+
+    /*
+    |----------------------------------------------------------------------
+    | PLANES DE MENSUALIDAD
+    |----------------------------------------------------------------------
+    */
+
+    Route::get('/super-administrador/planes', [PlanController::class, 'index'])
+        ->name('super-admin.planes.index');
+    Route::get('/super-administrador/planes/crear', [PlanController::class, 'create'])
+        ->name('super-admin.planes.create');
+    Route::post('/super-administrador/planes', [PlanController::class, 'store'])
+        ->name('super-admin.planes.store');
+    Route::get('/super-administrador/planes/{plan}/editar', [PlanController::class, 'edit'])
+        ->name('super-admin.planes.edit');
+    Route::put('/super-administrador/planes/{plan}', [PlanController::class, 'update'])
+        ->name('super-admin.planes.update');
 
     /*
     |----------------------------------------------------------------------

@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Admin\AlumnoController;
 use App\Http\Controllers\Admin\CarrilController;
+use App\Http\Controllers\Admin\CitaController;
 use App\Http\Controllers\Admin\ConfiguracionController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\EvaluacionMonitorController;
@@ -9,6 +10,7 @@ use App\Http\Controllers\Admin\HorarioController;
 use App\Http\Controllers\Admin\InstructorController;
 use App\Http\Controllers\Admin\NivelController;
 use App\Http\Controllers\Admin\PagoController;
+use App\Http\Controllers\Admin\ReservaController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -54,8 +56,17 @@ Route::middleware(['auth', 'role:admin,super_admin'])->group(function () {
     Route::get('/horarios', [HorarioController::class, 'index'])->name('horarios.index');
     Route::post('/horarios', [HorarioController::class, 'store'])->name('horarios.store');
     Route::patch('/horarios/{horario}/reagendar', [HorarioController::class, 'reagendar'])->name('horarios.reagendar');
+    Route::patch('/horarios/{horario}/instructor', [HorarioController::class, 'cambiarInstructor'])->name('horarios.cambiar-instructor');
     Route::post('/inscripciones', [HorarioController::class, 'asignarAlumno'])->name('inscripciones.store');
     Route::patch('/inscripciones/cambiar-grupo', [HorarioController::class, 'cambiarGrupo'])->name('inscripciones.cambiar-grupo');
+
+    // --- Citas (reagendamiento individual) ---
+    Route::patch('/citas/{cita}/reagendar', [CitaController::class, 'reagendar'])->name('citas.reagendar');
+
+    // --- Reservas (aprobación de reservas hechas por alumnos/tutores) ---
+    Route::get('/reservas', [ReservaController::class, 'index'])->name('reservas.index');
+    Route::patch('/reservas/{inscripcion}/aprobar', [ReservaController::class, 'aprobar'])->name('reservas.aprobar');
+    Route::patch('/reservas/{inscripcion}/rechazar', [ReservaController::class, 'rechazar'])->name('reservas.rechazar');
 
     // --- Niveles (solo lectura, datos fijos del sistema) ---
     Route::get('/niveles', [NivelController::class, 'index'])->name('niveles.index');

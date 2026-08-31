@@ -10,7 +10,7 @@
         <a href="{{ route('super-admin.sucursales.create') }}" class="btn btn-primary">+ Nueva sucursal</a>
     </div>
 
-    <div class="stats-grid" style="grid-template-columns: repeat({{ max($sucursales->count(), 1) }}, minmax(0, 1fr));">
+    <div class="stats-grid cols-{{ min(max($sucursales->count(), 1), 4) }}">
         @foreach ($sucursales as $sucursal)
             <div class="stat-card">
                 <div class="stat-top">

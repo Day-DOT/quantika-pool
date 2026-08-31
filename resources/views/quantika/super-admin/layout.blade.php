@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
     <title>@yield('title', 'Super Administrador') · Quantika Pool</title>
+    <link rel="icon" href="{{ asset('favicon.ico') }}">
 
     <style>
         :root {
@@ -20,7 +21,7 @@
 
             --text: #f5fbff;
             --muted: #82a7b8;
-            --muted-2: #63879a;
+            --muted-2: #9db5c2;
 
             --green: #16e0a4;
             --yellow: #ffbd20;
@@ -351,6 +352,15 @@
 
         .stats-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; }
 
+        /* Variantes de número de columnas: se usan como clase (`.cols-N`) en
+           vez de un `style` inline, para que estas reglas @media sí puedan
+           ganarle en cascada (un estilo inline nunca puede ser sobreescrito
+           por una regla de clase, sin importar el @media). */
+        .stats-grid.cols-1 { grid-template-columns: repeat(1, minmax(0, 1fr)); }
+        .stats-grid.cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        .stats-grid.cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+        .stats-grid.cols-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+
         .stat-card {
             min-height: 150px; padding: 21px; border-radius: 20px; position: relative; overflow: hidden;
             background: linear-gradient(145deg, rgba(7,54,74,.96), rgba(4,42,59,.94));
@@ -484,7 +494,16 @@
             .sidebar { width: 230px; min-width: 230px; }
             .main { width: calc(100% - 230px); margin-left: 230px; }
             .stats-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+            .stats-grid.cols-1, .stats-grid.cols-2, .stats-grid.cols-3, .stats-grid.cols-4 {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
             .form-grid { grid-template-columns: 1fr; }
+        }
+
+        @media (max-width: 560px) {
+            .stats-grid.cols-1, .stats-grid.cols-2, .stats-grid.cols-3, .stats-grid.cols-4 {
+                grid-template-columns: 1fr;
+            }
         }
 
         @media (max-width: 1000px) {
@@ -505,6 +524,192 @@
             .page-title h1 { font-size: 22px; }
             .content { padding: 20px; }
             .branch-select { min-width: 160px; }
+        }
+
+        .section {
+            margin-top: 28px;
+        }
+
+        /* =========================================================
+           ACCIONES RÁPIDAS DE CONSULTA (dashboards de Admin/Super Admin)
+        ========================================================= */
+
+        .quick-links-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
+            margin-top: 22px;
+        }
+
+        .quick-link-card {
+            position: relative;
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            padding: 18px 20px;
+            border-radius: 20px;
+            background: linear-gradient(145deg, rgba(7,54,74,.92), rgba(3,35,51,.96));
+            border: 1px solid rgba(66,213,238,.16);
+            text-decoration: none;
+            color: inherit;
+            transition: .2s;
+        }
+
+        .quick-link-card:hover {
+            transform: translateY(-3px);
+            border-color: rgba(66,213,238,.45);
+        }
+
+        .quick-link-icon {
+            width: 44px;
+            height: 44px;
+            min-width: 44px;
+            border-radius: 13px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            background: rgba(66,213,238,.10);
+            color: var(--cyan);
+        }
+
+        .quick-link-title {
+            font-size: 14px;
+            font-weight: 900;
+        }
+
+        .quick-link-desc {
+            color: var(--muted);
+            font-size: 11px;
+            margin-top: 3px;
+        }
+
+        .quick-link-badge {
+            position: absolute;
+            top: 14px;
+            right: 16px;
+            min-width: 22px;
+            height: 22px;
+            padding: 0 7px;
+            border-radius: 20px;
+            background: var(--yellow);
+            color: #2a1e00;
+            font-size: 11px;
+            font-weight: 950;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        @media (max-width: 1250px) {
+            .quick-links-grid { grid-template-columns: repeat(2, 1fr); }
+        }
+
+        @media (max-width: 480px) {
+            .quick-links-grid { grid-template-columns: 1fr; }
+        }
+
+        /* =========================================================
+           CALENDARIO SEMANAL DE CLASES (dashboards de Admin/Super Admin)
+        ========================================================= */
+
+        .week-calendar {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 12px;
+            margin-top: 6px;
+        }
+
+        .week-day {
+            border-radius: 16px;
+            border: 1px solid rgba(66,213,238,.14);
+            background: rgba(2,28,42,.45);
+            padding: 12px;
+            min-height: 120px;
+        }
+
+        .week-day.es-hoy {
+            border-color: rgba(66,213,238,.55);
+            background: rgba(66,213,238,.06);
+        }
+
+        .week-day-head {
+            text-align: center;
+            margin-bottom: 10px;
+        }
+
+        .week-day-label {
+            font-size: 11px;
+            font-weight: 900;
+            letter-spacing: .5px;
+            color: #b5d3de;
+        }
+
+        .week-day.es-hoy .week-day-label {
+            color: var(--cyan);
+        }
+
+        .week-day-fecha {
+            font-size: 10px;
+            color: var(--muted);
+            margin-top: 2px;
+        }
+
+        .week-class {
+            border-radius: 12px;
+            padding: 8px 10px;
+            background: rgba(255,255,255,.03);
+            border: 1px solid rgba(255,255,255,.06);
+            margin-bottom: 8px;
+            font-size: 11px;
+        }
+
+        .week-class:last-child {
+            margin-bottom: 0;
+        }
+
+        .week-class-nombre {
+            font-weight: 800;
+            margin-bottom: 2px;
+        }
+
+        .week-class-hora {
+            color: #9ec4d3;
+            font-size: 10px;
+        }
+
+        .week-class-instructor {
+            color: var(--muted);
+            font-size: 10px;
+            margin-top: 3px;
+        }
+
+        .week-class-cupo {
+            display: inline-block;
+            margin-top: 5px;
+            padding: 2px 8px;
+            border-radius: 20px;
+            font-size: 9px;
+            font-weight: 900;
+        }
+
+        .week-class-cupo.ok { background: rgba(19,227,162,.12); color: var(--green); }
+        .week-class-cupo.low { background: rgba(255,189,32,.12); color: var(--yellow); }
+        .week-class-cupo.full { background: rgba(255,95,109,.12); color: #ff6b6b; }
+
+        .week-day-empty {
+            color: var(--muted);
+            font-size: 10px;
+            text-align: center;
+            margin-top: 10px;
+        }
+
+        @media (max-width: 1100px) {
+            .week-calendar { grid-template-columns: repeat(4, 1fr); }
+        }
+
+        @media (max-width: 700px) {
+            .week-calendar { grid-template-columns: repeat(2, 1fr); }
         }
     </style>
 
@@ -558,6 +763,22 @@
                 </a>
             </nav>
 
+            <div class="menu-title">Operación diaria</div>
+            <nav class="menu">
+                <a href="{{ route('horarios.index') }}" class="menu-item {{ request()->routeIs('horarios.*') ? 'active' : '' }}">
+                    <div class="menu-icon">▣</div>
+                    <span>Horarios</span>
+                </a>
+                <a href="{{ route('reservas.index') }}" class="menu-item {{ request()->routeIs('reservas.*') ? 'active' : '' }}">
+                    <div class="menu-icon">✓</div>
+                    <span>Reservas pendientes</span>
+                </a>
+                <a href="{{ route('evaluaciones.index') }}" class="menu-item {{ request()->routeIs('evaluaciones.*') ? 'active' : '' }}">
+                    <div class="menu-icon">📈</div>
+                    <span>Evaluaciones</span>
+                </a>
+            </nav>
+
             <div class="menu-title">Administración</div>
             <nav class="menu">
                 <a href="{{ route('instructores.index') }}" class="menu-item {{ request()->routeIs('instructores.*') ? 'active' : '' }}">
@@ -580,20 +801,12 @@
                 @endif
             </nav>
 
-            <div class="menu-title">Programa de natación</div>
+            <div class="menu-title">Catálogo</div>
             <nav class="menu">
                 <a href="{{ route('niveles.index') }}"
                    class="menu-item {{ request()->routeIs('niveles.*') ? 'active' : '' }}">
                     <div class="menu-icon">◉</div>
                     <span>Niveles</span>
-                </a>
-                <a href="{{ route('evaluaciones.index') }}" class="menu-item {{ request()->routeIs('evaluaciones.*') ? 'active' : '' }}">
-                    <div class="menu-icon">✓</div>
-                    <span>Evaluaciones</span>
-                </a>
-                <a href="{{ route('horarios.index') }}" class="menu-item {{ request()->routeIs('horarios.*') ? 'active' : '' }}">
-                    <div class="menu-icon">▣</div>
-                    <span>Horarios</span>
                 </a>
                 @if ($esSuperAdmin)
                     <a href="{{ route('super-admin.criterios.index') }}" class="menu-item {{ request()->routeIs('super-admin.criterios.*') ? 'active' : '' }}">
@@ -603,6 +816,10 @@
                     <a href="{{ route('super-admin.carriles.index') }}" class="menu-item {{ request()->routeIs('super-admin.carriles.*') ? 'active' : '' }}">
                         <div class="menu-icon">▦</div>
                         <span>Carriles / Alberca</span>
+                    </a>
+                    <a href="{{ route('super-admin.planes.index') }}" class="menu-item {{ request()->routeIs('super-admin.planes.*') ? 'active' : '' }}">
+                        <div class="menu-icon">$</div>
+                        <span>Planes de mensualidad</span>
                     </a>
                 @endif
             </nav>
@@ -672,8 +889,6 @@
                         </div>
                     </div>
                 @endif
-
-                <button class="notification" type="button" title="Notificaciones">🔔</button>
 
                 <div class="top-user">
                     <div class="avatar">

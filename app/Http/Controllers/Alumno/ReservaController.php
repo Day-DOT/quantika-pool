@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers\Alumno;
 
-use App\Enums\EstadoCita;
+use App\Enums\EstadoInscripcion;
 use App\Http\Controllers\Alumno\Concerns\ResuelveAlumnoActivo;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Alumno\ReservarClaseRequest;
@@ -14,7 +14,6 @@ use App\Models\Sucursal;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
@@ -23,11 +22,6 @@ class ReservaController extends Controller
 {
     use AuthorizesRequests;
     use ResuelveAlumnoActivo;
-
-    /**
-     * Cuántas ocurrencias de "Cita" se agendan automáticamente al reservar.
-     */
-    private const CITAS_INICIALES = 4;
 
     /**
      * Selección de sucursal y listado de horarios/grupos disponibles
@@ -50,6 +44,8 @@ class ReservaController extends Controller
                 'sucursales' => $sucursales,
                 'sucursalId' => null,
                 'horarios' => collect(),
+                'cuposDisponibles' => $alumno?->cuposDisponiblesParaReservar() ?? 0,
+                'cuposUsados' => $alumno?->inscripcionesVigentes()->count() ?? 0,
             ]);
         }
 
@@ -74,12 +70,13 @@ class ReservaController extends Controller
             ->get()
             ->map(function (Horario $horario) use ($alumno) {
                 $inscritos = $horario->inscripciones()->activas()->count();
+                $inscripcionAlumno = $horario->inscripciones()
+                    ->where('alumno_id', $alumno->id)
+                    ->first();
 
                 $horario->cupo_disponible = max(0, $horario->capacidad_maxima - $inscritos);
-                $horario->ya_inscrito = $horario->inscripciones()
-                    ->activas()
-                    ->where('alumno_id', $alumno->id)
-                    ->exists();
+                $horario->ya_inscrito = $inscripcionAlumno?->activa === true;
+                $horario->ya_pendiente = $inscripcionAlumno?->estado === EstadoInscripcion::Pendiente;
 
                 return $horario;
             });
@@ -90,12 +87,17 @@ class ReservaController extends Controller
             'sucursales' => $sucursales,
             'sucursalId' => $sucursalId,
             'horarios' => $horarios,
+            'cuposDisponibles' => $alumno->cuposDisponiblesParaReservar(),
+            'cuposUsados' => $alumno->inscripcionesVigentes()->count(),
         ]);
     }
 
     /**
-     * Reserva una clase: crea la Inscripcion activa del alumno en el
-     * horario elegido (si hay cupo) y agenda sus primeras Citas.
+     * Reserva una o varias clases a la vez: crea una Inscripcion
+     * "pendiente" del alumno en cada horario elegido (si hay cupo y el
+     * alumno no excede las clases por semana de su plan). No ocupan cupo
+     * ni agendan Citas todavía: un Admin debe aprobarlas primero (ver
+     * Admin\ReservaController).
      *
      * El control de cupo se hace dentro de una transacción con bloqueo
      * de fila para evitar que dos tutores tomen a la vez el último lugar.
@@ -104,91 +106,77 @@ class ReservaController extends Controller
     {
         $alumno = Alumno::findOrFail($request->validated('alumno_id'));
         $this->authorize('view', $alumno);
-
-        $horarioSinBloqueo = Horario::findOrFail($request->validated('horario_id'));
-        $this->authorize('view', $horarioSinBloqueo);
         $this->authorize('create', Cita::class);
 
+        if (! $alumno->plan_id) {
+            return back()->withErrors([
+                'plan' => 'Este alumno no tiene un plan de mensualidad asignado. Contacta a la escuela para que le asignen uno antes de reservar clases.',
+            ]);
+        }
+
+        $horarioIds = $request->validated('horario_ids');
+        $sucursalId = null;
+
         try {
-            DB::transaction(function () use ($alumno, $horarioSinBloqueo, $request) {
-                $horario = Horario::where('id', $horarioSinBloqueo->id)->lockForUpdate()->first();
+            DB::transaction(function () use ($alumno, $horarioIds, &$sucursalId) {
+                $cuposDisponibles = $alumno->cuposDisponiblesParaReservar();
 
-                if (! $horario->activo) {
+                if (count($horarioIds) > $cuposDisponibles) {
                     throw ValidationException::withMessages([
-                        'horario_id' => 'Este grupo ya no está disponible.',
+                        'horario_ids' => "Solo puedes reservar {$cuposDisponibles} clase(s) más según tu plan ({$alumno->plan->clases_por_semana} clases/semana).",
                     ]);
                 }
 
-                $inscritos = Inscripcion::where('horario_id', $horario->id)
-                    ->activas()
-                    ->lockForUpdate()
-                    ->count();
+                foreach ($horarioIds as $horarioId) {
+                    $horarioSinBloqueo = Horario::findOrFail($horarioId);
+                    $this->authorize('view', $horarioSinBloqueo);
 
-                if ($inscritos >= $horario->capacidad_maxima) {
-                    throw ValidationException::withMessages([
-                        'horario_id' => 'Justo se acabó el cupo de este grupo. Elige otro horario disponible.',
+                    $horario = Horario::where('id', $horarioId)->lockForUpdate()->first();
+                    $sucursalId ??= $horario->sucursal_id;
+
+                    if (! $horario->activo) {
+                        throw ValidationException::withMessages([
+                            'horario_ids' => "El grupo \"{$horario->nombre_grupo}\" ya no está disponible.",
+                        ]);
+                    }
+
+                    $inscritos = Inscripcion::where('horario_id', $horario->id)
+                        ->activas()
+                        ->lockForUpdate()
+                        ->count();
+
+                    if ($inscritos >= $horario->capacidad_maxima) {
+                        throw ValidationException::withMessages([
+                            'horario_ids' => "Justo se acabó el cupo de \"{$horario->nombre_grupo}\". Elige otro horario disponible.",
+                        ]);
+                    }
+
+                    $yaInscrito = Inscripcion::where('horario_id', $horario->id)
+                        ->where('alumno_id', $alumno->id)
+                        ->where(fn ($q) => $q->activas()->orWhere('estado', EstadoInscripcion::Pendiente->value))
+                        ->exists();
+
+                    if ($yaInscrito) {
+                        throw ValidationException::withMessages([
+                            'horario_ids' => "Este alumno ya está inscrito (o tiene una reserva pendiente) en \"{$horario->nombre_grupo}\".",
+                        ]);
+                    }
+
+                    Inscripcion::create([
+                        'horario_id' => $horario->id,
+                        'alumno_id' => $alumno->id,
+                        'fecha_inicio' => now()->toDateString(),
+                        'activa' => false,
+                        'estado' => EstadoInscripcion::Pendiente->value,
                     ]);
                 }
-
-                $yaInscrito = Inscripcion::where('horario_id', $horario->id)
-                    ->where('alumno_id', $alumno->id)
-                    ->activas()
-                    ->exists();
-
-                if ($yaInscrito) {
-                    throw ValidationException::withMessages([
-                        'horario_id' => 'Este alumno ya está inscrito en este grupo.',
-                    ]);
-                }
-
-                Inscripcion::create([
-                    'horario_id' => $horario->id,
-                    'alumno_id' => $alumno->id,
-                    'fecha_inicio' => now()->toDateString(),
-                    'activa' => true,
-                ]);
-
-                $this->agendarPrimerasCitas($horario, $alumno, $request->user()->id);
             });
         } catch (ValidationException $e) {
             return back()->withErrors($e->errors())->withInput();
         }
 
         return redirect()
-            ->route('portal.reservar.index', ['alumno' => $alumno->id, 'sucursal' => $horarioSinBloqueo->sucursal_id])
-            ->with('status', 'Clase reservada. Se agendaron las primeras clases de ' . $alumno->nombreCompleto() . '.');
-    }
-
-    /**
-     * Agenda las próximas ocurrencias de "Cita" para el día de la semana
-     * del horario, a partir de hoy.
-     */
-    private function agendarPrimerasCitas(Horario $horario, Alumno $alumno, int $registradoPorUserId): void
-    {
-        $fecha = Carbon::today();
-        $creadas = 0;
-
-        while ($creadas < self::CITAS_INICIALES) {
-            if ($fecha->isoWeekday() === $horario->dia_semana->value) {
-                Cita::firstOrCreate(
-                    [
-                        'horario_id' => $horario->id,
-                        'alumno_id' => $alumno->id,
-                        'fecha' => $fecha->toDateString(),
-                    ],
-                    [
-                        'sucursal_id' => $horario->sucursal_id,
-                        'hora_inicio' => $horario->hora_inicio,
-                        'hora_fin' => $horario->hora_fin,
-                        'estado' => EstadoCita::Programada->value,
-                        'registrado_por' => $registradoPorUserId,
-                    ]
-                );
-
-                $creadas++;
-            }
-
-            $fecha = $fecha->copy()->addDay();
-        }
+            ->route('portal.reservar.index', ['alumno' => $alumno->id, 'sucursal' => $sucursalId])
+            ->with('status', 'Reserva enviada para ' . $alumno->nombreCompleto() . '. Queda pendiente de aprobación por el administrador.');
     }
 }

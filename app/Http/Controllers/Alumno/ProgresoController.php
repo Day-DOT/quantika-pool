@@ -34,6 +34,8 @@ class ProgresoController extends Controller
                 'detallesPorCriterio' => collect(),
                 'porcentaje' => 0.0,
                 'historial' => collect(),
+                'historialNiveles' => collect(),
+                'evaluacionAnterior' => null,
             ]);
         }
 
@@ -60,6 +62,25 @@ class ProgresoController extends Controller
             ->limit(6)
             ->get();
 
+        // Historial de progreso por nivel: cada nivel por el que ya pasó el
+        // alumno, con la última evaluación registrada en ese nivel.
+        $historialNiveles = $alumno->historialNiveles()
+            ->with('nivel')
+            ->orderBy('fecha_inicio')
+            ->get()
+            ->map(function ($registro) use ($alumno) {
+                $registro->evaluacionDelNivel = $alumno->evaluaciones()
+                    ->where('nivel_id', $registro->nivel_id)
+                    ->latest('fecha')
+                    ->first();
+
+                return $registro;
+            });
+
+        // Comparativa: última evaluación registrada vs. la anterior a esa,
+        // sin importar el nivel (puede ser el mismo nivel u otro).
+        $evaluacionAnterior = $historial->skip(1)->first();
+
         return view('quantika.portal.progreso', [
             'alumnos' => $alumnos,
             'alumno' => $alumno,
@@ -69,6 +90,8 @@ class ProgresoController extends Controller
             'detallesPorCriterio' => $detallesPorCriterio,
             'porcentaje' => $ultimaEvaluacion?->porcentajeAvance() ?? 0.0,
             'historial' => $historial,
+            'historialNiveles' => $historialNiveles,
+            'evaluacionAnterior' => $evaluacionAnterior,
         ]);
     }
 }

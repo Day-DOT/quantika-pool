@@ -4,6 +4,7 @@
     administración (resources/views/quantika/layouts/app.blade.php)
     para que el portal se sienta parte del mismo sistema.
 --}}
+<link rel="icon" href="{{ asset('favicon.ico') }}">
 <style>
 
     :root {
@@ -19,7 +20,7 @@
 
         --text: #f5fbff;
         --muted: #82a7b8;
-        --muted-2: #63879a;
+        --muted-2: #9db5c2;
 
         --green: #16e0a4;
         --yellow: #ffbd20;
@@ -158,7 +159,7 @@
         height: 54px;
         border-top: 1px solid rgba(255,255,255,.07);
         display: flex; align-items: center; justify-content: center;
-        color: #50778b;
+        color: #9db5c2;
         font-size: 11px;
     }
 
@@ -316,6 +317,14 @@
         margin-bottom: 26px;
     }
 
+    /* Variantes de número de columnas: se usan como clase (`.cols-N`) en vez
+       de un `style` inline, para que estas reglas @media sí puedan ganarle
+       en cascada. */
+    .stats-grid.cols-1 { grid-template-columns: repeat(1, minmax(0, 1fr)); }
+    .stats-grid.cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .stats-grid.cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .stats-grid.cols-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+
     .stat-card {
         min-height: 150px;
         padding: 21px;
@@ -385,7 +394,7 @@
 
     .level-number { color: var(--level-color, var(--cyan)); font-size: 9px; letter-spacing: 2px; font-weight: 900; margin-bottom: 4px; }
     .level-name { font-size: 22px; font-weight: 900; line-height: 1.1; }
-    .level-description { margin-top: 3px; color: #779aaa; font-size: 12px; }
+    .level-description { margin-top: 3px; color: #9db5c2; font-size: 12px; }
 
     .progress-row { display: flex; justify-content: space-between; margin-top: 14px; margin-bottom: 7px; font-size: 10px; font-weight: 800; }
     .progress-row span:last-child { color: var(--level-color, var(--cyan)); }
@@ -542,6 +551,9 @@
         .sidebar { width: 230px; min-width: 230px; }
         .main { width: calc(100% - 230px); margin-left: 230px; }
         .stats-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        .stats-grid.cols-1, .stats-grid.cols-2, .stats-grid.cols-3, .stats-grid.cols-4 {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
     }
 
     @media (max-width: 1000px) {
@@ -570,6 +582,9 @@
         .main { width: calc(100% - 64px); margin-left: 64px; }
         .content { padding: 15px; }
         .stats-grid { grid-template-columns: 1fr; }
+        .stats-grid.cols-1, .stats-grid.cols-2, .stats-grid.cols-3, .stats-grid.cols-4 {
+            grid-template-columns: 1fr;
+        }
         .schedule-grid { grid-template-columns: 1fr; }
         .data-card { overflow-x: auto; }
         .data-table { min-width: 640px; }

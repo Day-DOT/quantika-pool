@@ -2,16 +2,20 @@
 
 namespace App\Http\Controllers\SuperAdmin;
 
+use App\Enums\DiaSemana;
 use App\Enums\EstadoAlumno;
 use App\Enums\EstadoPago;
 use App\Http\Controllers\Controller;
 use App\Models\Alumno;
 use App\Models\Cita;
+use App\Models\Horario;
+use App\Models\Inscripcion;
 use App\Models\Instructor;
 use App\Models\Nivel;
 use App\Models\Pago;
 use App\Models\Sucursal;
 use App\Support\SucursalContext;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 
 class DashboardController extends Controller
@@ -38,7 +42,62 @@ class DashboardController extends Controller
             'statsPorSucursal' => $statsPorSucursal,
             'niveles' => Nivel::ordenados()->get(),
             'alumnosRecientes' => $this->alumnosRecientes($sucursalId),
+            'calendarioSemana' => $this->calendarioSemana($sucursalId),
+            'reservasPendientesCount' => $this->reservasPendientesCount($sucursalId),
+            'deudoresCount' => $this->deudoresCount($sucursalId),
         ]);
+    }
+
+    /**
+     * Calendario semanal de clases: horario, disponibilidad e instructor,
+     * agrupado por día (lunes a domingo).
+     */
+    private function calendarioSemana(?int $sucursalId): Collection
+    {
+        $hoy = Carbon::now();
+        $inicioSemana = $hoy->copy()->startOfWeek(Carbon::MONDAY);
+
+        $horarios = Horario::query()
+            ->where('activo', true)
+            ->when($sucursalId, fn ($q) => $q->where('sucursal_id', $sucursalId))
+            ->with(['nivel', 'instructor.user', 'carril', 'inscripciones' => fn ($q) => $q->where('activa', true)])
+            ->orderBy('hora_inicio')
+            ->get();
+
+        return collect(DiaSemana::cases())->map(function (DiaSemana $dia) use ($inicioSemana, $hoy, $horarios) {
+            $fecha = $inicioSemana->copy()->addDays($dia->value - 1);
+
+            $clases = $horarios->where('dia_semana', $dia)->map(function (Horario $horario) {
+                $inscritos = $horario->inscripciones->count();
+
+                return [
+                    'horario' => $horario,
+                    'cupoDisponible' => max(0, $horario->capacidad_maxima - $inscritos),
+                ];
+            })->values();
+
+            return [
+                'dia' => $dia,
+                'fecha' => $fecha,
+                'esHoy' => $fecha->isSameDay($hoy),
+                'clases' => $clases,
+            ];
+        });
+    }
+
+    private function reservasPendientesCount(?int $sucursalId): int
+    {
+        return Inscripcion::pendientes()
+            ->when($sucursalId, fn ($q) => $q->whereHas('horario', fn ($h) => $h->where('sucursal_id', $sucursalId)))
+            ->count();
+    }
+
+    private function deudoresCount(?int $sucursalId): int
+    {
+        return Pago::vencidos()
+            ->when($sucursalId, fn ($q) => $q->where('sucursal_id', $sucursalId))
+            ->distinct()
+            ->count('alumno_id');
     }
 
     private function calcularStats(?int $sucursalId): array

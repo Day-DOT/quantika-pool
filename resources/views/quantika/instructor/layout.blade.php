@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
     <title>@yield('title', 'Portal del instructor') · Quantika Pool</title>
+    <link rel="icon" href="{{ asset('favicon.ico') }}">
 
     <style>
 
@@ -21,7 +22,7 @@
 
             --text: #f5fbff;
             --muted: #82a7b8;
-            --muted-2: #63879a;
+            --muted-2: #9db5c2;
 
             --green: #16e0a4;
             --yellow: #ffbd20;
@@ -188,7 +189,7 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            color: #50778b;
+            color: #9db5c2;
             font-size: 11px;
         }
 
@@ -282,6 +283,14 @@
         ========================================= */
 
         .stats-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; margin-bottom: 8px; }
+
+        /* Variantes de número de columnas: se usan como clase (`.cols-N`) en
+           vez de un `style` inline, para que estas reglas @media sí puedan
+           ganarle en cascada. */
+        .stats-grid.cols-1 { grid-template-columns: repeat(1, minmax(0, 1fr)); }
+        .stats-grid.cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        .stats-grid.cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+        .stats-grid.cols-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 
         .stat-card {
             min-height: 150px;
@@ -417,7 +426,7 @@
         .person .avatar { width: 36px; height: 36px; border-radius: 11px; font-size: 11px; }
 
         .person-name { font-weight: 800; }
-        .person-sub { color: #64889b; font-size: 10px; margin-top: 2px; }
+        .person-sub { color: #9db5c2; font-size: 10px; margin-top: 2px; }
 
         /* =========================================
            BOTONES
@@ -551,6 +560,9 @@
             .sidebar { width: 230px; min-width: 230px; }
             .main { width: calc(100% - 230px); margin-left: 230px; }
             .stats-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+            .stats-grid.cols-1, .stats-grid.cols-2, .stats-grid.cols-3, .stats-grid.cols-4 {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
             .grupos-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
         }
 
@@ -581,6 +593,9 @@
             .main { width: calc(100% - 60px); margin-left: 60px; }
             .content { padding: 14px; }
             .stats-grid { grid-template-columns: 1fr; }
+            .stats-grid.cols-1, .stats-grid.cols-2, .stats-grid.cols-3, .stats-grid.cols-4 {
+                grid-template-columns: 1fr;
+            }
         }
 
     </style>

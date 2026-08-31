@@ -449,6 +449,51 @@
     </div>
 
 
+    <!-- ALUMNOS PRÓXIMOS A SU NUEVO PAGO -->
+    <div class="card" style="margin-top:22px;">
+
+        <div class="card-header">
+            <div>
+                <div class="card-title">Alumnos próximos a su nuevo pago</div>
+                <div class="card-description">
+                    Estimado a partir de su último pago (o de su inscripción, si es su primera mensualidad). {{ $proximosAPagar->count() }} alumno{{ $proximosAPagar->count() === 1 ? '' : 's' }} en los próximos 7 días.
+                </div>
+            </div>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:0;margin-top:6px;">
+            @forelse ($proximosAPagar as $fila)
+                @php($alumno = $fila['alumno'])
+                <div class="upcoming-row">
+                    <div>
+                        <strong>{{ $alumno->nombreCompleto() }}</strong>
+                        &nbsp;·&nbsp; {{ $alumno->plan?->nombre ?? 'Sin plan asignado' }}
+                        &nbsp;·&nbsp; Próximo pago estimado: {{ $fila['proximaFecha']->translatedFormat('d M Y') }}
+                    </div>
+
+                    <div style="display:flex; align-items:center; gap:10px;">
+                        <span class="status-pill status-soon">
+                            @if ($fila['diasRestantes'] === 0)
+                                Vence hoy
+                            @elseif ($fila['diasRestantes'] === 1)
+                                Vence mañana
+                            @else
+                                Vence en {{ $fila['diasRestantes'] }} días
+                            @endif
+                        </span>
+                        <a href="{{ route('pagos.registrar', ['alumno' => $alumno->id]) }}" class="btn btn-outline btn-sm">Registrar pago</a>
+                    </div>
+                </div>
+            @empty
+                <div style="text-align:center; color:var(--muted); padding:20px 0;">
+                    Ningún alumno tiene su próximo pago estimado en los próximos 7 días.
+                </div>
+            @endforelse
+        </div>
+
+    </div>
+
+
     <!-- PRÓXIMOS A VENCER -->
     @if ($proximosVencer->isNotEmpty())
         <div class="card" style="margin-top:22px;">

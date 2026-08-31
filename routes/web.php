@@ -15,3 +15,4 @@ require __DIR__.'/super_admin.php';
 require __DIR__.'/admin.php';
 require __DIR__.'/instructor.php';
 require __DIR__.'/alumno.php';
+require __DIR__.'/asistencia.php';

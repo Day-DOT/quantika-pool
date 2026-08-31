@@ -25,7 +25,8 @@ class ReservarClaseRequest extends FormRequest
     {
         return [
             'alumno_id' => ['required', 'integer', 'exists:alumnos,id'],
-            'horario_id' => ['required', 'integer', 'exists:horarios,id'],
+            'horario_ids' => ['required', 'array', 'min:1'],
+            'horario_ids.*' => ['integer', 'distinct', 'exists:horarios,id'],
         ];
     }
 
@@ -33,8 +34,8 @@ class ReservarClaseRequest extends FormRequest
     {
         return [
             'alumno_id.required' => 'Selecciona a qué alumno se reservará la clase.',
-            'horario_id.required' => 'Selecciona un grupo/horario para reservar.',
-            'horario_id.exists' => 'El horario seleccionado ya no está disponible.',
+            'horario_ids.required' => 'Selecciona al menos un horario para reservar.',
+            'horario_ids.*.exists' => 'Uno de los horarios seleccionados ya no está disponible.',
         ];
     }
 }

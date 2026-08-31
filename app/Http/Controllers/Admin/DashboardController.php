@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Enums\DiaSemana;
 use App\Enums\EstadoAlumno;
 use App\Enums\EstadoPago;
 use App\Http\Controllers\Admin\Concerns\CalculaProgresoNivel;
@@ -10,6 +11,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Alumno;
 use App\Models\Cita;
 use App\Models\Horario;
+use App\Models\Inscripcion;
 use App\Models\Instructor;
 use App\Models\Nivel;
 use App\Models\Pago;
@@ -136,6 +138,43 @@ class DashboardController extends Controller
 
         $maxActividad = max(1, $actividadSemanal->max('total'));
 
+        // --- Calendario semanal de clases: horario, disponibilidad e instructor ---
+        $horariosSemanaQuery = Horario::query()
+            ->where('activo', true)
+            ->with(['nivel', 'instructor.user', 'carril', 'inscripciones' => fn ($q) => $q->where('activa', true)]);
+        $this->aplicarSucursal($horariosSemanaQuery);
+        $horariosSemana = $horariosSemanaQuery->orderBy('hora_inicio')->get();
+
+        $calendarioSemana = collect(DiaSemana::cases())->map(function (DiaSemana $dia) use ($inicioSemana, $hoy, $horariosSemana) {
+            $fecha = $inicioSemana->copy()->addDays($dia->value - 1);
+
+            $clases = $horariosSemana->where('dia_semana', $dia)->map(function (Horario $horario) {
+                $inscritos = $horario->inscripciones->count();
+
+                return [
+                    'horario' => $horario,
+                    'cupoDisponible' => max(0, $horario->capacidad_maxima - $inscritos),
+                ];
+            })->values();
+
+            return [
+                'dia' => $dia,
+                'fecha' => $fecha,
+                'esHoy' => $fecha->isSameDay($hoy),
+                'clases' => $clases,
+            ];
+        });
+
+        // --- Reservas de alumnos pendientes de aprobación ---
+        $reservasPendientesCount = Inscripcion::pendientes()
+            ->when($sucursalId, fn ($q) => $q->whereHas('horario', fn ($h) => $h->where('sucursal_id', $sucursalId)))
+            ->count();
+
+        // --- Alumnos con saldo vencido (para el acceso rápido a deudores) ---
+        $deudoresQuery = Pago::vencidos();
+        $this->aplicarSucursal($deudoresQuery);
+        $deudoresCount = $deudoresQuery->distinct()->count('alumno_id');
+
         // --- Niveles destacados ---
         $nivelesPreview = Nivel::ordenados()->where('activo', true)->take(4)->get()->map(function (Nivel $nivel) use ($sucursalId) {
             $datos = $this->progresoDeNivel($nivel, $sucursalId);
@@ -177,6 +216,9 @@ class DashboardController extends Controller
             'pagosProximosVencer' => $pagosProximosVencer,
             'actividadSemanal' => $actividadSemanal,
             'maxActividadSemanal' => $maxActividad,
+            'calendarioSemana' => $calendarioSemana,
+            'reservasPendientesCount' => $reservasPendientesCount,
+            'deudoresCount' => $deudoresCount,
             'nivelesPreview' => $nivelesPreview,
             'alumnosRecientes' => $alumnosRecientes,
         ]);

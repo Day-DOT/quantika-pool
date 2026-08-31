@@ -51,6 +51,11 @@
                 <span>Pagos y clases</span>
             </a>
 
+            <a href="{{ route('portal.qr') }}" class="menu-item {{ ($activo ?? '') === 'qr' ? 'active' : '' }}">
+                <div class="menu-icon">▦</div>
+                <span>Mi código QR</span>
+            </a>
+
         </nav>
 
         <div class="menu-title">SESIÓN</div>

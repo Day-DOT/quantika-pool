@@ -14,6 +14,7 @@ class DatabaseSeeder extends Seeder
         $this->call([
             SucursalSeeder::class,
             NivelSeeder::class,
+            PlanSeeder::class,
             CriterioEvaluacionSeeder::class,
             DemoDataSeeder::class,
         ]);

@@ -266,6 +266,10 @@
 
     @media(max-width: 700px) {
 
+        .stats {
+            grid-template-columns: 1fr;
+        }
+
         .panel-header {
             align-items: flex-start;
             flex-direction: column;

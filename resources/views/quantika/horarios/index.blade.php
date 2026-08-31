@@ -1149,7 +1149,7 @@
             </div>
 
 
-            <div class="class-row" style="cursor:pointer;" onclick="abrirModalHorario('crear')">
+            <div class="class-row" style="cursor:pointer;" role="button" tabindex="0" onclick="abrirModalHorario('crear')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();abrirModalHorario('crear');}">
 
                 <div class="class-row-left">
 
@@ -1178,7 +1178,7 @@
             </div>
 
 
-            <div class="class-row" style="cursor:pointer;" onclick="abrirModalHorario('reagendar')">
+            <div class="class-row" style="cursor:pointer;" role="button" tabindex="0" onclick="abrirModalHorario('reagendar')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();abrirModalHorario('reagendar');}">
 
                 <div class="class-row-left">
 
@@ -1193,7 +1193,7 @@
                         </strong>
 
                         <small>
-                            Cambiar fecha u horario
+                            Mover la clase de un alumno a otro día/horario
                         </small>
 
                     </div>
@@ -1207,7 +1207,36 @@
             </div>
 
 
-            <div class="class-row" style="cursor:pointer;" onclick="abrirModalHorario('asignar')">
+            <div class="class-row" style="cursor:pointer;" role="button" tabindex="0" onclick="abrirModalHorario('editar-horario')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();abrirModalHorario('editar-horario');}">
+
+                <div class="class-row-left">
+
+                    <div class="mini-icon">
+                        📅
+                    </div>
+
+                    <div>
+
+                        <strong>
+                            Editar horario de grupo
+                        </strong>
+
+                        <small>
+                            Cambia el día/hora/carril de todo el grupo
+                        </small>
+
+                    </div>
+
+                </div>
+
+                <span class="horario-status">
+                    Gestionar
+                </span>
+
+            </div>
+
+
+            <div class="class-row" style="cursor:pointer;" role="button" tabindex="0" onclick="abrirModalHorario('asignar')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();abrirModalHorario('asignar');}">
 
                 <div class="class-row-left">
 
@@ -1236,7 +1265,7 @@
             </div>
 
 
-            <div class="class-row" style="cursor:pointer;" onclick="abrirModalHorario('cambiar-grupo')">
+            <div class="class-row" style="cursor:pointer;" role="button" tabindex="0" onclick="abrirModalHorario('cambiar-grupo')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();abrirModalHorario('cambiar-grupo');}">
 
                 <div class="class-row-left">
 
@@ -1499,12 +1528,50 @@
             </div>
         </form>
 
-        {{-- FORMULARIO: REAGENDAR --}}
+        {{-- FORMULARIO: REAGENDAR CLASE DE UN ALUMNO (individual) --}}
         <form id="formReagendar" method="POST" style="display:none;">
             @csrf
             @method('PATCH')
 
             <label>Clase a reagendar</label>
+            <select name="_cita_id" required style="{{ $campoEstilo }}" onchange="this.form.action = '/citas/' + this.value + '/reagendar';">
+                <option value="">Seleccionar alumno y clase</option>
+                @foreach ($citasProximas as $citaOpcion)
+                    <option value="{{ $citaOpcion->id }}">
+                        {{ $citaOpcion->alumno?->nombreCompleto() }} · {{ $citaOpcion->horario?->nombre_grupo }} ·
+                        {{ $citaOpcion->fecha->translatedFormat('d M') }} {{ substr($citaOpcion->hora_inicio, 0, 5) }}
+                    </option>
+                @endforeach
+            </select>
+
+            <p style="color:var(--muted); font-size:12px; margin:-4px 0 12px;">
+                Solo se puede reagendar si el alumno todavía tiene clases disponibles esta semana según su plan.
+            </p>
+
+            <label>Nuevo horario</label>
+            <select name="horario_id" required style="{{ $campoEstilo }}">
+                <option value="">Seleccionar grupo</option>
+                @foreach ($horariosExistentes as $horarioOpcion)
+                    <option value="{{ $horarioOpcion->id }}">
+                        {{ $horarioOpcion->nombre_grupo }} · {{ $horarioOpcion->dia_semana->label() }} {{ substr($horarioOpcion->hora_inicio, 0, 5) }}
+                    </option>
+                @endforeach
+            </select>
+
+            <label>Nueva fecha</label>
+            <input type="date" name="fecha" required style="{{ $campoEstilo }}">
+
+            <div style="display:flex;gap:12px;margin-top:6px;">
+                <button type="submit" class="btn-modal-submit">Reagendar clase</button>
+            </div>
+        </form>
+
+        {{-- FORMULARIO: EDITAR HORARIO DE GRUPO (día/hora/carril de todo el grupo) --}}
+        <form id="formEditarHorario" method="POST" style="display:none;">
+            @csrf
+            @method('PATCH')
+
+            <label>Grupo a editar</label>
             <select name="_horario_id" required style="{{ $campoEstilo }}" onchange="this.form.action = '/horarios/' + this.value + '/reagendar';">
                 <option value="">Seleccionar clase</option>
                 @foreach ($horariosExistentes as $horarioOpcion)
@@ -1513,6 +1580,10 @@
                     </option>
                 @endforeach
             </select>
+
+            <p style="color:var(--muted); font-size:12px; margin:-4px 0 12px;">
+                Esto cambia el horario recurrente de TODO el grupo (afecta a todos sus alumnos). Para mover solo a un alumno usa "Reagendar".
+            </p>
 
             <label>Nuevo día</label>
             <select name="dia_semana" required style="{{ $campoEstilo }}">
@@ -1642,6 +1713,7 @@ function abrirModalHorario(tipo) {
 
     document.getElementById('formCrearClase').style.display = 'none';
     document.getElementById('formReagendar').style.display = 'none';
+    document.getElementById('formEditarHorario').style.display = 'none';
     document.getElementById('formAsignarAlumno').style.display = 'none';
     document.getElementById('formCambiarGrupo').style.display = 'none';
 
@@ -1651,8 +1723,11 @@ function abrirModalHorario(tipo) {
         titulo.textContent = 'Nueva clase';
         document.getElementById('formCrearClase').style.display = 'block';
     } else if (tipo === 'reagendar') {
-        titulo.textContent = 'Reagendar clase';
+        titulo.textContent = 'Reagendar clase de un alumno';
         document.getElementById('formReagendar').style.display = 'block';
+    } else if (tipo === 'editar-horario') {
+        titulo.textContent = 'Editar horario de grupo';
+        document.getElementById('formEditarHorario').style.display = 'block';
     } else if (tipo === 'asignar') {
         titulo.textContent = 'Asignar alumno a una clase';
         document.getElementById('formAsignarAlumno').style.display = 'block';

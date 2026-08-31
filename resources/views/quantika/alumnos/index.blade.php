@@ -695,7 +695,7 @@
                 </div>
             @endif
 
-            <form id="formAlumnoCrear" class="form-grid" style="padding:25px;" method="POST" action="{{ route('alumnos.store') }}">
+            <form id="formAlumnoCrear" class="form-grid" style="padding:25px;" method="POST" action="{{ route('alumnos.store') }}" enctype="multipart/form-data">
                 @csrf
 
                 <div class="form-group">
@@ -766,9 +766,36 @@
                     </select>
                 </div>
 
+                <div class="form-group">
+                    <label>Plan de mensualidad</label>
+                    <select class="form-select" name="plan_id">
+                        <option value="">Sin plan asignado</option>
+                        @foreach ($planes as $planOpcion)
+                            <option value="{{ $planOpcion->id }}" @selected(old('plan_id') == $planOpcion->id)>
+                                {{ $planOpcion->nombre }} ({{ $planOpcion->clases_por_semana }} clases/semana)
+                            </option>
+                        @endforeach
+                    </select>
+                </div>
+
                 <div class="form-group full">
                     <label>Observaciones</label>
                     <input type="text" class="form-input" name="observaciones" value="{{ old('observaciones') }}" placeholder="Información adicional del alumno">
+                </div>
+
+                <div class="form-group">
+                    <label>Certificado médico (opcional)</label>
+                    <input type="file" class="form-input" name="certificado_medico" accept=".pdf,.jpg,.jpeg,.png">
+                </div>
+
+                <div class="form-group">
+                    <label>Identificación / acta de nacimiento (opcional)</label>
+                    <input type="file" class="form-input" name="identificacion" accept=".pdf,.jpg,.jpeg,.png">
+                </div>
+
+                <div class="form-group">
+                    <label>Foto del alumno (opcional)</label>
+                    <input type="file" class="form-input" name="foto" accept=".jpg,.jpeg,.png">
                 </div>
 
             </form>

@@ -3,14 +3,18 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Enums\DiaSemana;
+use App\Enums\EstadoCita;
+use App\Enums\EstadoInscripcion;
 use App\Http\Controllers\Admin\Concerns\ScopesSucursal;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\AsignarAlumnoRequest;
 use App\Http\Requests\Admin\CambiarGrupoRequest;
+use App\Http\Requests\Admin\CambiarInstructorRequest;
 use App\Http\Requests\Admin\ReagendarHorarioRequest;
 use App\Http\Requests\Admin\StoreHorarioRequest;
 use App\Models\Alumno;
 use App\Models\Carril;
+use App\Models\Cita;
 use App\Models\Horario;
 use App\Models\Inscripcion;
 use App\Models\Instructor;
@@ -91,6 +95,13 @@ class HorarioController extends Controller
         $this->aplicarSucursal($alumnosQuery);
         $alumnosTodos = $alumnosQuery->get();
 
+        $citasProximasQuery = Cita::query()
+            ->whereDate('fecha', '>=', $hoy->toDateString())
+            ->whereNotIn('estado', [EstadoCita::Cancelada->value, EstadoCita::Completada->value])
+            ->with(['alumno', 'horario']);
+        $this->aplicarSucursal($citasProximasQuery);
+        $citasProximas = $citasProximasQuery->orderBy('fecha')->get();
+
         return view('quantika.horarios.index', [
             'dias' => $dias,
             'horas' => $horas,
@@ -115,6 +126,7 @@ class HorarioController extends Controller
             'alumnosParaAsignar' => $alumnosTodos,
             'esVistaGlobal' => $this->sucursalId() === null,
             'sucursalesTodas' => Sucursal::orderBy('nombre')->get(),
+            'citasProximas' => $citasProximas,
         ]);
     }
 
@@ -176,13 +188,33 @@ class HorarioController extends Controller
         return redirect()->route('horarios.index')->with('status', "Clase \"{$horario->nombre_grupo}\" reagendada correctamente.");
     }
 
+    public function cambiarInstructor(CambiarInstructorRequest $request, Horario $horario): RedirectResponse
+    {
+        $datos = $request->validated();
+
+        $instructor = Instructor::findOrFail($datos['instructor_id']);
+
+        if ($instructor->sucursal_id !== $horario->sucursal_id) {
+            throw ValidationException::withMessages([
+                'instructor_id' => 'Este instructor no pertenece a la sucursal de esta clase.',
+            ]);
+        }
+
+        $horario->update(['instructor_id' => $instructor->id]);
+
+        return redirect()->route('horarios.index')->with(
+            'status',
+            "Instructor de \"{$horario->nombre_grupo}\" actualizado correctamente."
+        );
+    }
+
     public function asignarAlumno(AsignarAlumnoRequest $request): RedirectResponse
     {
         $datos = $request->validated();
         $alumno = Alumno::findOrFail($datos['alumno_id']);
 
         try {
-            DB::transaction(function () use ($datos, $alumno) {
+            DB::transaction(function () use ($datos, $alumno, $request) {
                 $horario = Horario::where('id', $datos['horario_id'])->lockForUpdate()->first();
 
                 if (! $horario->activo) {
@@ -224,6 +256,9 @@ class HorarioController extends Controller
                     'alumno_id' => $alumno->id,
                     'fecha_inicio' => now()->toDateString(),
                     'activa' => true,
+                    'estado' => EstadoInscripcion::Aprobada->value,
+                    'aprobado_por' => $request->user()->id,
+                    'aprobado_en' => now(),
                 ]);
             });
         } catch (ValidationException $e) {
@@ -243,7 +278,7 @@ class HorarioController extends Controller
         $nuevoHorario = Horario::findOrFail($datos['horario_id']);
 
         try {
-            DB::transaction(function () use ($alumno, $datos) {
+            DB::transaction(function () use ($alumno, $datos, $request) {
                 $horario = Horario::where('id', $datos['horario_id'])->lockForUpdate()->first();
 
                 if ($alumno->sucursal_id !== $horario->sucursal_id) {
@@ -273,6 +308,9 @@ class HorarioController extends Controller
                     'fecha_inicio' => now()->toDateString(),
                     'fecha_fin' => null,
                     'activa' => true,
+                    'estado' => EstadoInscripcion::Aprobada->value,
+                    'aprobado_por' => $request->user()->id,
+                    'aprobado_en' => now(),
                 ]);
             });
         } catch (ValidationException $e) {

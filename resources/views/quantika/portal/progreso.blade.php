@@ -127,6 +127,61 @@
                     </div>
                 @endif
 
+                @if ($historial->count() > 1)
+                    @php
+                        $evaluacionActualComparativa = $historial->first();
+                    @endphp
+                    <div class="section-header"><h3>Comparativa de progreso</h3></div>
+                    <div class="data-card" style="padding:20px; display:flex; gap:24px; flex-wrap:wrap;">
+                        <div style="flex:1; min-width:200px;">
+                            <div style="color:var(--muted); font-size:12px; margin-bottom:6px;">
+                                Progreso anterior · {{ $evaluacionAnterior->fecha->translatedFormat('d M Y') }}
+                                ({{ $evaluacionAnterior->nivel?->nombre ?? '—' }})
+                            </div>
+                            <div style="font-size:26px; font-weight:800;">{{ round($evaluacionAnterior->porcentajeAvance()) }}%</div>
+                            <div class="progress"><span style="width:{{ round($evaluacionAnterior->porcentajeAvance()) }}%"></span></div>
+                        </div>
+                        <div style="flex:1; min-width:200px;">
+                            <div style="color:var(--muted); font-size:12px; margin-bottom:6px;">
+                                Progreso actual · {{ $evaluacionActualComparativa->fecha->translatedFormat('d M Y') }}
+                                ({{ $evaluacionActualComparativa->nivel?->nombre ?? '—' }})
+                            </div>
+                            <div style="font-size:26px; font-weight:800;">{{ round($evaluacionActualComparativa->porcentajeAvance()) }}%</div>
+                            <div class="progress"><span style="width:{{ round($evaluacionActualComparativa->porcentajeAvance()) }}%"></span></div>
+                        </div>
+                        @php
+                            $delta = round($evaluacionActualComparativa->porcentajeAvance() - $evaluacionAnterior->porcentajeAvance());
+                        @endphp
+                        <div style="flex:0 0 140px; text-align:center; align-self:center;">
+                            <div style="color:var(--muted); font-size:12px; margin-bottom:6px;">Variación</div>
+                            <div style="font-size:22px; font-weight:900; color:{{ $delta >= 0 ? 'var(--green)' : '#ff7c85' }};">
+                                {{ $delta >= 0 ? '+' : '' }}{{ $delta }}%
+                            </div>
+                        </div>
+                    </div>
+                @endif
+
+                <div class="section-header"><h3>Historial de progreso por niveles</h3></div>
+                <div class="data-card">
+                    @forelse ($historialNiveles as $registro)
+                        <div class="criterio-row">
+                            <div>
+                                <div class="criterio-nombre">{{ $registro->nivel?->nombre ?? 'Sin nivel' }}</div>
+                                <div class="criterio-obs">
+                                    {{ $registro->fecha_inicio?->translatedFormat('d M Y') }}
+                                    –
+                                    {{ $registro->fecha_fin ? $registro->fecha_fin->translatedFormat('d M Y') : 'Vigente' }}
+                                </div>
+                            </div>
+                            <span class="badge {{ $registro->fecha_fin ? '' : 'badge-green' }}">
+                                {{ $registro->evaluacionDelNivel ? round($registro->evaluacionDelNivel->porcentajeAvance()).'%' : 'Sin evaluación' }}
+                            </span>
+                        </div>
+                    @empty
+                        <div class="empty-row">Este alumno todavía no tiene historial de niveles registrado.</div>
+                    @endforelse
+                </div>
+
             @endif
 
         </div>

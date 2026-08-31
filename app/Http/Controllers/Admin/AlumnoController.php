@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Enums\EstadoAlumno;
+use App\Enums\EstadoCita;
 use App\Enums\Rol;
 use App\Http\Controllers\Admin\Concerns\ScopesSucursal;
 use App\Http\Controllers\Controller;
@@ -10,13 +11,17 @@ use App\Http\Requests\Admin\StoreAlumnoRequest;
 use App\Http\Requests\Admin\UpdateAlumnoRequest;
 use App\Models\Alumno;
 use App\Models\AlumnoNivelHistorial;
+use App\Models\Horario;
+use App\Models\Instructor;
 use App\Models\Nivel;
+use App\Models\Plan;
 use App\Models\User;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
 
@@ -29,19 +34,21 @@ class AlumnoController extends Controller
     {
         $this->authorize('viewAny', Alumno::class);
 
-        $query = Alumno::query()->with(['nivel', 'sucursal', 'tutorUser']);
+        $query = Alumno::query()->with(['nivel', 'sucursal', 'tutorUser'])->withCount([
+            'citas as citas_completadas_count' => fn ($q) => $q->whereNotNull('asistio'),
+            'citas as citas_asistidas_count' => fn ($q) => $q->where('asistio', true),
+        ]);
         $this->aplicarSucursal($query);
 
         // El buscador y los selects de nivel/sucursal/estado filtran en el
         // cliente (en tiempo real, sin recargar) sobre este listado completo.
         $alumnos = $query->orderBy('nombre')->get()->map(function (Alumno $alumno) {
-            $citasCompletadas = $alumno->citas()->whereNotNull('asistio')->count();
-            $citasAsistidas = $alumno->citas()->where('asistio', true)->count();
-
             return [
                 'alumno' => $alumno,
                 'iniciales' => $this->iniciales($alumno->nombre, $alumno->apellidos),
-                'asistencia' => $citasCompletadas > 0 ? round(($citasAsistidas / $citasCompletadas) * 100) : null,
+                'asistencia' => $alumno->citas_completadas_count > 0
+                    ? round(($alumno->citas_asistidas_count / $alumno->citas_completadas_count) * 100)
+                    : null,
             ];
         });
 
@@ -53,6 +60,7 @@ class AlumnoController extends Controller
         return view('quantika.alumnos.index', [
             'alumnos' => $alumnos,
             'niveles' => Nivel::ordenados()->get(),
+            'planes' => Plan::activos()->orderBy('clases_por_semana')->get(),
             'sucursales' => $this->sucursalesVisibles(),
             'esVistaGlobal' => $this->sucursalId() === null,
             'totalRegistrados' => $totalRegistrados,
@@ -79,21 +87,30 @@ class AlumnoController extends Controller
 
         $sucursalId = $this->sucursalId() ?? (int) $datos['sucursal_id'];
 
-        $resultado = DB::transaction(function () use ($datos, $sucursalId) {
+        $rutasDocumentos = [
+            'certificado_medico_path' => $request->file('certificado_medico')?->store('alumnos/documentos', 'public'),
+            'identificacion_path' => $request->file('identificacion')?->store('alumnos/documentos', 'public'),
+            'foto_path' => $request->file('foto')?->store('alumnos/documentos', 'public'),
+        ];
+
+        $resultado = DB::transaction(function () use ($datos, $sucursalId, $rutasDocumentos) {
             $tutor = User::where('email', $datos['tutor_email'])->first();
-            $passwordTemporal = null;
+            $cuentaPendienteActivar = false;
 
             if (! $tutor) {
-                $passwordTemporal = Str::password(10, symbols: false);
+                $cuentaPendienteActivar = true;
 
                 $tutor = User::create([
                     'name' => $datos['tutor_nombre'],
                     'email' => $datos['tutor_email'],
-                    'password' => Hash::make($passwordTemporal),
+                    // Contraseña aleatoria e inservible: el tutor define la suya
+                    // real la primera vez que entra a /registro.
+                    'password' => Hash::make(Str::random(40)),
                     'role' => Rol::Alumno->value,
                     'telefono' => $datos['tutor_telefono'] ?? null,
                     'activo' => true,
                 ]);
+                $tutor->forceFill(['password_configurada' => false])->save();
             } elseif (empty($tutor->telefono) && ! empty($datos['tutor_telefono'])) {
                 $tutor->update(['telefono' => $datos['tutor_telefono']]);
             }
@@ -102,6 +119,7 @@ class AlumnoController extends Controller
                 'tutor_user_id' => $tutor->id,
                 'sucursal_id' => $sucursalId,
                 'nivel_id' => $datos['nivel_id'] ?? null,
+                'plan_id' => $datos['plan_id'] ?? null,
                 'nombre' => $datos['nombre'],
                 'apellidos' => $datos['apellidos'],
                 'fecha_nacimiento' => $datos['fecha_nacimiento'],
@@ -110,6 +128,7 @@ class AlumnoController extends Controller
                 'observaciones' => $datos['observaciones'] ?? null,
                 'estado' => EstadoAlumno::Activo->value,
                 'fecha_inscripcion' => now()->toDateString(),
+                ...$rutasDocumentos,
             ]);
 
             if ($alumno->nivel_id) {
@@ -123,14 +142,14 @@ class AlumnoController extends Controller
                 ]);
             }
 
-            return ['alumno' => $alumno, 'passwordTemporal' => $passwordTemporal, 'tutor' => $tutor];
+            return ['alumno' => $alumno, 'cuentaPendienteActivar' => $cuentaPendienteActivar, 'tutor' => $tutor];
         });
 
         $mensaje = "Alumno {$resultado['alumno']->nombreCompleto()} registrado correctamente.";
 
-        if ($resultado['passwordTemporal']) {
+        if ($resultado['cuentaPendienteActivar']) {
             $tutorEmail = $resultado['tutor']->email;
-            $mensaje .= " Se creó una cuenta para el tutor ({$tutorEmail}) con contraseña temporal: {$resultado['passwordTemporal']}";
+            $mensaje .= " El tutor ({$tutorEmail}) debe crear su acceso en la pantalla \"Crear cuenta\" del login, usando ese correo y los datos del alumno.";
         }
 
         return redirect()->route('alumnos.show', $resultado['alumno'])->with('status', $mensaje);
@@ -142,6 +161,7 @@ class AlumnoController extends Controller
 
         $alumno->load([
             'nivel',
+            'plan',
             'sucursal',
             'tutorUser',
             'historialNiveles' => fn ($q) => $q->with('nivel')->orderByDesc('fecha_inicio'),
@@ -156,6 +176,24 @@ class AlumnoController extends Controller
 
         $ultimaEvaluacion = $alumno->evaluaciones->first();
 
+        $proximasCitas = $alumno->citas()
+            ->whereDate('fecha', '>=', now()->toDateString())
+            ->whereNotIn('estado', [EstadoCita::Cancelada->value, EstadoCita::Completada->value])
+            ->with('horario')
+            ->orderBy('fecha')
+            ->get();
+
+        $horariosDisponibles = Horario::where('sucursal_id', $alumno->sucursal_id)
+            ->where('activo', true)
+            ->orderBy('dia_semana')
+            ->orderBy('hora_inicio')
+            ->get();
+
+        $instructoresDisponibles = Instructor::where('sucursal_id', $alumno->sucursal_id)
+            ->where('estado', 'activo')
+            ->with('user')
+            ->get();
+
         return view('quantika.alumnos.show', [
             'alumno' => $alumno,
             'iniciales' => $this->iniciales($alumno->nombre, $alumno->apellidos),
@@ -163,6 +201,9 @@ class AlumnoController extends Controller
             'citasCompletadas' => $citasCompletadas,
             'citasAsistidas' => $citasAsistidas,
             'progresoNivel' => $ultimaEvaluacion?->porcentajeAvance() ?? 0,
+            'proximasCitas' => $proximasCitas,
+            'horariosDisponibles' => $horariosDisponibles,
+            'instructoresDisponibles' => $instructoresDisponibles,
         ]);
     }
 
@@ -175,6 +216,7 @@ class AlumnoController extends Controller
         return view('quantika.alumnos.edit', [
             'alumno' => $alumno,
             'niveles' => Nivel::ordenados()->get(),
+            'planes' => Plan::activos()->orderBy('clases_por_semana')->get(),
             'estados' => EstadoAlumno::cases(),
         ]);
     }
@@ -183,7 +225,20 @@ class AlumnoController extends Controller
     {
         $datos = $request->validated();
 
-        DB::transaction(function () use ($datos, $alumno) {
+        $rutasDocumentos = [];
+        foreach (['certificado_medico' => 'certificado_medico_path', 'identificacion' => 'identificacion_path', 'foto' => 'foto_path'] as $campo => $columna) {
+            if (! $request->hasFile($campo)) {
+                continue;
+            }
+
+            if ($alumno->{$columna}) {
+                Storage::disk('public')->delete($alumno->{$columna});
+            }
+
+            $rutasDocumentos[$columna] = $request->file($campo)->store('alumnos/documentos', 'public');
+        }
+
+        DB::transaction(function () use ($datos, $alumno, $rutasDocumentos) {
             $nivelAnterior = $alumno->nivel_id;
 
             $alumno->update([
@@ -195,6 +250,8 @@ class AlumnoController extends Controller
                 'observaciones' => $datos['observaciones'] ?? null,
                 'estado' => $datos['estado'],
                 'nivel_id' => $datos['nivel_id'] ?? null,
+                'plan_id' => $datos['plan_id'] ?? null,
+                ...$rutasDocumentos,
             ]);
 
             if ($alumno->tutorUser) {

@@ -25,6 +25,7 @@ class StoreAlumnoRequest extends FormRequest
             'email' => ['nullable', 'email', 'max:150'],
             'observaciones' => ['nullable', 'string', 'max:2000'],
             'nivel_id' => ['nullable', 'integer', 'exists:niveles,id'],
+            'plan_id' => ['nullable', 'integer', 'exists:planes,id'],
             'sucursal_id' => [
                 $esSuperAdmin ? 'required' : 'nullable',
                 'integer',
@@ -33,6 +34,9 @@ class StoreAlumnoRequest extends FormRequest
             'tutor_nombre' => ['required', 'string', 'max:150'],
             'tutor_email' => ['required', 'email', 'max:150'],
             'tutor_telefono' => ['nullable', 'string', 'max:20'],
+            'certificado_medico' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:5120'],
+            'identificacion' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:5120'],
+            'foto' => ['nullable', 'image', 'mimes:jpg,jpeg,png', 'max:5120'],
         ];
     }
 

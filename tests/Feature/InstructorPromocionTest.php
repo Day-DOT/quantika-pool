@@ -80,6 +80,66 @@ class InstructorPromocionTest extends TestCase
         ]);
     }
 
+    public function test_instructor_promueve_a_un_alumno_con_evaluacion_al_80_por_ciento(): void
+    {
+        $nivelActual = Nivel::factory()->create(['orden' => 5]);
+        $nivelSiguiente = Nivel::factory()->create(['orden' => 6]);
+        $criterios = CriterioEvaluacion::factory()->count(5)->create(['nivel_id' => $nivelActual->id]);
+
+        $instructor = Instructor::factory()->create();
+        $alumno = $this->crearAlumnoDelInstructor($instructor, $nivelActual);
+
+        $evaluacion = Evaluacion::factory()->create([
+            'alumno_id' => $alumno->id,
+            'instructor_id' => $instructor->id,
+            'nivel_id' => $nivelActual->id,
+        ]);
+
+        // 4 de 5 criterios logrados = 80%, justo el mínimo requerido.
+        foreach ($criterios as $index => $criterio) {
+            EvaluacionDetalle::factory()->create([
+                'evaluacion_id' => $evaluacion->id,
+                'criterio_evaluacion_id' => $criterio->id,
+                'estado' => $index < 4 ? EstadoEvaluacionDetalle::Logrado->value : EstadoEvaluacionDetalle::EnProceso->value,
+            ]);
+        }
+
+        $response = $this->actingAs($instructor->user)->patch(route('instructor.alumnos.promover', $alumno));
+
+        $response->assertRedirect(route('instructor.alumnos.show', $alumno));
+        $this->assertEquals($nivelSiguiente->id, $alumno->refresh()->nivel_id);
+    }
+
+    public function test_no_se_puede_promover_con_una_evaluacion_por_debajo_del_80_por_ciento(): void
+    {
+        $nivelActual = Nivel::factory()->create(['orden' => 5]);
+        Nivel::factory()->create(['orden' => 6]);
+        $criterios = CriterioEvaluacion::factory()->count(5)->create(['nivel_id' => $nivelActual->id]);
+
+        $instructor = Instructor::factory()->create();
+        $alumno = $this->crearAlumnoDelInstructor($instructor, $nivelActual);
+
+        $evaluacion = Evaluacion::factory()->create([
+            'alumno_id' => $alumno->id,
+            'instructor_id' => $instructor->id,
+            'nivel_id' => $nivelActual->id,
+        ]);
+
+        // 3 de 5 criterios logrados = 60%, por debajo del mínimo requerido.
+        foreach ($criterios as $index => $criterio) {
+            EvaluacionDetalle::factory()->create([
+                'evaluacion_id' => $evaluacion->id,
+                'criterio_evaluacion_id' => $criterio->id,
+                'estado' => $index < 3 ? EstadoEvaluacionDetalle::Logrado->value : EstadoEvaluacionDetalle::EnProceso->value,
+            ]);
+        }
+
+        $response = $this->actingAs($instructor->user)->patch(route('instructor.alumnos.promover', $alumno));
+
+        $response->assertSessionHasErrors('nivel');
+        $this->assertEquals($nivelActual->id, $alumno->refresh()->nivel_id);
+    }
+
     public function test_no_se_puede_promover_sin_una_evaluacion_al_100(): void
     {
         $nivelActual = Nivel::factory()->create(['orden' => 5]);

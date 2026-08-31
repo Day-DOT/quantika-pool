@@ -15,6 +15,7 @@ use App\Models\Inscripcion;
 use App\Models\Instructor;
 use App\Models\Nivel;
 use App\Models\Pago;
+use App\Models\Plan;
 use App\Models\Sucursal;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -121,6 +122,7 @@ class PortalAlumnoTest extends TestCase
     public function test_reservar_index_solo_muestra_horarios_de_la_sucursal_y_niveles_cercanos(): void
     {
         [$tutor, $alumno, $sucursal, $nivel] = $this->crearTutorConAlumno();
+        $alumno->update(['plan_id' => Plan::factory()->create(['clases_por_semana' => 2])->id]);
 
         $horarioCercano = $this->crearHorario($sucursal, $nivel);
         $horarioCercano->update(['nombre_grupo' => 'Grupo Cercano']);
@@ -141,7 +143,74 @@ class PortalAlumnoTest extends TestCase
             ->assertDontSee('Grupo Otra Sucursal');
     }
 
-    public function test_reservar_clase_crea_inscripcion_activa_y_las_primeras_citas(): void
+    public function test_reservar_clase_crea_inscripcion_pendiente_sin_ocupar_cupo_ni_citas(): void
+    {
+        [$tutor, $alumno, $sucursal, $nivel] = $this->crearTutorConAlumno();
+        $alumno->update(['plan_id' => Plan::factory()->create(['clases_por_semana' => 2])->id]);
+        $horario = $this->crearHorario($sucursal, $nivel, capacidad: 4);
+
+        $this->actingAs($tutor)
+            ->post(route('portal.reservar.store'), [
+                'alumno_id' => $alumno->id,
+                'horario_ids' => [$horario->id],
+            ])
+            ->assertRedirect(route('portal.reservar.index', ['alumno' => $alumno->id, 'sucursal' => $sucursal->id]));
+
+        $this->assertDatabaseHas('inscripciones', [
+            'horario_id' => $horario->id,
+            'alumno_id' => $alumno->id,
+            'activa' => 0,
+            'estado' => 'pendiente',
+        ]);
+
+        $this->assertSame(
+            0,
+            Cita::where('horario_id', $horario->id)->where('alumno_id', $alumno->id)->count()
+        );
+    }
+
+    public function test_reservar_varias_clases_a_la_vez_hasta_el_limite_del_plan(): void
+    {
+        [$tutor, $alumno, $sucursal, $nivel] = $this->crearTutorConAlumno();
+        $alumno->update(['plan_id' => Plan::factory()->create(['clases_por_semana' => 3])->id]);
+
+        $horarioA = $this->crearHorario($sucursal, $nivel, capacidad: 4, diaSemana: 1);
+        $horarioB = $this->crearHorario($sucursal, $nivel, capacidad: 4, diaSemana: 3);
+        $horarioC = $this->crearHorario($sucursal, $nivel, capacidad: 4, diaSemana: 5);
+
+        $this->actingAs($tutor)
+            ->post(route('portal.reservar.store'), [
+                'alumno_id' => $alumno->id,
+                'horario_ids' => [$horarioA->id, $horarioB->id, $horarioC->id],
+            ])
+            ->assertSessionDoesntHaveErrors();
+
+        $this->assertSame(
+            3,
+            Inscripcion::where('alumno_id', $alumno->id)->where('estado', 'pendiente')->count()
+        );
+    }
+
+    public function test_no_se_puede_reservar_mas_clases_que_las_del_plan(): void
+    {
+        [$tutor, $alumno, $sucursal, $nivel] = $this->crearTutorConAlumno();
+        $alumno->update(['plan_id' => Plan::factory()->create(['clases_por_semana' => 2])->id]);
+
+        $horarioA = $this->crearHorario($sucursal, $nivel, capacidad: 4, diaSemana: 1);
+        $horarioB = $this->crearHorario($sucursal, $nivel, capacidad: 4, diaSemana: 3);
+        $horarioC = $this->crearHorario($sucursal, $nivel, capacidad: 4, diaSemana: 5);
+
+        $this->actingAs($tutor)
+            ->post(route('portal.reservar.store'), [
+                'alumno_id' => $alumno->id,
+                'horario_ids' => [$horarioA->id, $horarioB->id, $horarioC->id],
+            ])
+            ->assertSessionHasErrors('horario_ids');
+
+        $this->assertSame(0, Inscripcion::where('alumno_id', $alumno->id)->count());
+    }
+
+    public function test_no_se_puede_reservar_sin_un_plan_asignado(): void
     {
         [$tutor, $alumno, $sucursal, $nivel] = $this->crearTutorConAlumno();
         $horario = $this->crearHorario($sucursal, $nivel, capacidad: 4);
@@ -149,25 +218,17 @@ class PortalAlumnoTest extends TestCase
         $this->actingAs($tutor)
             ->post(route('portal.reservar.store'), [
                 'alumno_id' => $alumno->id,
-                'horario_id' => $horario->id,
+                'horario_ids' => [$horario->id],
             ])
-            ->assertRedirect(route('portal.reservar.index', ['alumno' => $alumno->id, 'sucursal' => $sucursal->id]));
+            ->assertSessionHasErrors('plan');
 
-        $this->assertDatabaseHas('inscripciones', [
-            'horario_id' => $horario->id,
-            'alumno_id' => $alumno->id,
-            'activa' => 1,
-        ]);
-
-        $this->assertSame(
-            4,
-            Cita::where('horario_id', $horario->id)->where('alumno_id', $alumno->id)->count()
-        );
+        $this->assertSame(0, Inscripcion::where('alumno_id', $alumno->id)->count());
     }
 
     public function test_no_se_puede_reservar_cuando_el_horario_ya_no_tiene_cupo(): void
     {
         [$tutor, $alumno, $sucursal, $nivel] = $this->crearTutorConAlumno();
+        $alumno->update(['plan_id' => Plan::factory()->create(['clases_por_semana' => 2])->id]);
         $horario = $this->crearHorario($sucursal, $nivel, capacidad: 1);
 
         // Alguien más ya ocupa el único lugar disponible.
@@ -181,9 +242,9 @@ class PortalAlumnoTest extends TestCase
         $this->actingAs($tutor)
             ->post(route('portal.reservar.store'), [
                 'alumno_id' => $alumno->id,
-                'horario_id' => $horario->id,
+                'horario_ids' => [$horario->id],
             ])
-            ->assertSessionHasErrors('horario_id');
+            ->assertSessionHasErrors('horario_ids');
 
         $this->assertDatabaseMissing('inscripciones', [
             'horario_id' => $horario->id,
@@ -194,6 +255,7 @@ class PortalAlumnoTest extends TestCase
     public function test_no_se_puede_reservar_dos_veces_el_mismo_grupo_para_el_mismo_alumno(): void
     {
         [$tutor, $alumno, $sucursal, $nivel] = $this->crearTutorConAlumno();
+        $alumno->update(['plan_id' => Plan::factory()->create(['clases_por_semana' => 2])->id]);
         $horario = $this->crearHorario($sucursal, $nivel, capacidad: 4);
 
         Inscripcion::factory()->create([
@@ -205,9 +267,9 @@ class PortalAlumnoTest extends TestCase
         $this->actingAs($tutor)
             ->post(route('portal.reservar.store'), [
                 'alumno_id' => $alumno->id,
-                'horario_id' => $horario->id,
+                'horario_ids' => [$horario->id],
             ])
-            ->assertSessionHasErrors('horario_id');
+            ->assertSessionHasErrors('horario_ids');
 
         $this->assertSame(
             1,
@@ -224,7 +286,7 @@ class PortalAlumnoTest extends TestCase
         $this->actingAs($tutorA)
             ->post(route('portal.reservar.store'), [
                 'alumno_id' => $alumnoB->id,
-                'horario_id' => $horario->id,
+                'horario_ids' => [$horario->id],
             ])
             ->assertForbidden();
 
@@ -288,6 +350,65 @@ class PortalAlumnoTest extends TestCase
             ->assertSee('Coordinación')
             ->assertSee('No iniciado')
             ->assertSee('0%');
+    }
+
+    public function test_progreso_muestra_el_historial_por_niveles_y_la_comparativa(): void
+    {
+        $nivelAnterior = Nivel::factory()->create(['orden' => 10, 'nombre' => 'Nivel Anterior']);
+        $nivelActual = Nivel::factory()->create(['orden' => 11, 'nombre' => 'Nivel Actual']);
+
+        [$tutor, $alumno] = $this->crearTutorConAlumno(nivel: $nivelActual);
+
+        $criterioAnterior = CriterioEvaluacion::factory()->create(['nivel_id' => $nivelAnterior->id]);
+        $criterioActual = CriterioEvaluacion::factory()->create(['nivel_id' => $nivelActual->id]);
+
+        $instructor = Instructor::factory()->create();
+
+        \App\Models\AlumnoNivelHistorial::create([
+            'alumno_id' => $alumno->id,
+            'nivel_id' => $nivelAnterior->id,
+            'fecha_inicio' => now()->subMonths(2)->toDateString(),
+            'fecha_fin' => now()->subMonth()->toDateString(),
+        ]);
+
+        \App\Models\AlumnoNivelHistorial::create([
+            'alumno_id' => $alumno->id,
+            'nivel_id' => $nivelActual->id,
+            'fecha_inicio' => now()->subMonth()->toDateString(),
+            'fecha_fin' => null,
+        ]);
+
+        $evaluacionAnterior = Evaluacion::factory()->create([
+            'alumno_id' => $alumno->id,
+            'instructor_id' => $instructor->id,
+            'nivel_id' => $nivelAnterior->id,
+            'fecha' => now()->subMonth()->toDateString(),
+        ]);
+        EvaluacionDetalle::factory()->create([
+            'evaluacion_id' => $evaluacionAnterior->id,
+            'criterio_evaluacion_id' => $criterioAnterior->id,
+            'estado' => EstadoEvaluacionDetalle::Logrado->value,
+        ]);
+
+        $evaluacionActual = Evaluacion::factory()->create([
+            'alumno_id' => $alumno->id,
+            'instructor_id' => $instructor->id,
+            'nivel_id' => $nivelActual->id,
+            'fecha' => now()->toDateString(),
+        ]);
+        EvaluacionDetalle::factory()->create([
+            'evaluacion_id' => $evaluacionActual->id,
+            'criterio_evaluacion_id' => $criterioActual->id,
+            'estado' => EstadoEvaluacionDetalle::NoIniciado->value,
+        ]);
+
+        $this->actingAs($tutor)
+            ->get(route('portal.progreso', ['alumno' => $alumno->id]))
+            ->assertOk()
+            ->assertSeeInOrder(['Historial de progreso por niveles', 'Nivel Anterior'])
+            ->assertSee('Comparativa de progreso')
+            ->assertSee('Progreso anterior')
+            ->assertSee('Progreso actual');
     }
 
     // ------------------------------------------------------------------

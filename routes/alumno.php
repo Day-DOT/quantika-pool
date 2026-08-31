@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Alumno\CodigoQrController;
 use App\Http\Controllers\Alumno\CuentaController;
 use App\Http\Controllers\Alumno\PortalDashboardController;
 use App\Http\Controllers\Alumno\ProgresoController;
@@ -28,5 +29,8 @@ Route::middleware(['auth', 'role:alumno'])->group(function () {
 
     Route::get('/portal/cuenta', [CuentaController::class, 'index'])
         ->name('portal.cuenta');
+
+    Route::get('/portal/qr', [CodigoQrController::class, 'index'])
+        ->name('portal.qr');
 
 });

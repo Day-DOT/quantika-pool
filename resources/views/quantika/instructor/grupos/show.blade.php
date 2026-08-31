@@ -9,7 +9,7 @@
         ← Volver a mi agenda
     </a>
 
-    <div class="stats-grid" style="grid-template-columns:repeat(4,minmax(0,1fr));">
+    <div class="stats-grid cols-4">
 
         <div class="stat-card">
             <div class="stat-top"><span class="stat-name">Nivel</span><div class="stat-icon">◉</div></div>

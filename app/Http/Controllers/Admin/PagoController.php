@@ -97,6 +97,31 @@ class PagoController extends Controller
                 'diasRestantes' => max(0, $hoy->diffInDays($pago->fecha_vencimiento, false)),
             ]);
 
+        // Alumnos próximos a que les toque su siguiente mensualidad, estimado
+        // a partir de su último pago (o de su inscripción si nunca ha
+        // pagado). No depende de que ya exista un registro de pago
+        // "pendiente" para el siguiente periodo.
+        $diasVentanaProximoPago = 7;
+        $alumnosActivosQuery = Alumno::query()
+            ->where('estado', EstadoAlumno::Activo->value)
+            ->with(['nivel', 'ultimoPagoMensualidad']);
+        $this->aplicarSucursal($alumnosActivosQuery);
+
+        $proximosAPagar = $alumnosActivosQuery->get()
+            ->map(fn (Alumno $alumno) => [
+                'alumno' => $alumno,
+                'proximaFecha' => $alumno->proximaFechaPago(),
+            ])
+            ->filter(fn (array $fila) => $fila['proximaFecha'] !== null
+                && $fila['proximaFecha']->between($hoy->copy()->startOfDay(), $hoy->copy()->addDays($diasVentanaProximoPago)->endOfDay()))
+            ->sortBy(fn (array $fila) => $fila['proximaFecha'])
+            ->map(fn (array $fila) => [
+                'alumno' => $fila['alumno'],
+                'proximaFecha' => $fila['proximaFecha'],
+                'diasRestantes' => max(0, $hoy->copy()->startOfDay()->diffInDays($fila['proximaFecha'], false)),
+            ])
+            ->values();
+
         return view('quantika.pagos.index', [
             'cobradoMes' => $cobradoMes,
             'cambioPct' => $cambioPct,
@@ -111,6 +136,7 @@ class PagoController extends Controller
             'maxIngresoMensual' => $maxIngresoMensual,
             'deudoresPreview' => $deudoresPreview,
             'proximosVencer' => $proximosVencer,
+            'proximosAPagar' => $proximosAPagar,
         ]);
     }
 

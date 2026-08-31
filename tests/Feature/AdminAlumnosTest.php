@@ -9,6 +9,8 @@ use App\Models\Nivel;
 use App\Models\Sucursal;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 class AdminAlumnosTest extends TestCase
@@ -100,6 +102,88 @@ class AdminAlumnosTest extends TestCase
 
         $alumno = Alumno::where('nombre', 'Hermano')->first();
         $this->assertEquals($tutor->id, $alumno->tutor_user_id);
+    }
+
+    public function test_admin_registra_un_alumno_con_documentos_opcionales(): void
+    {
+        Storage::fake('public');
+
+        $sucursal = Sucursal::factory()->create();
+        $admin = User::factory()->admin($sucursal->id)->create();
+
+        $datos = [
+            'nombre' => 'Con',
+            'apellidos' => 'Documentos',
+            'fecha_nacimiento' => '2016-05-10',
+            'tutor_nombre' => 'Tutor Documentado',
+            'tutor_email' => 'documentos@example.com',
+            'certificado_medico' => UploadedFile::fake()->create('certificado.pdf', 200, 'application/pdf'),
+            'identificacion' => UploadedFile::fake()->image('identificacion.jpg'),
+            'foto' => UploadedFile::fake()->image('foto.png'),
+        ];
+
+        $this->actingAs($admin)->post(route('alumnos.store'), $datos);
+
+        $alumno = Alumno::where('nombre', 'Con')->first();
+
+        $this->assertNotNull($alumno->certificado_medico_path);
+        $this->assertNotNull($alumno->identificacion_path);
+        $this->assertNotNull($alumno->foto_path);
+        Storage::disk('public')->assertExists($alumno->certificado_medico_path);
+        Storage::disk('public')->assertExists($alumno->identificacion_path);
+        Storage::disk('public')->assertExists($alumno->foto_path);
+    }
+
+    public function test_admin_registra_un_alumno_sin_documentos(): void
+    {
+        Storage::fake('public');
+
+        $sucursal = Sucursal::factory()->create();
+        $admin = User::factory()->admin($sucursal->id)->create();
+
+        $this->actingAs($admin)->post(route('alumnos.store'), [
+            'nombre' => 'Sin',
+            'apellidos' => 'Documentos',
+            'fecha_nacimiento' => '2016-05-10',
+            'tutor_nombre' => 'Tutor',
+            'tutor_email' => 'sindocumentos@example.com',
+        ]);
+
+        $alumno = Alumno::where('nombre', 'Sin')->first();
+
+        $this->assertNotNull($alumno);
+        $this->assertNull($alumno->certificado_medico_path);
+        $this->assertNull($alumno->identificacion_path);
+        $this->assertNull($alumno->foto_path);
+    }
+
+    public function test_admin_reemplaza_el_documento_de_un_alumno_al_editar(): void
+    {
+        Storage::fake('public');
+
+        $sucursal = Sucursal::factory()->create();
+        $admin = User::factory()->admin($sucursal->id)->create();
+        $alumno = Alumno::factory()->create([
+            'sucursal_id' => $sucursal->id,
+            'foto_path' => 'alumnos/documentos/foto-anterior.png',
+        ]);
+        Storage::disk('public')->put('alumnos/documentos/foto-anterior.png', 'contenido-anterior');
+
+        $this->actingAs($admin)->put(route('alumnos.update', $alumno), [
+            'nombre' => $alumno->nombre,
+            'apellidos' => $alumno->apellidos,
+            'fecha_nacimiento' => $alumno->fecha_nacimiento->format('Y-m-d'),
+            'estado' => 'activo',
+            'tutor_nombre' => $alumno->tutorUser->name,
+            'tutor_email' => $alumno->tutorUser->email,
+            'foto' => UploadedFile::fake()->image('foto-nueva.png'),
+        ]);
+
+        $alumno->refresh();
+
+        $this->assertNotEquals('alumnos/documentos/foto-anterior.png', $alumno->foto_path);
+        Storage::disk('public')->assertExists($alumno->foto_path);
+        Storage::disk('public')->assertMissing('alumnos/documentos/foto-anterior.png');
     }
 
     public function test_admin_no_puede_registrar_alumno_en_otra_sucursal(): void

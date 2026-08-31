@@ -2,8 +2,10 @@
 
 namespace Tests\Feature;
 
+use App\Enums\EstadoCita;
 use App\Models\Alumno;
 use App\Models\Carril;
+use App\Models\Cita;
 use App\Models\Horario;
 use App\Models\Inscripcion;
 use App\Models\Instructor;
@@ -205,6 +207,37 @@ class AdminHorariosTest extends TestCase
         ]);
     }
 
+    public function test_el_tablero_de_horarios_ofrece_reagendar_la_clase_de_un_alumno_individualmente(): void
+    {
+        $e = $this->crearEscenario();
+
+        $horario = Horario::factory()->create([
+            'sucursal_id' => $e['sucursal']->id,
+            'instructor_id' => $e['instructor']->id,
+            'nivel_id' => $e['nivel']->id,
+            'carril_id' => $e['carril']->id,
+            'dia_semana' => 1,
+        ]);
+
+        $alumno = Alumno::factory()->create(['sucursal_id' => $e['sucursal']->id, 'nombre' => 'Pepito', 'apellidos' => 'Pérez']);
+
+        Cita::factory()->create([
+            'horario_id' => $horario->id,
+            'alumno_id' => $alumno->id,
+            'sucursal_id' => $e['sucursal']->id,
+            'fecha' => now()->addDay()->toDateString(),
+            'estado' => EstadoCita::Programada->value,
+        ]);
+
+        $response = $this->actingAs($e['admin'])->get(route('horarios.index'));
+
+        $response->assertOk();
+        // El selector de "Reagendar" debe listar la clase por alumno (individual),
+        // no solo el nombre del grupo.
+        $response->assertSee('Pepito Pérez');
+        $response->assertSee('/citas/');
+    }
+
     public function test_admin_reagenda_una_clase_existente(): void
     {
         $e = $this->crearEscenario();
@@ -377,6 +410,46 @@ class AdminHorariosTest extends TestCase
         ])->assertSessionHasErrors('alumno_id');
 
         $this->assertDatabaseMissing('inscripciones', ['alumno_id' => $alumnoAjeno->id]);
+    }
+
+    public function test_admin_cambia_el_instructor_de_una_clase(): void
+    {
+        $e = $this->crearEscenario();
+        $nuevoInstructor = Instructor::factory()->create(['sucursal_id' => $e['sucursal']->id]);
+
+        $horario = Horario::factory()->create([
+            'sucursal_id' => $e['sucursal']->id,
+            'instructor_id' => $e['instructor']->id,
+            'nivel_id' => $e['nivel']->id,
+            'carril_id' => $e['carril']->id,
+        ]);
+
+        $response = $this->actingAs($e['admin'])->patch(route('horarios.cambiar-instructor', $horario), [
+            'instructor_id' => $nuevoInstructor->id,
+        ]);
+
+        $response->assertRedirect(route('horarios.index'));
+        $this->assertEquals($nuevoInstructor->id, $horario->refresh()->instructor_id);
+    }
+
+    public function test_no_se_puede_cambiar_a_un_instructor_de_otra_sucursal(): void
+    {
+        $e = $this->crearEscenario();
+        $otraSucursal = Sucursal::factory()->create();
+        $instructorAjeno = Instructor::factory()->create(['sucursal_id' => $otraSucursal->id]);
+
+        $horario = Horario::factory()->create([
+            'sucursal_id' => $e['sucursal']->id,
+            'instructor_id' => $e['instructor']->id,
+            'nivel_id' => $e['nivel']->id,
+            'carril_id' => $e['carril']->id,
+        ]);
+
+        $this->actingAs($e['admin'])->patch(route('horarios.cambiar-instructor', $horario), [
+            'instructor_id' => $instructorAjeno->id,
+        ])->assertSessionHasErrors('instructor_id');
+
+        $this->assertEquals($e['instructor']->id, $horario->refresh()->instructor_id);
     }
 
     public function test_admin_cambia_a_un_alumno_de_grupo(): void

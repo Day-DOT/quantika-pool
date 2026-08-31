@@ -55,6 +55,7 @@ class User extends Authenticatable
             'password' => 'hashed',
             'role' => Rol::class,
             'activo' => 'boolean',
+            'password_configurada' => 'boolean',
         ];
     }
 
