@@ -14,7 +14,7 @@
 <aside class="sidebar">
 
     <div class="sidebar-logo">
-        <img src="{{ asset('images/quantika-logo.png') }}" alt="Quantika Pool">
+        <img src="{{ auth()->user()->logoUrl() }}" alt="Quantika Pool">
     </div>
 
     <div class="sidebar-user">

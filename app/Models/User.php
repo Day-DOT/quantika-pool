@@ -93,4 +93,33 @@ class User extends Authenticatable
     {
         return $this->role === Rol::Alumno;
     }
+
+    /**
+     * La sucursal "de este usuario" vive en distintos lugares según el rol:
+     * en el propio usuario (admin), en su registro de instructor, o en la de
+     * sus alumnos (tutor). Un super admin no pertenece a ninguna sucursal.
+     */
+    public function sucursalActual(): ?Sucursal
+    {
+        if ($this->sucursal_id) {
+            return $this->sucursal;
+        }
+
+        if ($this->isInstructor()) {
+            return $this->instructor?->sucursal;
+        }
+
+        if ($this->isAlumno()) {
+            return $this->alumnos()->with('sucursal')->first()?->sucursal;
+        }
+
+        return null;
+    }
+
+    public function logoUrl(): string
+    {
+        $logoPath = $this->sucursalActual()?->logo_path;
+
+        return $logoPath ? asset($logoPath) : asset('images/quantika-logo.png');
+    }
 }

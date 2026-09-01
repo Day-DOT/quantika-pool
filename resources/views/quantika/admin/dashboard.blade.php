@@ -482,7 +482,7 @@
             </div>
 
             <div class="hero-logo-box">
-                <img src="{{ asset('images/quantika-logo.png') }}" alt="Quantika Pool">
+                <img src="{{ auth()->user()->logoUrl() }}" alt="Quantika Pool">
             </div>
 
         </div>
