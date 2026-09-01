@@ -873,7 +873,7 @@
 
                                     <div>
                                         <div class="student-name">{{ $alumno->nombreCompleto() }}</div>
-                                        <div class="student-email">{{ $alumno->email ?? ($alumno->tutorUser->email ?? 'Sin correo') }}</div>
+                                        <div class="student-email">{{ $alumno->email ?? ($alumno->tutorUser?->email ?? 'Sin correo') }}</div>
                                     </div>
 
                                 </div>

@@ -65,10 +65,14 @@
                     <label>Nivel actual</label>
                     <select name="nivel_id" class="form-select">
                         <option value="">Sin nivel asignado</option>
-                        @foreach ($niveles as $nivelOpcion)
-                            <option value="{{ $nivelOpcion->id }}" @selected(old('nivel_id', $alumno->nivel_id) == $nivelOpcion->id)>
-                                {{ $nivelOpcion->nombre }}
-                            </option>
+                        @foreach ($niveles->groupBy('categoria_edad') as $grupoEdad => $nivelesGrupo)
+                            <optgroup label="{{ $grupoEdad }}">
+                                @foreach ($nivelesGrupo as $nivelOpcion)
+                                    <option value="{{ $nivelOpcion->id }}" @selected(old('nivel_id', $alumno->nivel_id) == $nivelOpcion->id)>
+                                        {{ $nivelOpcion->nombre }}
+                                    </option>
+                                @endforeach
+                            </optgroup>
                         @endforeach
                     </select>
                 </div>
@@ -85,19 +89,29 @@
                     </select>
                 </div>
 
-                <div class="form-group">
-                    <label>Nombre del tutor / responsable</label>
-                    <input type="text" class="form-input" name="tutor_nombre" value="{{ old('tutor_nombre', $alumno->tutorUser?->name) }}" required>
+                <div class="form-group full">
+                    <label class="form-check">
+                        <input type="checkbox" id="tieneTutorEditar" name="tiene_tutor" value="1" onchange="toggleTutorEditar()" @checked(old('tiene_tutor', $alumno->nombreTutor() !== null))>
+                        El alumno tiene tutor / responsable
+                    </label>
                 </div>
 
-                <div class="form-group">
-                    <label>Correo del tutor / responsable</label>
-                    <input type="email" class="form-input" name="tutor_email" value="{{ old('tutor_email', $alumno->tutorUser?->email) }}" required>
-                </div>
+                <div id="camposTutorEditar">
+                    <div class="form-group">
+                        <label>Nombre del tutor / responsable</label>
+                        <input type="text" class="form-input" name="tutor_nombre" value="{{ old('tutor_nombre', $alumno->nombreTutor()) }}">
+                    </div>
 
-                <div class="form-group">
-                    <label>Teléfono del tutor</label>
-                    <input type="text" class="form-input" name="tutor_telefono" value="{{ old('tutor_telefono', $alumno->tutorUser?->telefono) }}">
+                    <div class="form-group">
+                        <label>Correo del tutor / responsable (opcional)</label>
+                        <input type="email" class="form-input" name="tutor_email" value="{{ old('tutor_email', $alumno->tutorUser?->email) }}">
+                        <small>Si no se captura, el tutor solo queda como dato de contacto (sin acceso al portal).</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Teléfono del tutor</label>
+                        <input type="text" class="form-input" name="tutor_telefono" value="{{ old('tutor_telefono', $alumno->telefonoTutor()) }}">
+                    </div>
                 </div>
 
                 <div class="form-group full">
@@ -114,7 +128,7 @@
                 </div>
 
                 <div class="form-group">
-                    <label>Identificación / acta de nacimiento {{ $alumno->identificacion_path ? '(reemplazar)' : '(opcional)' }}</label>
+                    <label>Identificación / CURP {{ $alumno->identificacion_path ? '(reemplazar)' : '(opcional)' }}</label>
                     <input type="file" class="form-input" name="identificacion" accept=".pdf,.jpg,.jpeg,.png">
                     @if ($alumno->identificacion_path)
                         <span class="form-hint"><a href="{{ \Illuminate\Support\Facades\Storage::url($alumno->identificacion_path) }}" target="_blank">Ver archivo actual</a></span>
@@ -141,3 +155,14 @@
     </div>
 
 @endsection
+
+@push('scripts')
+<script>
+    function toggleTutorEditar() {
+        const visible = document.getElementById('tieneTutorEditar').checked;
+        document.getElementById('camposTutorEditar').style.display = visible ? '' : 'none';
+    }
+
+    document.addEventListener('DOMContentLoaded', toggleTutorEditar);
+</script>
+@endpush

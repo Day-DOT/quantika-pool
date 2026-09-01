@@ -35,11 +35,28 @@ class SuperAdminPlanTest extends TestCase
 
         $this->actingAs($superAdmin)->post(route('super-admin.planes.store'), [
             'nombre' => 'Plan inválido',
-            'clases_por_semana' => 5,
+            'clases_por_semana' => 8,
             'activo' => '1',
         ])->assertSessionHasErrors('clases_por_semana');
 
         $this->assertDatabaseMissing('planes', ['nombre' => 'Plan inválido']);
+    }
+
+    public function test_se_puede_crear_un_plan_con_cualquier_numero_de_dias_de_la_semana(): void
+    {
+        $superAdmin = User::factory()->superAdmin()->create();
+
+        $this->actingAs($superAdmin)->post(route('super-admin.planes.store'), [
+            'nombre' => 'Plan 5 clases/semana',
+            'clases_por_semana' => 5,
+            'precio' => 1800,
+            'activo' => '1',
+        ])->assertRedirect(route('super-admin.planes.index'));
+
+        $this->assertDatabaseHas('planes', [
+            'nombre' => 'Plan 5 clases/semana',
+            'clases_por_semana' => 5,
+        ]);
     }
 
     public function test_super_admin_puede_editar_un_plan(): void

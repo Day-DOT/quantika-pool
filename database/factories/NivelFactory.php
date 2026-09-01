@@ -18,6 +18,7 @@ class NivelFactory extends Factory
             'orden' => fake()->unique()->numberBetween(1, 999),
             'nombre' => fake()->word(),
             'categoria' => fake()->randomElement(['Principiante', 'Intermedio', 'Avanzado']),
+            'categoria_edad' => 'Niños',
             'descripcion' => fake()->sentence(),
             'activo' => true,
         ];

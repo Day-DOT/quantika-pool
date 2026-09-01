@@ -101,8 +101,8 @@
 
         <div class="stat-card">
             <span class="stat-name">TUTOR / RESPONSABLE</span>
-            <div class="stat-value" style="font-size:16px;">{{ $alumno->tutorUser?->name ?? 'Sin tutor' }}</div>
-            <div class="stat-change">{{ $alumno->tutorUser?->email }}{{ $alumno->tutorUser?->telefono ? ' · '.$alumno->tutorUser->telefono : '' }}</div>
+            <div class="stat-value" style="font-size:16px;">{{ $alumno->nombreTutor() ?? 'Sin tutor asignado' }}</div>
+            <div class="stat-change">{{ $alumno->tutorUser?->email }}{{ $alumno->telefonoTutor() ? ' · '.$alumno->telefonoTutor() : '' }}</div>
         </div>
 
         <div class="stat-card">
@@ -137,7 +137,7 @@
         </p>
         <div style="flex:1; min-width:220px;">
             <p style="color:var(--muted); font-size:13px; line-height:1.6; margin-bottom:14px;">
-                Comparte este código con {{ $alumno->tutorUser?->name ?? 'el tutor' }} (también lo puede ver desde
+                Comparte este código con {{ $alumno->nombreTutor() ?? 'el tutor' }} (también lo puede ver desde
                 su portal) o imprímelo. Al escanearlo desde
                 <a href="{{ route('asistencia.escanear') }}" class="section-link">Escanear asistencia</a>
                 se registra la asistencia de {{ $alumno->nombreCompleto() }} en la clase que tenga programada hoy.
@@ -171,7 +171,7 @@
 
             <div class="stat-card">
                 <div class="stat-top">
-                    <span class="stat-name">IDENTIFICACIÓN / ACTA</span>
+                    <span class="stat-name">IDENTIFICACIÓN / CURP</span>
                     <div class="stat-icon">🪪</div>
                 </div>
                 @if ($alumno->identificacion_path)

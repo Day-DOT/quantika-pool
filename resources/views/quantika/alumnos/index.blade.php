@@ -577,7 +577,7 @@
                     @forelse ($alumnos as $fila)
                         @php($alumno = $fila['alumno'])
                         <tr
-                            data-search="{{ mb_strtolower($alumno->nombreCompleto().' '.($alumno->email ?? '').' '.($alumno->tutorUser->name ?? '')) }}"
+                            data-search="{{ mb_strtolower($alumno->nombreCompleto().' '.($alumno->email ?? '').' '.($alumno->nombreTutor() ?? '')) }}"
                             data-nivel="{{ $alumno->nivel_id }}"
                             data-sucursal="{{ $alumno->sucursal_id }}"
                             data-estado="{{ $alumno->estado->value }}">
@@ -587,7 +587,7 @@
                                     <div class="student-avatar">{{ $fila['iniciales'] }}</div>
                                     <div>
                                         <div class="student-name">{{ $alumno->nombreCompleto() }}</div>
-                                        <div class="student-email">{{ $alumno->email ?? ($alumno->tutorUser->email ?? 'Sin correo') }}</div>
+                                        <div class="student-email">{{ $alumno->email ?? ($alumno->tutorUser?->email ?? 'Sin correo') }}</div>
                                     </div>
                                 </div>
                             </td>
@@ -610,7 +610,7 @@
 
                             <td><span class="branch">{{ $alumno->sucursal->nombre }}</span></td>
 
-                            <td>{{ $alumno->tutorUser->name ?? 'Sin tutor' }}</td>
+                            <td>{{ $alumno->nombreTutor() ?? 'Sin tutor' }}</td>
 
                             <td>
                                 @if ($fila['asistencia'] !== null)
@@ -723,19 +723,29 @@
                     <input type="email" class="form-input" name="email" value="{{ old('email') }}" placeholder="correo@ejemplo.com">
                 </div>
 
-                <div class="form-group">
-                    <label>Nombre del tutor / responsable</label>
-                    <input type="text" class="form-input" name="tutor_nombre" value="{{ old('tutor_nombre') }}" required placeholder="Nombre del tutor">
+                <div class="form-group full">
+                    <label class="form-check">
+                        <input type="checkbox" id="tieneTutorCrear" name="tiene_tutor" value="1" onchange="toggleTutorCrear()" @checked(old('tiene_tutor', true))>
+                        El alumno tiene tutor / responsable
+                    </label>
                 </div>
 
-                <div class="form-group">
-                    <label>Correo del tutor / responsable</label>
-                    <input type="email" class="form-input" name="tutor_email" value="{{ old('tutor_email') }}" required placeholder="tutor@ejemplo.com">
-                </div>
+                <div id="camposTutorCrear">
+                    <div class="form-group">
+                        <label>Nombre del tutor / responsable</label>
+                        <input type="text" class="form-input" name="tutor_nombre" value="{{ old('tutor_nombre') }}" placeholder="Nombre del tutor">
+                    </div>
 
-                <div class="form-group">
-                    <label>Teléfono del tutor</label>
-                    <input type="tel" class="form-input" name="tutor_telefono" value="{{ old('tutor_telefono') }}" placeholder="10 dígitos">
+                    <div class="form-group">
+                        <label>Correo del tutor / responsable (opcional)</label>
+                        <input type="email" class="form-input" name="tutor_email" value="{{ old('tutor_email') }}" placeholder="tutor@ejemplo.com">
+                        <small>Si no se captura, el tutor solo queda como dato de contacto (sin acceso al portal).</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Teléfono del tutor</label>
+                        <input type="tel" class="form-input" name="tutor_telefono" value="{{ old('tutor_telefono') }}" placeholder="10 dígitos">
+                    </div>
                 </div>
 
                 @if ($esVistaGlobal)
@@ -758,10 +768,14 @@
                     <label>Nivel actual</label>
                     <select class="form-select" name="nivel_id">
                         <option value="">Sin nivel asignado</option>
-                        @foreach ($niveles as $nivelOpcion)
-                            <option value="{{ $nivelOpcion->id }}" @selected(old('nivel_id') == $nivelOpcion->id)>
-                                {{ $nivelOpcion->nombre }}
-                            </option>
+                        @foreach ($niveles->groupBy('categoria_edad') as $grupoEdad => $nivelesGrupo)
+                            <optgroup label="{{ $grupoEdad }}">
+                                @foreach ($nivelesGrupo as $nivelOpcion)
+                                    <option value="{{ $nivelOpcion->id }}" @selected(old('nivel_id') == $nivelOpcion->id)>
+                                        {{ $nivelOpcion->nombre }}
+                                    </option>
+                                @endforeach
+                            </optgroup>
                         @endforeach
                     </select>
                 </div>
@@ -789,7 +803,7 @@
                 </div>
 
                 <div class="form-group">
-                    <label>Identificación / acta de nacimiento (opcional)</label>
+                    <label>Identificación / CURP (opcional)</label>
                     <input type="file" class="form-input" name="identificacion" accept=".pdf,.jpg,.jpeg,.png">
                 </div>
 
@@ -813,6 +827,13 @@
 
 @push('scripts')
 <script>
+
+    function toggleTutorCrear() {
+        const visible = document.getElementById('tieneTutorCrear').checked;
+        document.getElementById('camposTutorCrear').style.display = visible ? '' : 'none';
+    }
+
+    document.addEventListener('DOMContentLoaded', toggleTutorCrear);
 
     function filtrarAlumnos() {
 

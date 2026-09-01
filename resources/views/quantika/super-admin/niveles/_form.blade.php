@@ -19,7 +19,19 @@
     </div>
 
     <div class="form-group">
-        <label for="categoria">Categoría</label>
+        <label for="categoria_edad">Grupo de edad</label>
+        <select id="categoria_edad" name="categoria_edad" class="form-select" required>
+            @foreach (\App\Models\Nivel::CATEGORIAS_EDAD as $opcion)
+                <option value="{{ $opcion }}" {{ old('categoria_edad', $nivel->categoria_edad ?? 'Niños') === $opcion ? 'selected' : '' }}>
+                    {{ $opcion }}
+                </option>
+            @endforeach
+        </select>
+        @error('categoria_edad') <span class="form-error">{{ $message }}</span> @enderror
+    </div>
+
+    <div class="form-group">
+        <label for="categoria">Categoría (nivel de habilidad)</label>
         <input type="text" id="categoria" name="categoria" class="form-input" value="{{ old('categoria', $nivel->categoria ?? '') }}" placeholder="Principiante, Intermedio, Avanzado..." required>
         @error('categoria') <span class="form-error">{{ $message }}</span> @enderror
     </div>

@@ -298,11 +298,15 @@
 
     <!-- NIVELES -->
 
-    <div class="levels-grid">
+    @foreach ($niveles->groupBy(fn ($fila) => $fila['nivel']->categoria_edad) as $categoriaEdad => $filasGrupo)
 
-        @foreach ($niveles as $fila)
-            @php($nivel = $fila['nivel'])
-            <div class="level-card">
+        <div class="section-title" style="margin:30px 0 18px;">{{ $categoriaEdad }}</div>
+
+        <div class="levels-grid">
+
+            @foreach ($filasGrupo as $fila)
+                @php($nivel = $fila['nivel'])
+                <div class="level-card">
 
                 <div class="animal-area">
 
@@ -363,10 +367,12 @@
 
                 </div>
 
-            </div>
-        @endforeach
+                </div>
+            @endforeach
 
-    </div>
+        </div>
+
+    @endforeach
 
 </div>
 

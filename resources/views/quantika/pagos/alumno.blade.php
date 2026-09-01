@@ -59,7 +59,7 @@
     <div class="section-header" style="margin-top:0;">
         <div>
             <p style="color:var(--muted); font-size:14px;">
-                {{ $alumno->nivel?->nombre ?? 'Sin nivel' }} · {{ $alumno->sucursal->nombre }} · Tutor: {{ $alumno->tutorUser?->name ?? 'Sin tutor' }}
+                {{ $alumno->nivel?->nombre ?? 'Sin nivel' }} · {{ $alumno->sucursal->nombre }} · Tutor: {{ $alumno->nombreTutor() ?? 'Sin tutor' }}
             </p>
         </div>
 

@@ -108,7 +108,7 @@
             <p>
                 {{ $alumno->nivel?->nombre ?? 'Sin nivel asignado' }} ·
                 {{ $alumno->sucursal->nombre }} ·
-                Tutor: {{ $alumno->tutorUser?->name ?? 'Sin tutor' }}
+                Tutor: {{ $alumno->nombreTutor() ?? 'Sin tutor' }}
             </p>
         </div>
 

@@ -16,11 +16,14 @@ class Nivel extends Model
         'orden',
         'nombre',
         'categoria',
+        'categoria_edad',
         'descripcion',
         'color_hex',
         'imagen',
         'activo',
     ];
+
+    public const CATEGORIAS_EDAD = ['Bebés', 'Niños', 'Adultos'];
 
     protected function casts(): array
     {
@@ -57,11 +60,23 @@ class Nivel extends Model
 
     public function scopeOrdenados($query)
     {
-        return $query->orderBy('orden');
+        // CASE WHEN (no FIELD(), que es exclusivo de MySQL) para que el orden
+        // funcione igual en MySQL y en SQLite (usado en las pruebas).
+        return $query
+            ->orderByRaw("CASE categoria_edad WHEN 'Bebés' THEN 1 WHEN 'Niños' THEN 2 WHEN 'Adultos' THEN 3 ELSE 4 END")
+            ->orderBy('orden');
+    }
+
+    public function scopeDeCategoriaEdad($query, string $categoriaEdad)
+    {
+        return $query->where('categoria_edad', $categoriaEdad);
     }
 
     public function siguiente(): ?self
     {
-        return static::where('orden', '>', $this->orden)->orderBy('orden')->first();
+        return static::where('categoria_edad', $this->categoria_edad)
+            ->where('orden', '>', $this->orden)
+            ->orderBy('orden')
+            ->first();
     }
 }

@@ -20,6 +20,8 @@ class Alumno extends Model
 
     protected $fillable = [
         'tutor_user_id',
+        'tutor_contacto_nombre',
+        'tutor_contacto_telefono',
         'sucursal_id',
         'nivel_id',
         'plan_id',
@@ -65,6 +67,16 @@ class Alumno extends Model
     public function nombreCompleto(): string
     {
         return trim("{$this->nombre} {$this->apellidos}");
+    }
+
+    public function nombreTutor(): ?string
+    {
+        return $this->tutorUser?->name ?? $this->tutor_contacto_nombre;
+    }
+
+    public function telefonoTutor(): ?string
+    {
+        return $this->tutorUser?->telefono ?? $this->tutor_contacto_telefono;
     }
 
     public function tutorUser(): BelongsTo

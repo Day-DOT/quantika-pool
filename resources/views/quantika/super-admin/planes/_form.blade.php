@@ -9,9 +9,9 @@
     <div class="form-group">
         <label for="clases_por_semana">Clases por semana</label>
         <select id="clases_por_semana" name="clases_por_semana" class="form-select" required>
-            @foreach ([2, 3] as $opcion)
+            @foreach (range(1, 7) as $opcion)
                 <option value="{{ $opcion }}" {{ (string) old('clases_por_semana', $plan->clases_por_semana ?? '') === (string) $opcion ? 'selected' : '' }}>
-                    {{ $opcion }} clases por semana
+                    {{ $opcion }} {{ $opcion === 1 ? 'clase' : 'clases' }} por semana
                 </option>
             @endforeach
         </select>

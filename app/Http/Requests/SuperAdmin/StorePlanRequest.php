@@ -3,7 +3,6 @@
 namespace App\Http\Requests\SuperAdmin;
 
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Validation\Rule;
 
 class StorePlanRequest extends FormRequest
 {
@@ -16,7 +15,7 @@ class StorePlanRequest extends FormRequest
     {
         return [
             'nombre' => ['required', 'string', 'max:255'],
-            'clases_por_semana' => ['required', 'integer', Rule::in([2, 3])],
+            'clases_por_semana' => ['required', 'integer', 'min:1', 'max:7'],
             'precio' => ['nullable', 'numeric', 'min:0'],
             'activo' => ['required', 'boolean'],
         ];

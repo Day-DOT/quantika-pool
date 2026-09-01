@@ -104,6 +104,52 @@ class AdminAlumnosTest extends TestCase
         $this->assertEquals($tutor->id, $alumno->tutor_user_id);
     }
 
+    public function test_admin_puede_registrar_un_alumno_sin_tutor(): void
+    {
+        $sucursal = Sucursal::factory()->create();
+        $admin = User::factory()->admin($sucursal->id)->create();
+
+        $response = $this->actingAs($admin)->post(route('alumnos.store'), [
+            'nombre' => 'Sin',
+            'apellidos' => 'Tutor',
+            'fecha_nacimiento' => '2016-05-10',
+        ]);
+
+        $alumno = Alumno::where('nombre', 'Sin')->first();
+
+        $this->assertNotNull($alumno);
+        $response->assertRedirect(route('alumnos.show', $alumno));
+        $this->assertNull($alumno->tutor_user_id);
+        $this->assertNull($alumno->tutor_contacto_nombre);
+
+        // El alumno debe seguir siendo visible y editable sin tutor asignado.
+        $this->actingAs($admin)->get(route('alumnos.show', $alumno))->assertOk();
+        $this->actingAs($admin)->get(route('alumnos.edit', $alumno))->assertOk();
+    }
+
+    public function test_admin_puede_registrar_un_alumno_con_tutor_de_solo_contacto_sin_correo(): void
+    {
+        $sucursal = Sucursal::factory()->create();
+        $admin = User::factory()->admin($sucursal->id)->create();
+
+        $this->actingAs($admin)->post(route('alumnos.store'), [
+            'nombre' => 'Con',
+            'apellidos' => 'TutorContacto',
+            'fecha_nacimiento' => '2016-05-10',
+            'tiene_tutor' => '1',
+            'tutor_nombre' => 'Tutor Sin Correo',
+            'tutor_telefono' => '5500112233',
+        ]);
+
+        $alumno = Alumno::where('nombre', 'Con')->first();
+
+        $this->assertNotNull($alumno);
+        $this->assertNull($alumno->tutor_user_id);
+        $this->assertEquals('Tutor Sin Correo', $alumno->tutor_contacto_nombre);
+        $this->assertEquals('5500112233', $alumno->tutor_contacto_telefono);
+        $this->assertEquals('Tutor Sin Correo', $alumno->nombreTutor());
+    }
+
     public function test_admin_registra_un_alumno_con_documentos_opcionales(): void
     {
         Storage::fake('public');

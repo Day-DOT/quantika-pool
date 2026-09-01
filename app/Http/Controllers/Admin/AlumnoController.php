@@ -94,29 +94,46 @@ class AlumnoController extends Controller
         ];
 
         $resultado = DB::transaction(function () use ($datos, $sucursalId, $rutasDocumentos) {
-            $tutor = User::where('email', $datos['tutor_email'])->first();
+            $tutor = null;
             $cuentaPendienteActivar = false;
+            $tutorContactoNombre = null;
+            $tutorContactoTelefono = null;
 
-            if (! $tutor) {
-                $cuentaPendienteActivar = true;
+            if (! empty($datos['tutor_email'])) {
+                // Con correo: el tutor tiene acceso al portal. Se reutiliza la
+                // cuenta si ya existe (así se enlazan varios hijos al mismo
+                // tutor) o se crea una nueva pendiente de activar.
+                $tutor = User::where('email', $datos['tutor_email'])->first();
 
-                $tutor = User::create([
-                    'name' => $datos['tutor_nombre'],
-                    'email' => $datos['tutor_email'],
-                    // Contraseña aleatoria e inservible: el tutor define la suya
-                    // real la primera vez que entra a /registro.
-                    'password' => Hash::make(Str::random(40)),
-                    'role' => Rol::Alumno->value,
-                    'telefono' => $datos['tutor_telefono'] ?? null,
-                    'activo' => true,
-                ]);
-                $tutor->forceFill(['password_configurada' => false])->save();
-            } elseif (empty($tutor->telefono) && ! empty($datos['tutor_telefono'])) {
-                $tutor->update(['telefono' => $datos['tutor_telefono']]);
+                if (! $tutor) {
+                    $cuentaPendienteActivar = true;
+
+                    $tutor = User::create([
+                        'name' => $datos['tutor_nombre'],
+                        'email' => $datos['tutor_email'],
+                        // Contraseña aleatoria e inservible: el tutor define la suya
+                        // real la primera vez que entra a /registro.
+                        'password' => Hash::make(Str::random(40)),
+                        'role' => Rol::Alumno->value,
+                        'telefono' => $datos['tutor_telefono'] ?? null,
+                        'activo' => true,
+                    ]);
+                    $tutor->forceFill(['password_configurada' => false])->save();
+                } elseif (empty($tutor->telefono) && ! empty($datos['tutor_telefono'])) {
+                    $tutor->update(['telefono' => $datos['tutor_telefono']]);
+                }
+            } elseif (! empty($datos['tutor_nombre'])) {
+                // Sin correo no se puede crear una cuenta de portal (el
+                // correo es el identificador de acceso), así que el tutor
+                // solo queda como dato de contacto.
+                $tutorContactoNombre = $datos['tutor_nombre'];
+                $tutorContactoTelefono = $datos['tutor_telefono'] ?? null;
             }
 
             $alumno = Alumno::create([
-                'tutor_user_id' => $tutor->id,
+                'tutor_user_id' => $tutor?->id,
+                'tutor_contacto_nombre' => $tutorContactoNombre,
+                'tutor_contacto_telefono' => $tutorContactoTelefono,
                 'sucursal_id' => $sucursalId,
                 'nivel_id' => $datos['nivel_id'] ?? null,
                 'plan_id' => $datos['plan_id'] ?? null,
@@ -255,10 +272,43 @@ class AlumnoController extends Controller
             ]);
 
             if ($alumno->tutorUser) {
-                $alumno->tutorUser->update([
-                    'name' => $datos['tutor_nombre'],
-                    'email' => $datos['tutor_email'],
-                    'telefono' => $datos['tutor_telefono'] ?? $alumno->tutorUser->telefono,
+                if (! empty($datos['tutor_email'])) {
+                    $alumno->tutorUser->update([
+                        'name' => $datos['tutor_nombre'] ?: $alumno->tutorUser->name,
+                        'email' => $datos['tutor_email'],
+                        'telefono' => $datos['tutor_telefono'] ?? $alumno->tutorUser->telefono,
+                    ]);
+                }
+            } elseif (! empty($datos['tutor_email'])) {
+                // Antes no tenía cuenta de portal; se le asigna una ahora.
+                $tutor = User::where('email', $datos['tutor_email'])->first();
+
+                if (! $tutor) {
+                    $tutor = User::create([
+                        'name' => $datos['tutor_nombre'],
+                        'email' => $datos['tutor_email'],
+                        'password' => Hash::make(Str::random(40)),
+                        'role' => Rol::Alumno->value,
+                        'telefono' => $datos['tutor_telefono'] ?? null,
+                        'activo' => true,
+                    ]);
+                    $tutor->forceFill(['password_configurada' => false])->save();
+                }
+
+                $alumno->update([
+                    'tutor_user_id' => $tutor->id,
+                    'tutor_contacto_nombre' => null,
+                    'tutor_contacto_telefono' => null,
+                ]);
+            } elseif (! empty($datos['tutor_nombre'])) {
+                $alumno->update([
+                    'tutor_contacto_nombre' => $datos['tutor_nombre'],
+                    'tutor_contacto_telefono' => $datos['tutor_telefono'] ?? null,
+                ]);
+            } else {
+                $alumno->update([
+                    'tutor_contacto_nombre' => null,
+                    'tutor_contacto_telefono' => null,
                 ]);
             }
 

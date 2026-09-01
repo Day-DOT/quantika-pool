@@ -27,9 +27,10 @@ class UpdateAlumnoRequest extends FormRequest
             'nivel_id' => ['nullable', 'integer', 'exists:niveles,id'],
             'plan_id' => ['nullable', 'integer', 'exists:planes,id'],
             'estado' => ['required', Rule::in(array_map(fn ($c) => $c->value, EstadoAlumno::cases()))],
-            'tutor_nombre' => ['required', 'string', 'max:150'],
+            'tiene_tutor' => ['nullable', 'boolean'],
+            'tutor_nombre' => [$this->boolean('tiene_tutor') ? 'required' : 'nullable', 'string', 'max:150'],
             'tutor_email' => [
-                'required',
+                'nullable',
                 'email',
                 'max:150',
                 Rule::unique('users', 'email')->ignore($tutor?->id),
