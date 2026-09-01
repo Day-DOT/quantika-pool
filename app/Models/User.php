@@ -96,17 +96,17 @@ class User extends Authenticatable
 
     /**
      * La sucursal "de este usuario" vive en distintos lugares según el rol:
-     * en el propio usuario (admin), en su registro de instructor, o en la de
-     * sus alumnos (tutor). Un super admin no pertenece a ninguna sucursal.
+     * en el propio usuario (admin), en su registro de instructor, o (para el
+     * super admin) en la que haya elegido navegar desde el selector de
+     * sucursales. Si el super admin está en la vista global (todas las
+     * sucursales), no hay una sucursal "actual" que mostrar.
      */
     public function sucursalActual(): ?Sucursal
     {
-        if ($this->sucursal_id) {
-            return $this->sucursal;
-        }
+        $sucursalId = \App\Support\SucursalContext::actualId();
 
-        if ($this->isInstructor()) {
-            return $this->instructor?->sucursal;
+        if ($sucursalId) {
+            return Sucursal::find($sucursalId);
         }
 
         if ($this->isAlumno()) {
