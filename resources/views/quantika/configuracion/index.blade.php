@@ -134,7 +134,7 @@
             <h2>Sucursales</h2>
 
             <p>
-                Administra las sucursales de Quantika Pool,
+                Administra las sucursales de Aqualix,
                 sus datos y disponibilidad.
             </p>
 
@@ -232,7 +232,7 @@
     </div>
 
     <div class="settings-footer">
-        QUANTIKA POOL © 2026 · Sistema de administración
+        Aqualix © 2026 · Sistema de administración
     </div>
 
 @endsection

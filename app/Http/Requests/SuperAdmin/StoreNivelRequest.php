@@ -16,8 +16,6 @@ class StoreNivelRequest extends FormRequest
     public function rules(): array
     {
         return [
-            // El orden ya no es único: puede haber varios niveles marcados
-            // con el mismo número (p.ej. distintas variantes del "nivel 1").
             'orden' => ['required', 'integer', 'min:1', 'max:255'],
             'nombre' => ['required', 'string', 'max:255'],
             'categoria' => ['required', 'string', 'max:255'],
