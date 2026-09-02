@@ -130,6 +130,49 @@ class AdminAlumnosTest extends TestCase
         $this->actingAs($admin)->get(route('alumnos.edit', $alumno))->assertOk();
     }
 
+    public function test_alumno_sin_tutor_pero_con_correo_propio_recibe_su_propia_cuenta_de_portal(): void
+    {
+        $sucursal = Sucursal::factory()->create();
+        $admin = User::factory()->admin($sucursal->id)->create();
+
+        $response = $this->actingAs($admin)->post(route('alumnos.store'), [
+            'nombre' => 'Adulto',
+            'apellidos' => 'Autogestionado',
+            'fecha_nacimiento' => '2000-01-01',
+            'email' => 'adulto.autogestionado@example.com',
+        ]);
+
+        $alumno = Alumno::where('nombre', 'Adulto')->first();
+
+        $this->assertNotNull($alumno);
+        $response->assertSessionHas('status', function ($mensaje) {
+            return str_contains($mensaje, 'El alumno (adulto.autogestionado@example.com) debe crear su acceso');
+        });
+
+        $cuenta = User::where('email', 'adulto.autogestionado@example.com')->first();
+        $this->assertNotNull($cuenta);
+        $this->assertEquals(Rol::Alumno, $cuenta->role);
+        $this->assertFalse($cuenta->password_configurada);
+        $this->assertEquals($cuenta->id, $alumno->tutor_user_id);
+
+        // Con esa cuenta pendiente, el alumno puede autoactivarse en /registro
+        // usando su propio correo como si fuera "tutor" de sí mismo. Hay que
+        // cerrar la sesión del admin que quedó activa por el paso anterior.
+        auth()->logout();
+
+        $activacion = $this->post(route('registro'), [
+            'tutor_email' => 'adulto.autogestionado@example.com',
+            'alumno_nombre' => 'Adulto',
+            'alumno_apellidos' => 'Autogestionado',
+            'alumno_fecha_nacimiento' => '2000-01-01',
+            'password' => 'contrasena-nueva-123',
+            'password_confirmation' => 'contrasena-nueva-123',
+        ]);
+
+        $activacion->assertRedirect(route('portal.dashboard'));
+        $this->assertAuthenticatedAs($cuenta->fresh());
+    }
+
     public function test_admin_puede_registrar_un_alumno_con_tutor_de_solo_contacto_sin_correo(): void
     {
         $sucursal = Sucursal::factory()->create();

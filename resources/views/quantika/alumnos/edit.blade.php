@@ -48,6 +48,7 @@
                 <div class="form-group">
                     <label>Correo electrónico del alumno</label>
                     <input type="email" class="form-input" name="email" value="{{ old('email', $alumno->email) }}">
+                    <small>Si el alumno no tiene tutor, este correo es el que usará para crear su propio acceso al portal.</small>
                 </div>
 
                 <div class="form-group">
