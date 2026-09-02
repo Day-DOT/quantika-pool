@@ -6,6 +6,8 @@ use App\Models\CriterioEvaluacion;
 use App\Models\Nivel;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 class SuperAdminNivelYCriterioTest extends TestCase
@@ -25,6 +27,28 @@ class SuperAdminNivelYCriterioTest extends TestCase
         ])->assertRedirect(route('niveles.index'));
 
         $this->assertDatabaseHas('niveles', ['nombre' => 'Kraken', 'orden' => 13]);
+    }
+
+    public function test_la_imagen_de_un_nivel_nuevo_se_guarda_en_el_disco_persistente(): void
+    {
+        Storage::fake('public');
+
+        $superAdmin = User::factory()->superAdmin()->create();
+
+        $this->actingAs($superAdmin)->post(route('super-admin.niveles.store'), [
+            'orden' => 14,
+            'nombre' => 'Kraken',
+            'categoria' => 'Élite',
+            'categoria_edad' => 'Niños',
+            'activo' => '1',
+            'imagen' => UploadedFile::fake()->image('kraken.png'),
+        ])->assertRedirect(route('niveles.index'));
+
+        $nivel = Nivel::where('nombre', 'Kraken')->first();
+
+        $this->assertNotNull($nivel->imagen);
+        $this->assertStringStartsWith('storage/niveles/', $nivel->imagen);
+        Storage::disk('public')->assertExists('niveles/'.basename($nivel->imagen));
     }
 
     public function test_se_puede_crear_mas_de_un_nivel_con_el_mismo_orden(): void

@@ -9,6 +9,7 @@ use App\Models\Nivel;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
 
@@ -54,6 +55,13 @@ class NivelController extends Controller
         $data = $request->validated();
 
         if ($request->hasFile('imagen')) {
+            // Solo se borra la imagen anterior si fue subida en producción
+            // (bajo storage/niveles); las originales viven en el repositorio
+            // y no deben eliminarse del disco.
+            if ($nivel->imagen && str_starts_with($nivel->imagen, 'storage/niveles/')) {
+                Storage::disk('public')->delete('niveles/'.basename($nivel->imagen));
+            }
+
             $data['imagen'] = $this->guardarImagen($request);
         }
 
@@ -69,8 +77,12 @@ class NivelController extends Controller
         $file = $request->file('imagen');
         $nombre = Str::slug($request->input('nombre')).'-'.time().'.'.$file->getClientOriginalExtension();
 
-        $file->move(public_path('images/Niveles'), $nombre);
+        // A diferencia de las imágenes originales (que vienen en el
+        // repositorio), estas se suben en producción, así que se guardan en
+        // el disco "public" (dentro del volumen persistente de Railway) y no
+        // directamente en public/images, que se pierde en cada despliegue.
+        $file->storeAs('niveles', $nombre, 'public');
 
-        return 'images/Niveles/'.$nombre;
+        return 'storage/niveles/'.$nombre;
     }
 }
