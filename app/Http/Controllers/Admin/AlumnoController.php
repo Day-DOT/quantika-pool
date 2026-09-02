@@ -361,6 +361,31 @@ class AlumnoController extends Controller
         return back()->with('status', "Alumno {$alumno->nombreCompleto()} reactivado.");
     }
 
+    public function destroy(Alumno $alumno): RedirectResponse
+    {
+        $this->authorize('delete', $alumno);
+
+        $nombre = $alumno->nombreCompleto();
+
+        foreach ([
+            $alumno->certificado_medico_path,
+            $alumno->identificacion_path,
+            $alumno->foto_path,
+            $alumno->contrato_firmado_path,
+        ] as $ruta) {
+            if ($ruta) {
+                Storage::disk('public')->delete($ruta);
+            }
+        }
+
+        // Las citas, pagos, inscripciones, evaluaciones e historial de nivel
+        // del alumno se eliminan en cascada a nivel de base de datos.
+        $alumno->delete();
+
+        return redirect()->route('alumnos.index')
+            ->with('status', "Alumno {$nombre} eliminado permanentemente, junto con su historial de citas, pagos y evaluaciones.");
+    }
+
     private function iniciales(string $nombre, string $apellidos): string
     {
         return mb_strtoupper(mb_substr($nombre, 0, 1).mb_substr($apellidos, 0, 1));

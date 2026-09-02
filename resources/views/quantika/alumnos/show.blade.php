@@ -17,6 +17,14 @@
         <div style="display:flex;gap:10px;">
             <a href="{{ route('alumnos.edit', $alumno) }}" class="btn btn-outline btn-sm">✎ Editar</a>
             <a href="{{ url('/alumnos') }}" class="btn btn-outline btn-sm">← Regresar</a>
+            <form
+                action="{{ route('alumnos.destroy', $alumno) }}"
+                method="POST"
+                onsubmit="return confirm('¿Eliminar permanentemente a {{ $alumno->nombreCompleto() }}? Esto borra también su historial de citas, pagos y evaluaciones. Esta acción no se puede deshacer.');">
+                @csrf
+                @method('DELETE')
+                <button type="submit" class="btn btn-outline btn-sm" style="color:#ff6b6b; border-color:#ff6b6b;">🗑 Eliminar</button>
+            </form>
         </div>
     </div>
 

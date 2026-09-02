@@ -656,6 +656,16 @@
                                             <button class="action-btn" type="submit" title="Reactivar">↺</button>
                                         </form>
                                     @endif
+
+                                    <form
+                                        action="{{ route('alumnos.destroy', $alumno) }}"
+                                        method="POST"
+                                        style="display:inline;"
+                                        onsubmit="return confirm('¿Eliminar permanentemente a {{ $alumno->nombreCompleto() }}? Esto borra también su historial de citas, pagos y evaluaciones. Esta acción no se puede deshacer.');">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button class="action-btn" type="submit" title="Eliminar">🗑</button>
+                                    </form>
                                 </div>
                             </td>
 

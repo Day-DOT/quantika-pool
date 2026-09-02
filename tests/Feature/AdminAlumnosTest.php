@@ -5,7 +5,10 @@ namespace Tests\Feature;
 use App\Enums\EstadoAlumno;
 use App\Enums\Rol;
 use App\Models\Alumno;
+use App\Models\Horario;
+use App\Models\Inscripcion;
 use App\Models\Nivel;
+use App\Models\Pago;
 use App\Models\Sucursal;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -352,5 +355,62 @@ class AdminAlumnosTest extends TestCase
 
         $alumno->refresh();
         $this->assertEquals(EstadoAlumno::Activo, $alumno->estado);
+    }
+
+    public function test_admin_puede_editar_un_alumno_sin_importar_su_estado(): void
+    {
+        $sucursal = Sucursal::factory()->create();
+        $admin = User::factory()->admin($sucursal->id)->create();
+
+        foreach (EstadoAlumno::cases() as $estado) {
+            $alumno = Alumno::factory()->create(['sucursal_id' => $sucursal->id, 'estado' => $estado->value]);
+
+            $this->actingAs($admin)->get(route('alumnos.edit', $alumno))->assertOk();
+
+            $this->actingAs($admin)->put(route('alumnos.update', $alumno), [
+                'nombre' => 'Editado',
+                'apellidos' => $alumno->apellidos,
+                'fecha_nacimiento' => $alumno->fecha_nacimiento->toDateString(),
+                'estado' => $estado->value,
+            ])->assertRedirect(route('alumnos.show', $alumno));
+
+            $this->assertEquals('Editado', $alumno->refresh()->nombre);
+        }
+    }
+
+    public function test_admin_puede_eliminar_un_alumno_y_su_historial_relacionado(): void
+    {
+        Storage::fake('public');
+
+        $sucursal = Sucursal::factory()->create();
+        $admin = User::factory()->admin($sucursal->id)->create();
+        $alumno = Alumno::factory()->create([
+            'sucursal_id' => $sucursal->id,
+            'certificado_medico_path' => 'alumnos/documentos/cert.pdf',
+        ]);
+        Storage::disk('public')->put('alumnos/documentos/cert.pdf', 'contenido');
+
+        $horario = Horario::factory()->create(['sucursal_id' => $sucursal->id]);
+        Inscripcion::factory()->create(['alumno_id' => $alumno->id, 'horario_id' => $horario->id]);
+        Pago::factory()->create(['alumno_id' => $alumno->id, 'sucursal_id' => $sucursal->id]);
+
+        $response = $this->actingAs($admin)->delete(route('alumnos.destroy', $alumno));
+
+        $response->assertRedirect(route('alumnos.index'));
+        $this->assertDatabaseMissing('alumnos', ['id' => $alumno->id]);
+        $this->assertDatabaseMissing('inscripciones', ['alumno_id' => $alumno->id]);
+        $this->assertDatabaseMissing('pagos', ['alumno_id' => $alumno->id]);
+        Storage::disk('public')->assertMissing('alumnos/documentos/cert.pdf');
+    }
+
+    public function test_admin_de_otra_sucursal_no_puede_eliminar_un_alumno(): void
+    {
+        $sucursalAlumno = Sucursal::factory()->create();
+        $otraSucursal = Sucursal::factory()->create();
+        $admin = User::factory()->admin($otraSucursal->id)->create();
+        $alumno = Alumno::factory()->create(['sucursal_id' => $sucursalAlumno->id]);
+
+        $this->actingAs($admin)->delete(route('alumnos.destroy', $alumno))->assertForbidden();
+        $this->assertDatabaseHas('alumnos', ['id' => $alumno->id]);
     }
 }

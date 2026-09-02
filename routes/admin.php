@@ -33,6 +33,7 @@ Route::middleware(['auth', 'role:admin,super_admin'])->group(function () {
     Route::put('/alumnos/{alumno}', [AlumnoController::class, 'update'])->name('alumnos.update');
     Route::patch('/alumnos/{alumno}/baja', [AlumnoController::class, 'baja'])->name('alumnos.baja');
     Route::patch('/alumnos/{alumno}/reactivar', [AlumnoController::class, 'reactivar'])->name('alumnos.reactivar');
+    Route::delete('/alumnos/{alumno}', [AlumnoController::class, 'destroy'])->name('alumnos.destroy');
     Route::get('/alumnos/{alumno}/contrato', [ContratoController::class, 'create'])->name('alumnos.contrato.create');
     Route::post('/alumnos/{alumno}/contrato', [ContratoController::class, 'store'])->name('alumnos.contrato.store');
 
