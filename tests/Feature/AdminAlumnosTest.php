@@ -166,6 +166,7 @@ class AdminAlumnosTest extends TestCase
             'certificado_medico' => UploadedFile::fake()->create('certificado.pdf', 200, 'application/pdf'),
             'identificacion' => UploadedFile::fake()->image('identificacion.jpg'),
             'foto' => UploadedFile::fake()->image('foto.png'),
+            'contrato_firmado' => UploadedFile::fake()->create('contrato.pdf', 200, 'application/pdf'),
         ];
 
         $this->actingAs($admin)->post(route('alumnos.store'), $datos);
@@ -175,9 +176,11 @@ class AdminAlumnosTest extends TestCase
         $this->assertNotNull($alumno->certificado_medico_path);
         $this->assertNotNull($alumno->identificacion_path);
         $this->assertNotNull($alumno->foto_path);
+        $this->assertNotNull($alumno->contrato_firmado_path);
         Storage::disk('public')->assertExists($alumno->certificado_medico_path);
         Storage::disk('public')->assertExists($alumno->identificacion_path);
         Storage::disk('public')->assertExists($alumno->foto_path);
+        Storage::disk('public')->assertExists($alumno->contrato_firmado_path);
     }
 
     public function test_admin_registra_un_alumno_sin_documentos(): void

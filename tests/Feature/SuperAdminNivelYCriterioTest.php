@@ -27,7 +27,7 @@ class SuperAdminNivelYCriterioTest extends TestCase
         $this->assertDatabaseHas('niveles', ['nombre' => 'Kraken', 'orden' => 13]);
     }
 
-    public function test_no_se_puede_crear_un_nivel_con_orden_duplicado(): void
+    public function test_se_puede_crear_mas_de_un_nivel_con_el_mismo_orden(): void
     {
         $superAdmin = User::factory()->superAdmin()->create();
         Nivel::factory()->create(['orden' => 5, 'categoria_edad' => 'Niños']);
@@ -38,7 +38,9 @@ class SuperAdminNivelYCriterioTest extends TestCase
             'categoria' => 'Prueba',
             'categoria_edad' => 'Niños',
             'activo' => '1',
-        ])->assertSessionHasErrors('orden');
+        ])->assertRedirect(route('niveles.index'));
+
+        $this->assertEquals(2, Nivel::where('orden', 5)->where('categoria_edad', 'Niños')->count());
     }
 
     public function test_super_admin_puede_editar_y_desactivar_un_nivel(): void

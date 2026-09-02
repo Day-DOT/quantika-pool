@@ -39,6 +39,7 @@ class UpdateAlumnoRequest extends FormRequest
             'certificado_medico' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:5120'],
             'identificacion' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:5120'],
             'foto' => ['nullable', 'image', 'mimes:jpg,jpeg,png', 'max:5120'],
+            'contrato_firmado' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:5120'],
         ];
     }
 }

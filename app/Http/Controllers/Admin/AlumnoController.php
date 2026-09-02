@@ -91,6 +91,7 @@ class AlumnoController extends Controller
             'certificado_medico_path' => $request->file('certificado_medico')?->store('alumnos/documentos', 'public'),
             'identificacion_path' => $request->file('identificacion')?->store('alumnos/documentos', 'public'),
             'foto_path' => $request->file('foto')?->store('alumnos/documentos', 'public'),
+            'contrato_firmado_path' => $request->file('contrato_firmado')?->store('alumnos/documentos', 'public'),
         ];
 
         $resultado = DB::transaction(function () use ($datos, $sucursalId, $rutasDocumentos) {
@@ -243,7 +244,12 @@ class AlumnoController extends Controller
         $datos = $request->validated();
 
         $rutasDocumentos = [];
-        foreach (['certificado_medico' => 'certificado_medico_path', 'identificacion' => 'identificacion_path', 'foto' => 'foto_path'] as $campo => $columna) {
+        foreach ([
+            'certificado_medico' => 'certificado_medico_path',
+            'identificacion' => 'identificacion_path',
+            'foto' => 'foto_path',
+            'contrato_firmado' => 'contrato_firmado_path',
+        ] as $campo => $columna) {
             if (! $request->hasFile($campo)) {
                 continue;
             }

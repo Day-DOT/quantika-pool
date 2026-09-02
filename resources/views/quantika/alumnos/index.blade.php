@@ -812,6 +812,12 @@
                     <input type="file" class="form-input" name="foto" accept=".jpg,.jpeg,.png">
                 </div>
 
+                <div class="form-group">
+                    <label>Contrato firmado (opcional)</label>
+                    <input type="file" class="form-input" name="contrato_firmado" accept=".pdf,.jpg,.jpeg,.png">
+                    <small>Sube el contrato de adhesión con las firmas de conformidad ya capturadas.</small>
+                </div>
+
             </form>
 
             <div class="modal-footer">

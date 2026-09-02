@@ -37,6 +37,7 @@ class Alumno extends Model
         'certificado_medico_path',
         'identificacion_path',
         'foto_path',
+        'contrato_firmado_path',
     ];
 
     protected function casts(): array

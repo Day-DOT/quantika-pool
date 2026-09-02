@@ -4,6 +4,7 @@ use App\Http\Controllers\Admin\AlumnoController;
 use App\Http\Controllers\Admin\CarrilController;
 use App\Http\Controllers\Admin\CitaController;
 use App\Http\Controllers\Admin\ConfiguracionController;
+use App\Http\Controllers\Admin\ContratoController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\EvaluacionMonitorController;
 use App\Http\Controllers\Admin\HorarioController;
@@ -32,6 +33,8 @@ Route::middleware(['auth', 'role:admin,super_admin'])->group(function () {
     Route::put('/alumnos/{alumno}', [AlumnoController::class, 'update'])->name('alumnos.update');
     Route::patch('/alumnos/{alumno}/baja', [AlumnoController::class, 'baja'])->name('alumnos.baja');
     Route::patch('/alumnos/{alumno}/reactivar', [AlumnoController::class, 'reactivar'])->name('alumnos.reactivar');
+    Route::get('/alumnos/{alumno}/contrato', [ContratoController::class, 'create'])->name('alumnos.contrato.create');
+    Route::post('/alumnos/{alumno}/contrato', [ContratoController::class, 'store'])->name('alumnos.contrato.store');
 
     // --- Instructores ---
     Route::get('/instructores', [InstructorController::class, 'index'])->name('instructores.index');

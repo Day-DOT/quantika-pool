@@ -166,11 +166,11 @@
     <div class="login-card">
 
         <div class="login-logo">
-            <img src="{{ asset('images/quantika-logo.png') }}" alt="Quantika Pool">
+            <img src="{{ asset('images/aqualix-logo.png') }}" alt="Aqualix">
         </div>
 
         <h1>Bienvenido de nuevo</h1>
-        <p class="subtitle">Inicia sesión para continuar en QUANTIKA POOL</p>
+        <p class="subtitle">Inicia sesión para continuar</p>
 
         @if (session('status'))
             <div class="status" style="margin-top:20px">{{ session('status') }}</div>
@@ -207,7 +207,7 @@
             ¿Eres tutor y tu cuenta está pendiente de activación? <a href="{{ route('registro') }}">Crear cuenta</a>
         </div>
 
-        <div class="login-footer">QUANTIKA POOL © {{ date('Y') }}</div>
+        <div class="login-footer">Aqualix © {{ date('Y') }}</div>
 
     </div>
 

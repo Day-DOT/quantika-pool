@@ -15,18 +15,10 @@ class UpdateNivelRequest extends FormRequest
 
     public function rules(): array
     {
-        $nivel = $this->route('nivel');
-
         return [
-            'orden' => [
-                'required',
-                'integer',
-                'min:1',
-                'max:255',
-                Rule::unique('niveles', 'orden')
-                    ->where('categoria_edad', $this->input('categoria_edad'))
-                    ->ignore($nivel),
-            ],
+            // El orden ya no es único: puede haber varios niveles marcados
+            // con el mismo número (p.ej. distintas variantes del "nivel 1").
+            'orden' => ['required', 'integer', 'min:1', 'max:255'],
             'nombre' => ['required', 'string', 'max:255'],
             'categoria' => ['required', 'string', 'max:255'],
             'categoria_edad' => ['required', Rule::in(Nivel::CATEGORIAS_EDAD)],

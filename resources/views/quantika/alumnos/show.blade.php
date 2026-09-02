@@ -197,6 +197,25 @@
                 @endif
             </div>
 
+            <div class="stat-card">
+                <div class="stat-top">
+                    <span class="stat-name">CONTRATO FIRMADO</span>
+                    <div class="stat-icon">✍️</div>
+                </div>
+                @if ($alumno->contrato_firmado_path)
+                    <div class="stat-value" style="font-size:14px;">
+                        <a href="{{ \Illuminate\Support\Facades\Storage::disk('public')->url($alumno->contrato_firmado_path) }}" target="_blank">Ver archivo</a>
+                    </div>
+                @else
+                    <div class="stat-change">Sin archivo</div>
+                @endif
+                <div style="margin-top:10px;">
+                    <a href="{{ route('alumnos.contrato.create', $alumno) }}" class="btn btn-outline btn-sm">
+                        {{ $alumno->contrato_firmado_path ? 'Volver a firmar en el sistema' : 'Firmar contrato en el sistema' }}
+                    </a>
+                </div>
+            </div>
+
         </div>
     </div>
 

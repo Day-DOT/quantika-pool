@@ -143,6 +143,14 @@
                     @endif
                 </div>
 
+                <div class="form-group">
+                    <label>Contrato firmado {{ $alumno->contrato_firmado_path ? '(reemplazar)' : '(opcional)' }}</label>
+                    <input type="file" class="form-input" name="contrato_firmado" accept=".pdf,.jpg,.jpeg,.png">
+                    @if ($alumno->contrato_firmado_path)
+                        <span class="form-hint"><a href="{{ \Illuminate\Support\Facades\Storage::url($alumno->contrato_firmado_path) }}" target="_blank">Ver archivo actual</a></span>
+                    @endif
+                </div>
+
             </div>
 
             <div class="form-actions">
