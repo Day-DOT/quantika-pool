@@ -3,7 +3,9 @@
 namespace Tests\Feature;
 
 use App\Models\CriterioEvaluacion;
+use App\Models\Horario;
 use App\Models\Nivel;
+use App\Models\Sucursal;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
@@ -112,5 +114,43 @@ class SuperAdminNivelYCriterioTest extends TestCase
             ->assertRedirect(route('super-admin.criterios.index'));
 
         $this->assertDatabaseMissing('criterios_evaluacion', ['id' => $criterio->id]);
+    }
+
+    public function test_super_admin_puede_eliminar_un_nivel_sin_uso(): void
+    {
+        $superAdmin = User::factory()->superAdmin()->create();
+        $nivel = Nivel::factory()->create();
+
+        $this->actingAs($superAdmin)
+            ->delete(route('super-admin.niveles.destroy', $nivel))
+            ->assertRedirect(route('niveles.index'));
+
+        $this->assertDatabaseMissing('niveles', ['id' => $nivel->id]);
+    }
+
+    public function test_no_se_puede_eliminar_un_nivel_con_horarios_asociados(): void
+    {
+        $superAdmin = User::factory()->superAdmin()->create();
+        $nivel = Nivel::factory()->create();
+        Horario::factory()->create(['nivel_id' => $nivel->id]);
+
+        $this->actingAs($superAdmin)
+            ->delete(route('super-admin.niveles.destroy', $nivel))
+            ->assertRedirect();
+
+        $this->assertDatabaseHas('niveles', ['id' => $nivel->id]);
+    }
+
+    public function test_un_admin_no_puede_eliminar_un_nivel(): void
+    {
+        $sucursal = Sucursal::factory()->create();
+        $admin = User::factory()->admin($sucursal->id)->create();
+        $nivel = Nivel::factory()->create();
+
+        $this->actingAs($admin)
+            ->delete(route('super-admin.niveles.destroy', $nivel))
+            ->assertForbidden();
+
+        $this->assertDatabaseHas('niveles', ['id' => $nivel->id]);
     }
 }

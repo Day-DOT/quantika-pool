@@ -376,6 +376,34 @@ class AdminAlumnosTest extends TestCase
         ]);
     }
 
+    public function test_admin_puede_enlazar_un_alumno_a_un_tutor_existente_al_editarlo(): void
+    {
+        $sucursal = Sucursal::factory()->create();
+        $admin = User::factory()->admin($sucursal->id)->create();
+
+        // El tutor ya existe porque tiene otro hijo registrado.
+        $tutorExistente = User::factory()->tutor()->create(['email' => 'papa.varios@example.com']);
+        Alumno::factory()->create(['sucursal_id' => $sucursal->id, 'tutor_user_id' => $tutorExistente->id]);
+
+        // Este alumno se dio de alta sin tutor (o con otro), y ahora se
+        // quiere enlazar al MISMO tutor que su hermano usando su correo.
+        $alumno = Alumno::factory()->create(['sucursal_id' => $sucursal->id, 'tutor_user_id' => null]);
+
+        $response = $this->actingAs($admin)->put(route('alumnos.update', $alumno), [
+            'nombre' => $alumno->nombre,
+            'apellidos' => $alumno->apellidos,
+            'fecha_nacimiento' => $alumno->fecha_nacimiento->format('Y-m-d'),
+            'estado' => 'activo',
+            'tiene_tutor' => '1',
+            'tutor_nombre' => $tutorExistente->name,
+            'tutor_email' => 'papa.varios@example.com',
+        ]);
+
+        $response->assertRedirect(route('alumnos.show', $alumno));
+        $this->assertEquals($tutorExistente->id, $alumno->refresh()->tutor_user_id);
+        $this->assertEquals(1, User::where('email', 'papa.varios@example.com')->count());
+    }
+
     public function test_admin_da_de_baja_a_un_alumno(): void
     {
         $sucursal = Sucursal::factory()->create();

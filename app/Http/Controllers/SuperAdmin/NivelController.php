@@ -72,6 +72,27 @@ class NivelController extends Controller
             ->with('status', 'Nivel actualizado correctamente.');
     }
 
+    public function destroy(Nivel $nivel): RedirectResponse
+    {
+        $this->authorize('delete', $nivel);
+
+        if ($nivel->horarios()->exists() || $nivel->evaluaciones()->exists()) {
+            return back()->with('error', "No se puede eliminar el nivel {$nivel->nombre}: tiene horarios o evaluaciones asociadas. Desactívalo en su lugar.");
+        }
+
+        $nombre = $nivel->nombre;
+
+        if ($nivel->imagen && str_starts_with($nivel->imagen, 'storage/niveles/')) {
+            Storage::disk('public')->delete('niveles/'.basename($nivel->imagen));
+        }
+
+        $nivel->delete();
+
+        return redirect()
+            ->route('niveles.index')
+            ->with('status', "Nivel {$nombre} eliminado correctamente.");
+    }
+
     private function guardarImagen(Request $request): string
     {
         $file = $request->file('imagen');

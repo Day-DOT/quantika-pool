@@ -35,7 +35,7 @@
             <div class="card card-pad">
 
                 <div class="grupo-meta" style="margin-bottom:22px; font-size:13px;">
-                    Nivel actual: <strong style="color:var(--text);">{{ $alumno->nivel->nombre }}</strong>
+                    Nivel actual: <strong style="color:var(--text);">{{ $alumno->nombreNivelConSubNivel() }}</strong>
                     · {{ $alumno->nivel->categoria }}
                 </div>
 

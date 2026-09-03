@@ -84,10 +84,15 @@ class AlumnoController extends Controller
             ? $evaluaciones->firstWhere('nivel_id', $alumno->nivel_id)
             : null;
 
-        $siguienteNivel = $alumno->nivel?->siguiente();
+        $avanzaSubNivel = $alumno->nivel?->tieneSubNiveles() && $alumno->sub_nivel < $alumno->nivel->total_sub_niveles;
+        $siguienteNivel = $avanzaSubNivel ? null : $alumno->nivel?->siguiente();
+
+        $nombreProximoPaso = $avanzaSubNivel
+            ? $alumno->nivel->nombreConSubNivel($alumno->sub_nivel + 1)
+            : $siguienteNivel?->nombre;
 
         $puedePromover = $alumno->nivel_id
-            && $siguienteNivel
+            && ($avanzaSubNivel || $siguienteNivel)
             && $evaluacionNivelActual
             && $evaluacionNivelActual->porcentajeAvance() >= self::UMBRAL_PROMOCION;
 
@@ -96,7 +101,7 @@ class AlumnoController extends Controller
             'criterios' => $criterios,
             'evaluaciones' => $evaluaciones,
             'evaluacionNivelActual' => $evaluacionNivelActual,
-            'siguienteNivel' => $siguienteNivel,
+            'nombreProximoPaso' => $nombreProximoPaso,
             'puedePromover' => $puedePromover,
         ]);
     }
@@ -118,10 +123,18 @@ class AlumnoController extends Controller
             return back()->withErrors(['nivel' => 'Este alumno no tiene un nivel asignado.']);
         }
 
-        $siguienteNivel = $nivelActual->siguiente();
+        // Si el nivel actual tiene sub-niveles (p.ej. Tortuga A, B, C), primero
+        // se avanza por ellos uno a uno; solo al completar el último se pasa
+        // al siguiente nivel principal.
+        $avanzaSubNivel = $nivelActual->tieneSubNiveles() && $alumno->sub_nivel < $nivelActual->total_sub_niveles;
+        $siguienteNivel = null;
 
-        if (! $siguienteNivel) {
-            return back()->withErrors(['nivel' => 'Este alumno ya está en el nivel máximo.']);
+        if (! $avanzaSubNivel) {
+            $siguienteNivel = $nivelActual->siguiente();
+
+            if (! $siguienteNivel) {
+                return back()->withErrors(['nivel' => 'Este alumno ya está en el nivel máximo.']);
+            }
         }
 
         $evaluacionNivelActual = $alumno->evaluaciones()
@@ -137,7 +150,15 @@ class AlumnoController extends Controller
             ]);
         }
 
-        DB::transaction(function () use ($alumno, $siguienteNivel, $nivelActual, $request) {
+        $siguienteSubNivel = $alumno->sub_nivel + 1;
+
+        DB::transaction(function () use ($alumno, $siguienteNivel, $avanzaSubNivel, $siguienteSubNivel, $nivelActual, $request) {
+            if ($avanzaSubNivel) {
+                $alumno->update(['sub_nivel' => $siguienteSubNivel]);
+
+                return;
+            }
+
             AlumnoNivelHistorial::where('alumno_id', $alumno->id)
                 ->whereNull('fecha_fin')
                 ->update(['fecha_fin' => now()->toDateString()]);
@@ -151,11 +172,15 @@ class AlumnoController extends Controller
                 'observaciones' => "Promovido desde {$nivelActual->nombre} tras completar la evaluación.",
             ]);
 
-            $alumno->update(['nivel_id' => $siguienteNivel->id]);
+            $alumno->update(['nivel_id' => $siguienteNivel->id, 'sub_nivel' => 1]);
         });
+
+        $nombreNuevoNivel = $avanzaSubNivel
+            ? $nivelActual->nombreConSubNivel($siguienteSubNivel)
+            : $siguienteNivel->nombre;
 
         return redirect()
             ->route('instructor.alumnos.show', $alumno)
-            ->with('status', "{$alumno->nombreCompleto()} fue promovido a {$siguienteNivel->nombre}.");
+            ->with('status', "{$alumno->nombreCompleto()} fue promovido a {$nombreNuevoNivel}.");
     }
 }

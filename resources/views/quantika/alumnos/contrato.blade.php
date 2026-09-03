@@ -120,6 +120,12 @@
             const pos = posicion(evento);
             ctx.beginPath();
             ctx.moveTo(pos.x, pos.y);
+            // Un toque sin arrastre (un punto) también cuenta como firma:
+            // se dibuja un puntito visible y se marca como válida de una vez,
+            // en vez de esperar a que haya movimiento.
+            ctx.lineTo(pos.x + 0.1, pos.y + 0.1);
+            ctx.stroke();
+            firmas[idCanvas] = true;
         }
 
         function mover(evento) {

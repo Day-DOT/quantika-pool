@@ -22,6 +22,7 @@ class UpdateNivelRequest extends FormRequest
             'nombre' => ['required', 'string', 'max:255'],
             'categoria' => ['required', 'string', 'max:255'],
             'categoria_edad' => ['required', Rule::in(Nivel::CATEGORIAS_EDAD)],
+            'total_sub_niveles' => ['nullable', 'integer', 'min:1', 'max:26'],
             'descripcion' => ['nullable', 'string', 'max:1000'],
             'color_hex' => ['nullable', 'regex:/^#[0-9a-fA-F]{6}$/'],
             'imagen' => ['nullable', 'image', 'max:2048'],

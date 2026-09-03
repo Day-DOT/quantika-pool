@@ -243,4 +243,59 @@ class InstructorPromocionTest extends TestCase
             'fecha_fin' => null,
         ]);
     }
+
+    public function test_promover_avanza_de_sub_nivel_antes_de_pasar_al_siguiente_nivel_principal(): void
+    {
+        $nivelActual = Nivel::factory()->create(['orden' => 5, 'total_sub_niveles' => 3]);
+        $nivelSiguiente = Nivel::factory()->create(['orden' => 6]);
+        $criterio = CriterioEvaluacion::factory()->create(['nivel_id' => $nivelActual->id]);
+
+        $instructor = Instructor::factory()->create();
+        $alumno = $this->crearAlumnoDelInstructor($instructor, $nivelActual);
+        $this->evaluacionCompleta($alumno, $instructor, $nivelActual, $criterio);
+
+        $this->assertEquals(1, $alumno->sub_nivel);
+
+        // 1ª promoción: de sub-nivel A a B, sin salir del nivel principal.
+        $this->actingAs($instructor->user)->patch(route('instructor.alumnos.promover', $alumno));
+        $alumno->refresh();
+        $this->assertEquals($nivelActual->id, $alumno->nivel_id);
+        $this->assertEquals(2, $alumno->sub_nivel);
+
+        // 2ª promoción: de sub-nivel B a C.
+        $this->evaluacionCompleta($alumno, $instructor, $nivelActual, $criterio);
+        $this->actingAs($instructor->user)->patch(route('instructor.alumnos.promover', $alumno));
+        $alumno->refresh();
+        $this->assertEquals($nivelActual->id, $alumno->nivel_id);
+        $this->assertEquals(3, $alumno->sub_nivel);
+
+        // 3ª promoción: completó el último sub-nivel, ahora sí avanza al
+        // siguiente nivel principal y su sub-nivel se reinicia a 1.
+        $this->evaluacionCompleta($alumno, $instructor, $nivelActual, $criterio);
+        $response = $this->actingAs($instructor->user)->patch(route('instructor.alumnos.promover', $alumno));
+        $response->assertSessionHas('status', function ($mensaje) use ($nivelSiguiente) {
+            return str_contains($mensaje, $nivelSiguiente->nombre);
+        });
+
+        $alumno->refresh();
+        $this->assertEquals($nivelSiguiente->id, $alumno->nivel_id);
+        $this->assertEquals(1, $alumno->sub_nivel);
+    }
+
+    public function test_nombre_con_sub_nivel_se_muestra_con_letra(): void
+    {
+        $nivel = Nivel::factory()->create(['nombre' => 'Tortuga', 'total_sub_niveles' => 3]);
+
+        $this->assertEquals('Tortuga A', $nivel->nombreConSubNivel(1));
+        $this->assertEquals('Tortuga B', $nivel->nombreConSubNivel(2));
+        $this->assertEquals('Tortuga C', $nivel->nombreConSubNivel(3));
+    }
+
+    public function test_nivel_sin_sub_niveles_no_agrega_letra(): void
+    {
+        $nivel = Nivel::factory()->create(['nombre' => 'Estrella', 'total_sub_niveles' => 1]);
+
+        $this->assertEquals('Estrella', $nivel->nombreConSubNivel(1));
+        $this->assertFalse($nivel->tieneSubNiveles());
+    }
 }

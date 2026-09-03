@@ -17,6 +17,7 @@ class Nivel extends Model
         'nombre',
         'categoria',
         'categoria_edad',
+        'total_sub_niveles',
         'descripcion',
         'color_hex',
         'imagen',
@@ -29,8 +30,29 @@ class Nivel extends Model
     {
         return [
             'orden' => 'integer',
+            'total_sub_niveles' => 'integer',
             'activo' => 'boolean',
         ];
+    }
+
+    public function tieneSubNiveles(): bool
+    {
+        return $this->total_sub_niveles > 1;
+    }
+
+    /**
+     * Convierte un sub-nivel (1, 2, 3...) a su letra (A, B, C...).
+     */
+    public function etiquetaSubNivel(int $subNivel): string
+    {
+        return chr(64 + max(1, min($subNivel, 26)));
+    }
+
+    public function nombreConSubNivel(int $subNivel): string
+    {
+        return $this->tieneSubNiveles()
+            ? "{$this->nombre} {$this->etiquetaSubNivel($subNivel)}"
+            : $this->nombre;
     }
 
     public function criterios(): HasMany

@@ -358,10 +358,18 @@
                     </div>
 
                     @if (auth()->user()->isSuperAdmin())
-                        <div style="margin-top:12px;">
+                        <div style="margin-top:12px; display:flex; gap:8px;">
                             <a href="{{ route('super-admin.niveles.edit', $nivel) }}" class="view-btn">
                                 ✎ Editar nivel
                             </a>
+                            <form
+                                action="{{ route('super-admin.niveles.destroy', $nivel) }}"
+                                method="POST"
+                                onsubmit="return confirm('¿Eliminar el nivel {{ $nivel->nombre }}? Esta acción no se puede deshacer.');">
+                                @csrf
+                                @method('DELETE')
+                                <button type="submit" class="view-btn" style="color:#ff6b6b;">🗑 Eliminar</button>
+                            </form>
                         </div>
                     @endif
 

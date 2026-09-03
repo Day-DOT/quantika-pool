@@ -37,6 +37,13 @@
     </div>
 
     <div class="form-group">
+        <label for="total_sub_niveles">Sub-niveles</label>
+        <input type="number" id="total_sub_niveles" name="total_sub_niveles" class="form-input" min="1" max="26" value="{{ old('total_sub_niveles', $nivel->total_sub_niveles ?? 1) }}">
+        <small>P.ej. 3 divide este nivel en A, B y C antes de pasar al siguiente nivel. Deja 1 para no dividirlo.</small>
+        @error('total_sub_niveles') <span class="form-error">{{ $message }}</span> @enderror
+    </div>
+
+    <div class="form-group">
         <label for="color_hex">Color distintivo</label>
         <input type="color" id="color_hex" name="color_hex" class="form-input" style="padding:4px;" value="{{ old('color_hex', $nivel->color_hex ?? '#42d8ef') }}">
         @error('color_hex') <span class="form-error">{{ $message }}</span> @enderror

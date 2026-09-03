@@ -883,7 +883,7 @@
                                 @if ($alumno->nivel)
                                     <div class="level-mini">
                                         <img src="{{ asset($alumno->nivel->imagen) }}" alt="{{ $alumno->nivel->nombre }}">
-                                        <span>{{ $alumno->nivel->nombre }}</span>
+                                        <span>{{ $alumno->nombreNivelConSubNivel() }}</span>
                                     </div>
                                 @else
                                     <span style="color:var(--muted);">Sin nivel</span>

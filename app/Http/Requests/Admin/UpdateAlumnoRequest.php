@@ -15,8 +15,6 @@ class UpdateAlumnoRequest extends FormRequest
 
     public function rules(): array
     {
-        $tutor = $this->route('alumno')->tutorUser;
-
         return [
             'nombre' => ['required', 'string', 'max:100'],
             'apellidos' => ['required', 'string', 'max:150'],
@@ -29,12 +27,10 @@ class UpdateAlumnoRequest extends FormRequest
             'estado' => ['required', Rule::in(array_map(fn ($c) => $c->value, EstadoAlumno::cases()))],
             'tiene_tutor' => ['nullable', 'boolean'],
             'tutor_nombre' => [$this->boolean('tiene_tutor') ? 'required' : 'nullable', 'string', 'max:150'],
-            'tutor_email' => [
-                'nullable',
-                'email',
-                'max:150',
-                Rule::unique('users', 'email')->ignore($tutor?->id),
-            ],
+            // Sin restricción de único: si el correo ya pertenece a otro
+            // tutor, el controlador reutiliza esa cuenta (así se enlazan
+            // hermanos al mismo tutor, incluso editando después del alta).
+            'tutor_email' => ['nullable', 'email', 'max:150'],
             'tutor_telefono' => ['nullable', 'string', 'max:20'],
             'certificado_medico' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:5120'],
             'identificacion' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:5120'],

@@ -24,6 +24,7 @@ class Alumno extends Model
         'tutor_contacto_telefono',
         'sucursal_id',
         'nivel_id',
+        'sub_nivel',
         'plan_id',
         'nombre',
         'apellidos',
@@ -46,6 +47,7 @@ class Alumno extends Model
             'fecha_nacimiento' => 'date',
             'fecha_inscripcion' => 'date',
             'estado' => EstadoAlumno::class,
+            'sub_nivel' => 'integer',
         ];
     }
 
@@ -68,6 +70,11 @@ class Alumno extends Model
     public function nombreCompleto(): string
     {
         return trim("{$this->nombre} {$this->apellidos}");
+    }
+
+    public function nombreNivelConSubNivel(): ?string
+    {
+        return $this->nivel?->nombreConSubNivel($this->sub_nivel);
     }
 
     public function nombreTutor(): ?string

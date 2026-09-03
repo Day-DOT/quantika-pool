@@ -416,7 +416,7 @@
                         @foreach ($alumnosRecientes as $alumno)
                             <tr>
                                 <td><strong>{{ $alumno->nombreCompleto() }}</strong></td>
-                                <td>{{ $alumno->nivel->nombre ?? '—' }}</td>
+                                <td>{{ $alumno->nombreNivelConSubNivel() ?? '—' }}</td>
                                 <td>{{ $alumno->sucursal->nombre ?? '—' }}</td>
                                 <td>
                                     <span class="badge {{ $alumno->estado->value !== 'activo' ? 'badge-muted' : '' }}">

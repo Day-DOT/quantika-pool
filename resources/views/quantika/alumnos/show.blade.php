@@ -45,7 +45,7 @@
                 <span class="stat-name">NIVEL ACTUAL</span>
                 <div class="stat-icon">🐬</div>
             </div>
-            <div class="stat-value" style="font-size:20px;">{{ $alumno->nivel?->nombre ?? 'Sin asignar' }}</div>
+            <div class="stat-value" style="font-size:20px;">{{ $alumno->nombreNivelConSubNivel() ?? 'Sin asignar' }}</div>
             <div class="stat-change">
                 {{ $alumno->nivel ? 'Nivel '.str_pad((string) $alumno->nivel->orden, 2, '0', STR_PAD_LEFT) : 'Aún sin nivel' }}
             </div>

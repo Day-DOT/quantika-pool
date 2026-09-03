@@ -51,7 +51,7 @@
                                 </div>
                                 <div>
                                     <div class="kid-name">{{ $unAlumno->nombreCompleto() }}</div>
-                                    <div class="kid-meta">{{ $unAlumno->nivel?->nombre ?? 'Sin nivel asignado' }} · {{ round($resumenTarjeta['porcentaje']) }}% de avance</div>
+                                    <div class="kid-meta">{{ $unAlumno->nombreNivelConSubNivel() ?? 'Sin nivel asignado' }} · {{ round($resumenTarjeta['porcentaje']) }}% de avance</div>
                                 </div>
                             </a>
                         @endforeach

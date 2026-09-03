@@ -94,6 +94,8 @@ Route::middleware(['auth', 'role:super_admin'])->group(function () {
         ->name('super-admin.niveles.edit');
     Route::put('/super-administrador/niveles/{nivel}', [NivelController::class, 'update'])
         ->name('super-admin.niveles.update');
+    Route::delete('/super-administrador/niveles/{nivel}', [NivelController::class, 'destroy'])
+        ->name('super-admin.niveles.destroy');
 
     /*
     |----------------------------------------------------------------------

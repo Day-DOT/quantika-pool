@@ -17,7 +17,7 @@
 
         <div class="stat-card">
             <div class="stat-top"><span class="stat-name">Nivel actual</span><div class="stat-icon">◉</div></div>
-            <div class="stat-value" style="font-size:18px;">{{ $alumno->nivel?->nombre ?? 'Sin nivel' }}</div>
+            <div class="stat-value" style="font-size:18px;">{{ $alumno->nombreNivelConSubNivel() ?? 'Sin nivel' }}</div>
             <div class="stat-change">{{ $alumno->nivel?->categoria }}</div>
         </div>
 
@@ -56,14 +56,14 @@
                 </a>
             @endif
 
-            @if ($siguienteNivel)
+            @if ($nombreProximoPaso)
                 <form method="POST" action="{{ route('instructor.alumnos.promover', $alumno) }}"
-                      onsubmit="return confirm('¿Promover a {{ $alumno->nombreCompleto() }} al nivel {{ $siguienteNivel->nombre }}?');">
+                      onsubmit="return confirm('¿Promover a {{ $alumno->nombreCompleto() }} a {{ $nombreProximoPaso }}?');">
                     @csrf
                     @method('PATCH')
                     <button type="submit" class="btn btn-sm {{ $puedePromover ? 'btn-primary' : 'btn-outline' }}"
                             {{ $puedePromover ? '' : 'disabled title="Obtén al menos el 80% en la evaluación del nivel actual para poder promoverlo."' }}>
-                        Promover a {{ $siguienteNivel->nombre }} →
+                        Promover a {{ $nombreProximoPaso }} →
                     </button>
                 </form>
             @endif

@@ -599,7 +599,7 @@
                                             <img src="{{ asset($alumno->nivel->imagen) }}" alt="{{ $alumno->nivel->nombre }}">
                                         </div>
                                         <div>
-                                            <div class="level-name">{{ $alumno->nivel->nombre }}</div>
+                                            <div class="level-name">{{ $alumno->nombreNivelConSubNivel() }}</div>
                                             <div class="level-number">Nivel {{ str_pad((string) $alumno->nivel->orden, 2, '0', STR_PAD_LEFT) }}</div>
                                         </div>
                                     </div>

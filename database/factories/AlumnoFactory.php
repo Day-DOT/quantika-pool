@@ -22,6 +22,7 @@ class AlumnoFactory extends Factory
             'tutor_user_id' => User::factory()->tutor(),
             'sucursal_id' => Sucursal::factory(),
             'nivel_id' => Nivel::inRandomOrder()->value('id'),
+            'sub_nivel' => 1,
             'nombre' => fake()->firstName(),
             'apellidos' => fake()->lastName() . ' ' . fake()->lastName(),
             'fecha_nacimiento' => fake()->dateTimeBetween('-14 years', '-4 years'),
