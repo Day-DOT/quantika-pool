@@ -90,6 +90,40 @@ class GenerarMensualidadesPendientesTest extends TestCase
         $this->assertDatabaseMissing('pagos', ['alumno_id' => $alumno->id]);
     }
 
+    public function test_marca_como_vencido_un_pago_pendiente_cuya_fecha_ya_paso(): void
+    {
+        $sucursal = Sucursal::factory()->create();
+        $alumno = Alumno::factory()->create(['sucursal_id' => $sucursal->id]);
+
+        $pago = Pago::factory()->create([
+            'alumno_id' => $alumno->id,
+            'sucursal_id' => $sucursal->id,
+            'estado' => EstadoPago::Pendiente->value,
+            'fecha_vencimiento' => now()->subDays(3)->toDateString(),
+        ]);
+
+        $this->artisan('pagos:generar-mensualidades');
+
+        $this->assertEquals(EstadoPago::Vencido, $pago->refresh()->estado);
+    }
+
+    public function test_no_toca_un_pago_pendiente_que_todavia_no_vence(): void
+    {
+        $sucursal = Sucursal::factory()->create();
+        $alumno = Alumno::factory()->create(['sucursal_id' => $sucursal->id]);
+
+        $pago = Pago::factory()->create([
+            'alumno_id' => $alumno->id,
+            'sucursal_id' => $sucursal->id,
+            'estado' => EstadoPago::Pendiente->value,
+            'fecha_vencimiento' => now()->addDays(3)->toDateString(),
+        ]);
+
+        $this->artisan('pagos:generar-mensualidades');
+
+        $this->assertEquals(EstadoPago::Pendiente, $pago->refresh()->estado);
+    }
+
     public function test_no_genera_nada_para_un_alumno_sin_plan(): void
     {
         $sucursal = Sucursal::factory()->create();

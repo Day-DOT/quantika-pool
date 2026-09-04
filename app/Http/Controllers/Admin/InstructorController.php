@@ -103,7 +103,10 @@ class InstructorController extends Controller
     {
         $datos = $request->validated();
 
-        $instructor->update(['especialidad' => $datos['especialidad'] ?? null]);
+        $instructor->update([
+            'especialidad' => $datos['especialidad'] ?? null,
+            ...(isset($datos['sucursal_id']) ? ['sucursal_id' => $datos['sucursal_id']] : []),
+        ]);
         $instructor->user?->update([
             'name' => $datos['name'],
             'email' => $datos['email'],

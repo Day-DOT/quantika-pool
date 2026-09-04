@@ -161,6 +161,7 @@ class AdminHorariosTest extends TestCase
         ]);
 
         $this->actingAs($e['admin'])->patch(route('horarios.reagendar', $horario), [
+            'nombre_grupo' => $horario->nombre_grupo,
             'dia_semana' => 3,
             'hora_inicio' => '11:00',
             'hora_fin' => '12:00',
@@ -251,6 +252,7 @@ class AdminHorariosTest extends TestCase
         ]);
 
         $response = $this->actingAs($e['admin'])->patch(route('horarios.reagendar', $horario), [
+            'nombre_grupo' => 'Delfines Renombrados',
             'dia_semana' => 3,
             'hora_inicio' => '11:00',
             'hora_fin' => '12:00',
@@ -260,6 +262,7 @@ class AdminHorariosTest extends TestCase
         $response->assertRedirect(route('horarios.index'));
 
         $horario->refresh();
+        $this->assertEquals('Delfines Renombrados', $horario->nombre_grupo);
         $this->assertEquals(3, $horario->dia_semana->value);
         $this->assertEquals($e['otroCarril']->id, $horario->carril_id);
     }

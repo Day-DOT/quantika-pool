@@ -6,6 +6,7 @@ use App\Enums\EstadoCita;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Cita extends Model
 {
@@ -22,6 +23,7 @@ class Cita extends Model
         'asistio',
         'notas',
         'registrado_por',
+        'reposicion_de_id',
     ];
 
     protected function casts(): array
@@ -51,6 +53,16 @@ class Cita extends Model
     public function registradoPor(): BelongsTo
     {
         return $this->belongsTo(User::class, 'registrado_por');
+    }
+
+    public function citaOriginal(): BelongsTo
+    {
+        return $this->belongsTo(Cita::class, 'reposicion_de_id');
+    }
+
+    public function reposicion(): HasOne
+    {
+        return $this->hasOne(Cita::class, 'reposicion_de_id');
     }
 
     public function scopeDeSucursal($query, int $sucursalId)

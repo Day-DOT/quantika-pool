@@ -97,11 +97,15 @@
                                     @endif
                                 </td>
                                 <td>
-                                    <form method="POST" action="{{ route('instructor.grupos.asistencia', [$horario, $alumno]) }}" style="display:flex; gap:8px;">
-                                        @csrf
-                                        <button type="submit" name="asistio" value="1" class="btn btn-sm btn-yes">Sí</button>
-                                        <button type="submit" name="asistio" value="0" class="btn btn-sm btn-no">No</button>
-                                    </form>
+                                    @if ($cita !== null && ! $cita->asistio)
+                                        <span class="badge badge-red">Marcada como falta</span>
+                                    @else
+                                        <form method="POST" action="{{ route('instructor.grupos.asistencia', [$horario, $alumno]) }}">
+                                            @csrf
+                                            <input type="hidden" name="asistio" value="0">
+                                            <button type="submit" class="btn btn-sm btn-no">Marcar falta</button>
+                                        </form>
+                                    @endif
                                 </td>
                                 <td>
                                     @if ($alumno->nivel_id)

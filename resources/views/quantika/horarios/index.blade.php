@@ -1585,6 +1585,9 @@
                 Esto cambia el horario recurrente de TODO el grupo (afecta a todos sus alumnos). Para mover solo a un alumno usa "Reagendar".
             </p>
 
+            <label>Nombre del grupo</label>
+            <input type="text" name="nombre_grupo" required style="{{ $campoEstilo }}" placeholder="Ej. Delfines">
+
             <label>Nuevo día</label>
             <select name="dia_semana" required style="{{ $campoEstilo }}">
                 @foreach ($diasSemana as $diaOpcion)

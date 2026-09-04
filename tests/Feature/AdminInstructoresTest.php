@@ -100,4 +100,37 @@ class AdminInstructoresTest extends TestCase
         $instructor->refresh();
         $this->assertEquals('inactivo', $instructor->estado);
     }
+
+    public function test_super_admin_en_vista_global_puede_reasignar_la_sucursal_de_un_instructor(): void
+    {
+        $superAdmin = User::factory()->superAdmin()->create();
+        $sucursalOriginal = Sucursal::factory()->create();
+        $sucursalNueva = Sucursal::factory()->create();
+        $instructor = Instructor::factory()->create(['sucursal_id' => $sucursalOriginal->id]);
+
+        $response = $this->actingAs($superAdmin)->put(route('instructores.update', $instructor), [
+            'name' => $instructor->user->name,
+            'email' => $instructor->user->email,
+            'sucursal_id' => $sucursalNueva->id,
+        ]);
+
+        $response->assertRedirect(route('instructores.index'));
+        $this->assertEquals($sucursalNueva->id, $instructor->refresh()->sucursal_id);
+    }
+
+    public function test_admin_no_puede_reasignar_la_sucursal_de_un_instructor(): void
+    {
+        $sucursal = Sucursal::factory()->create();
+        $otraSucursal = Sucursal::factory()->create();
+        $admin = User::factory()->admin($sucursal->id)->create();
+        $instructor = Instructor::factory()->create(['sucursal_id' => $sucursal->id]);
+
+        $this->actingAs($admin)->put(route('instructores.update', $instructor), [
+            'name' => $instructor->user->name,
+            'email' => $instructor->user->email,
+            'sucursal_id' => $otraSucursal->id,
+        ])->assertSessionHasErrors('sucursal_id');
+
+        $this->assertEquals($sucursal->id, $instructor->refresh()->sucursal_id);
+    }
 }

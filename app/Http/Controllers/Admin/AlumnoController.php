@@ -262,6 +262,7 @@ class AlumnoController extends Controller
     public function update(UpdateAlumnoRequest $request, Alumno $alumno): RedirectResponse
     {
         $datos = $request->validated();
+        $tieneTutor = $request->boolean('tiene_tutor');
 
         $rutasDocumentos = [];
         foreach ([
@@ -281,7 +282,7 @@ class AlumnoController extends Controller
             $rutasDocumentos[$columna] = $request->file($campo)->store('alumnos/documentos', 'public');
         }
 
-        DB::transaction(function () use ($datos, $alumno, $rutasDocumentos) {
+        DB::transaction(function () use ($datos, $alumno, $rutasDocumentos, $tieneTutor) {
             $nivelAnterior = $alumno->nivel_id;
 
             $alumno->update([
@@ -297,43 +298,57 @@ class AlumnoController extends Controller
                 ...$rutasDocumentos,
             ]);
 
-            if ($alumno->tutorUser) {
-                if (! empty($datos['tutor_email'])) {
-                    $alumno->tutorUser->update([
-                        'name' => $datos['tutor_nombre'] ?: $alumno->tutorUser->name,
-                        'email' => $datos['tutor_email'],
-                        'telefono' => $datos['tutor_telefono'] ?? $alumno->tutorUser->telefono,
-                    ]);
-                }
-            } elseif (! empty($datos['tutor_email'])) {
-                // Antes no tenía cuenta de portal; se le asigna una ahora.
-                $tutor = User::where('email', $datos['tutor_email'])->first();
+            $tutorEmailNuevo = $tieneTutor ? ($datos['tutor_email'] ?? null) : null;
+            $tutorNombreNuevo = $tieneTutor ? ($datos['tutor_nombre'] ?? null) : null;
+            $tutorTelefonoNuevo = $tieneTutor ? ($datos['tutor_telefono'] ?? null) : null;
 
-                if (! $tutor) {
+            if ($tieneTutor && ! empty($tutorEmailNuevo)) {
+                $tutorExistente = User::where('email', $tutorEmailNuevo)->first();
+
+                if ($tutorExistente) {
+                    // Ya existe una cuenta con ese correo (p.ej. el tutor de
+                    // un hermano): se enlaza directamente a esa cuenta.
+                    $alumno->update([
+                        'tutor_user_id' => $tutorExistente->id,
+                        'tutor_contacto_nombre' => null,
+                        'tutor_contacto_telefono' => null,
+                    ]);
+                } elseif ($alumno->tutorUser) {
+                    // Ya tenía cuenta de portal: se actualiza en el lugar
+                    // (p.ej. para corregir el correo).
+                    $alumno->tutorUser->update([
+                        'name' => $tutorNombreNuevo ?: $alumno->tutorUser->name,
+                        'email' => $tutorEmailNuevo,
+                        'telefono' => $tutorTelefonoNuevo ?? $alumno->tutorUser->telefono,
+                    ]);
+                } else {
                     $tutor = User::create([
-                        'name' => $datos['tutor_nombre'],
-                        'email' => $datos['tutor_email'],
+                        'name' => $tutorNombreNuevo,
+                        'email' => $tutorEmailNuevo,
                         'password' => Hash::make(Str::random(40)),
                         'role' => Rol::Alumno->value,
-                        'telefono' => $datos['tutor_telefono'] ?? null,
+                        'telefono' => $tutorTelefonoNuevo,
                         'activo' => true,
                     ]);
                     $tutor->forceFill(['password_configurada' => false])->save();
-                }
 
+                    $alumno->update([
+                        'tutor_user_id' => $tutor->id,
+                        'tutor_contacto_nombre' => null,
+                        'tutor_contacto_telefono' => null,
+                    ]);
+                }
+            } elseif ($tieneTutor && ! empty($tutorNombreNuevo)) {
+                // Tutor de solo contacto (sin correo): se desvincula
+                // cualquier cuenta de portal que tuviera antes.
                 $alumno->update([
-                    'tutor_user_id' => $tutor->id,
-                    'tutor_contacto_nombre' => null,
-                    'tutor_contacto_telefono' => null,
-                ]);
-            } elseif (! empty($datos['tutor_nombre'])) {
-                $alumno->update([
-                    'tutor_contacto_nombre' => $datos['tutor_nombre'],
-                    'tutor_contacto_telefono' => $datos['tutor_telefono'] ?? null,
+                    'tutor_user_id' => null,
+                    'tutor_contacto_nombre' => $tutorNombreNuevo,
+                    'tutor_contacto_telefono' => $tutorTelefonoNuevo,
                 ]);
             } elseif (! empty($datos['email'])) {
-                // Sin tutor, pero el alumno tiene su propio correo: se le crea
-                // su propia cuenta de portal si aún no existe.
+                // Sin tutor, pero el alumno tiene su propio correo: se le
+                // crea (o enlaza) su propia cuenta de portal.
                 $tutor = User::where('email', $datos['email'])->first();
 
                 if (! $tutor) {
@@ -354,7 +369,10 @@ class AlumnoController extends Controller
                     'tutor_contacto_telefono' => null,
                 ]);
             } else {
+                // Ni tutor ni correo propio: no queda ninguna cuenta de
+                // portal asociada a este alumno.
                 $alumno->update([
+                    'tutor_user_id' => null,
                     'tutor_contacto_nombre' => null,
                     'tutor_contacto_telefono' => null,
                 ]);

@@ -34,8 +34,12 @@ class NivelSeeder extends Seeder
             ['orden' => 3, 'nombre' => 'Adulto Avanzado', 'categoria' => 'Avanzado', 'categoria_edad' => 'Adultos', 'color_hex' => '#1c5fb0', 'imagen' => 'images/Niveles/orca.png', 'descripcion' => 'Los cuatro estilos y acondicionamiento físico en el agua.'],
         ];
 
+        // firstOrCreate (no updateOrCreate): estos son solo los niveles de
+        // arranque. Una vez que existen, la escuela los renombra, les cambia
+        // la imagen o el orden desde el panel, y el seeder NO debe revertir
+        // esos cambios en cada despliegue.
         foreach ($niveles as $nivel) {
-            Nivel::query()->updateOrCreate(
+            Nivel::query()->firstOrCreate(
                 ['categoria_edad' => $nivel['categoria_edad'], 'orden' => $nivel['orden']],
                 [...$nivel, 'activo' => true],
             );

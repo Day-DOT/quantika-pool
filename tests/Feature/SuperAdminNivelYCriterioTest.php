@@ -95,7 +95,7 @@ class SuperAdminNivelYCriterioTest extends TestCase
             'nombre' => 'Patada de rana',
             'orden' => 1,
             'activo' => '1',
-        ])->assertRedirect(route('super-admin.criterios.index'));
+        ])->assertRedirect(route('super-admin.criterios.create', ['nivel_id' => $nivel->id]));
 
         $criterio = CriterioEvaluacion::where('nombre', 'Patada de rana')->first();
         $this->assertNotNull($criterio);
@@ -152,5 +152,15 @@ class SuperAdminNivelYCriterioTest extends TestCase
             ->assertForbidden();
 
         $this->assertDatabaseHas('niveles', ['id' => $nivel->id]);
+    }
+
+    public function test_siguiente_avanza_primero_entre_niveles_con_el_mismo_orden(): void
+    {
+        $etapaA = Nivel::factory()->create(['categoria_edad' => 'Niños', 'orden' => 2, 'nombre' => 'Caballito de mar Etapa A']);
+        $etapaB = Nivel::factory()->create(['categoria_edad' => 'Niños', 'orden' => 2, 'nombre' => 'Caballito de mar Etapa B']);
+        $siguienteNivel = Nivel::factory()->create(['categoria_edad' => 'Niños', 'orden' => 3, 'nombre' => 'Medusa']);
+
+        $this->assertEquals($etapaB->id, $etapaA->siguiente()->id);
+        $this->assertEquals($siguienteNivel->id, $etapaB->siguiente()->id);
     }
 }

@@ -3,6 +3,10 @@
 @section('title', 'Dashboard')
 @section('page-title', 'Dashboard')
 
+@php
+    $sucursalActual = auth()->user()->sucursalActual();
+@endphp
+
 @section('content')
 
     {{-- HERO --}}
@@ -19,12 +23,16 @@
 
                 <h2>
                     Control total<br>
-                    de <span class="cyan">Quantika Pool.</span>
+                    de <span class="cyan">{{ $sucursalActual?->nombre ?? 'Quantika Pool' }}.</span>
                 </h2>
 
                 <p class="hero-description">
-                    Administra ambas sucursales, usuarios, niveles y el estatus financiero
-                    desde un solo lugar.
+                    @if ($sucursalActual)
+                        Administra los alumnos, usuarios, niveles y el estatus financiero de esta sucursal.
+                    @else
+                        Administra ambas sucursales, usuarios, niveles y el estatus financiero
+                        desde un solo lugar.
+                    @endif
                 </p>
 
                 <div class="hero-buttons">
@@ -39,7 +47,7 @@
             </div>
 
             <div class="hero-logo-box">
-                <img src="{{ asset('images/quantika-logo.png') }}" alt="Quantika Pool">
+                <img src="{{ auth()->user()->logoUrl() }}" alt="{{ $sucursalActual?->nombre ?? 'Quantika Pool' }}">
             </div>
 
         </div>

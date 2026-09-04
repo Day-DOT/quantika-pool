@@ -230,4 +230,23 @@ class PagoController extends Controller
 
         return back()->with('status', 'Pago marcado como pagado.');
     }
+
+    public function destroy(Pago $pago): RedirectResponse
+    {
+        $this->authorize('delete', $pago);
+
+        if ($pago->estado === EstadoPago::Pagado) {
+            return back()->withErrors(['pago' => 'No se puede eliminar un pago que ya está marcado como pagado.']);
+        }
+
+        $alumno = $pago->alumno;
+
+        if ($pago->comprobante_path) {
+            Storage::disk('public')->delete($pago->comprobante_path);
+        }
+
+        $pago->delete();
+
+        return back()->with('status', "Adeudo de {$alumno->nombreCompleto()} eliminado. No volverá a aparecer como pendiente.");
+    }
 }

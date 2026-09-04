@@ -116,11 +116,18 @@
                             </td>
                             <td>
                                 @if ($pago->estado->value !== 'pagado')
-                                    <form action="{{ route('pagos.marcar-pagado', $pago) }}" method="POST" onsubmit="return confirm('¿Marcar este pago como pagado?');">
-                                        @csrf
-                                        @method('PATCH')
-                                        <button type="submit" class="btn btn-secondary" style="padding:8px 14px;font-size:12px;">Marcar pagado</button>
-                                    </form>
+                                    <div style="display:flex; gap:8px;">
+                                        <form action="{{ route('pagos.marcar-pagado', $pago) }}" method="POST" onsubmit="return confirm('¿Marcar este pago como pagado?');">
+                                            @csrf
+                                            @method('PATCH')
+                                            <button type="submit" class="btn btn-secondary" style="padding:8px 14px;font-size:12px;">Marcar pagado</button>
+                                        </form>
+                                        <form action="{{ route('pagos.destroy', $pago) }}" method="POST" onsubmit="return confirm('¿Eliminar este adeudo? Ya no aparecerá como pendiente.');">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button type="submit" class="btn btn-outline" style="padding:8px 14px;font-size:12px;color:#ff6b6b;">Eliminar</button>
+                                        </form>
+                                    </div>
                                 @endif
                             </td>
                         </tr>

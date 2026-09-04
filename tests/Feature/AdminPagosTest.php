@@ -113,7 +113,7 @@ class AdminPagosTest extends TestCase
         Pago::factory()->create([
             'alumno_id' => $alumno->id,
             'sucursal_id' => $sucursal->id,
-            'estado' => EstadoPago::Pendiente->value,
+            'estado' => EstadoPago::Vencido->value,
             'fecha_vencimiento' => now()->subDays(3)->toDateString(),
         ]);
 
@@ -245,5 +245,39 @@ class AdminPagosTest extends TestCase
         $pago->refresh();
         $this->assertEquals(EstadoPago::Pagado, $pago->estado);
         $this->assertNotNull($pago->fecha_pago);
+    }
+
+    public function test_admin_puede_eliminar_un_pago_vencido_no_pagado(): void
+    {
+        $sucursal = Sucursal::factory()->create();
+        $admin = User::factory()->admin($sucursal->id)->create();
+        $alumno = Alumno::factory()->create(['sucursal_id' => $sucursal->id]);
+
+        $pago = Pago::factory()->create([
+            'alumno_id' => $alumno->id,
+            'sucursal_id' => $sucursal->id,
+            'estado' => EstadoPago::Vencido->value,
+        ]);
+
+        $this->actingAs($admin)->delete(route('pagos.destroy', $pago))->assertRedirect();
+
+        $this->assertDatabaseMissing('pagos', ['id' => $pago->id]);
+    }
+
+    public function test_no_se_puede_eliminar_un_pago_ya_pagado(): void
+    {
+        $sucursal = Sucursal::factory()->create();
+        $admin = User::factory()->admin($sucursal->id)->create();
+        $alumno = Alumno::factory()->create(['sucursal_id' => $sucursal->id]);
+
+        $pago = Pago::factory()->create([
+            'alumno_id' => $alumno->id,
+            'sucursal_id' => $sucursal->id,
+            'estado' => EstadoPago::Pagado->value,
+        ]);
+
+        $this->actingAs($admin)->delete(route('pagos.destroy', $pago))->assertSessionHasErrors('pago');
+
+        $this->assertDatabaseHas('pagos', ['id' => $pago->id]);
     }
 }

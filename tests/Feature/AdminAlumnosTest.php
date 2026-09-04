@@ -404,6 +404,29 @@ class AdminAlumnosTest extends TestCase
         $this->assertEquals(1, User::where('email', 'papa.varios@example.com')->count());
     }
 
+    public function test_admin_puede_quitarle_el_tutor_a_un_alumno_al_editarlo(): void
+    {
+        $sucursal = Sucursal::factory()->create();
+        $admin = User::factory()->admin($sucursal->id)->create();
+        $tutor = User::factory()->tutor()->create();
+        $alumno = Alumno::factory()->create(['sucursal_id' => $sucursal->id, 'tutor_user_id' => $tutor->id]);
+
+        $response = $this->actingAs($admin)->put(route('alumnos.update', $alumno), [
+            'nombre' => $alumno->nombre,
+            'apellidos' => $alumno->apellidos,
+            'fecha_nacimiento' => $alumno->fecha_nacimiento->format('Y-m-d'),
+            'estado' => 'activo',
+            'tiene_tutor' => '0',
+            'tutor_nombre' => '',
+            'tutor_email' => '',
+        ]);
+
+        $response->assertRedirect(route('alumnos.show', $alumno));
+        $alumno->refresh();
+        $this->assertNull($alumno->tutor_user_id);
+        $this->assertNull($alumno->tutor_contacto_nombre);
+    }
+
     public function test_admin_da_de_baja_a_un_alumno(): void
     {
         $sucursal = Sucursal::factory()->create();

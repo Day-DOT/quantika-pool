@@ -83,10 +83,13 @@ class Nivel extends Model
     public function scopeOrdenados($query)
     {
         // CASE WHEN (no FIELD(), que es exclusivo de MySQL) para que el orden
-        // funcione igual en MySQL y en SQLite (usado en las pruebas).
+        // funcione igual en MySQL y en SQLite (usado en las pruebas). El
+        // orden ya no es único, así que se usa "id" como desempate estable
+        // entre niveles con el mismo número (p.ej. distintas etapas).
         return $query
             ->orderByRaw("CASE categoria_edad WHEN 'Bebés' THEN 1 WHEN 'Niños' THEN 2 WHEN 'Adultos' THEN 3 ELSE 4 END")
-            ->orderBy('orden');
+            ->orderBy('orden')
+            ->orderBy('id');
     }
 
     public function scopeDeCategoriaEdad($query, string $categoriaEdad)
@@ -96,9 +99,23 @@ class Nivel extends Model
 
     public function siguiente(): ?self
     {
+        // Primero busca otro nivel con el MISMO orden (p.ej. otra etapa del
+        // mismo escalón, capturada como un registro aparte) antes de saltar
+        // al siguiente número de orden.
+        $mismoOrden = static::where('categoria_edad', $this->categoria_edad)
+            ->where('orden', $this->orden)
+            ->where('id', '>', $this->id)
+            ->orderBy('id')
+            ->first();
+
+        if ($mismoOrden) {
+            return $mismoOrden;
+        }
+
         return static::where('categoria_edad', $this->categoria_edad)
             ->where('orden', '>', $this->orden)
             ->orderBy('orden')
+            ->orderBy('id')
             ->first();
     }
 }

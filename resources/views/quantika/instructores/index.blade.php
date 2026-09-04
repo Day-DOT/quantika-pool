@@ -461,7 +461,8 @@
                             data-name="{{ $instructor->user?->name }}"
                             data-email="{{ $instructor->user?->email }}"
                             data-telefono="{{ $instructor->user?->telefono }}"
-                            data-especialidad="{{ $instructor->especialidad }}">
+                            data-especialidad="{{ $instructor->especialidad }}"
+                            data-sucursal-id="{{ $instructor->sucursal_id }}">
 
                             <td>
 
@@ -634,6 +635,15 @@
                 <label>Especialidad</label>
                 <input type="text" name="especialidad" style="{{ $campoEstilo }}">
 
+                @if ($esVistaGlobal)
+                    <label>Sucursal</label>
+                    <select name="sucursal_id" id="sucursalEditarInstructor" required style="{{ $campoEstilo }}">
+                        @foreach ($sucursales as $sucursalOpcion)
+                            <option value="{{ $sucursalOpcion->id }}">{{ $sucursalOpcion->nombre }}</option>
+                        @endforeach
+                    </select>
+                @endif
+
                 <div style="display:flex;gap:12px;margin-top:10px;">
                     <button type="submit" class="btn btn-primary">Guardar cambios</button>
                     <button type="button" class="btn-secondary" onclick="cerrarModalInstructor()">Cancelar</button>
@@ -666,6 +676,10 @@ function abrirModalInstructor(fila) {
         formEditar.querySelector('[name="email"]').value = fila.dataset.email || '';
         formEditar.querySelector('[name="telefono"]').value = fila.dataset.telefono || '';
         formEditar.querySelector('[name="especialidad"]').value = fila.dataset.especialidad || '';
+        const selectSucursal = formEditar.querySelector('[name="sucursal_id"]');
+        if (selectSucursal) {
+            selectSucursal.value = fila.dataset.sucursalId || '';
+        }
     } else {
         titulo.textContent = 'Registrar instructor';
         formCrear.style.display = 'block';

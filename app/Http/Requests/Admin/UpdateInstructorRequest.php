@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Admin;
 
+use App\Support\SucursalContext;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -16,6 +17,10 @@ class UpdateInstructorRequest extends FormRequest
     {
         $instructor = $this->route('instructor');
 
+        // Solo el super admin, y solo en vista global, puede reasignar la
+        // sucursal de un instructor ya creado.
+        $puedeReasignarSucursal = $this->user()->isSuperAdmin() && SucursalContext::actualId() === null;
+
         return [
             'name' => ['required', 'string', 'max:150'],
             'email' => [
@@ -26,6 +31,11 @@ class UpdateInstructorRequest extends FormRequest
             ],
             'telefono' => ['nullable', 'string', 'max:20'],
             'especialidad' => ['nullable', 'string', 'max:150'],
+            'sucursal_id' => [
+                $puedeReasignarSucursal ? 'sometimes' : 'prohibited',
+                'integer',
+                'exists:sucursales,id',
+            ],
         ];
     }
 }

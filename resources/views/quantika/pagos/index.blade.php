@@ -517,15 +517,22 @@
                             &nbsp;·&nbsp; ${{ number_format((float) $pago->monto, 0) }}
                         </div>
 
-                        <span class="status-pill status-soon">
-                            @if ($fila['diasRestantes'] === 0)
-                                Vence hoy
-                            @elseif ($fila['diasRestantes'] === 1)
-                                Vence mañana
-                            @else
-                                Vence en {{ $fila['diasRestantes'] }} días
-                            @endif
-                        </span>
+                        <div style="display:flex; align-items:center; gap:10px;">
+                            <span class="status-pill status-soon">
+                                @if ($fila['diasRestantes'] === 0)
+                                    Vence hoy
+                                @elseif ($fila['diasRestantes'] === 1)
+                                    Vence mañana
+                                @else
+                                    Vence en {{ $fila['diasRestantes'] }} días
+                                @endif
+                            </span>
+                            <form action="{{ route('pagos.marcar-pagado', $pago) }}" method="POST" onsubmit="return confirm('¿Marcar este pago como pagado?');">
+                                @csrf
+                                @method('PATCH')
+                                <button type="submit" class="btn btn-secondary" style="padding:6px 12px;font-size:12px;">Registrar pago</button>
+                            </form>
+                        </div>
                     </div>
                 @endforeach
             </div>

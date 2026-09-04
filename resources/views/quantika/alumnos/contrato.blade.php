@@ -103,21 +103,19 @@
 
         let dibujando = false;
 
-        function posicion(evento) {
+        function posicion(clientX, clientY) {
             const rect = canvas.getBoundingClientRect();
             const escalaX = canvas.width / rect.width;
             const escalaY = canvas.height / rect.height;
-            const punto = evento.touches ? evento.touches[0] : evento;
             return {
-                x: (punto.clientX - rect.left) * escalaX,
-                y: (punto.clientY - rect.top) * escalaY,
+                x: (clientX - rect.left) * escalaX,
+                y: (clientY - rect.top) * escalaY,
             };
         }
 
-        function empezar(evento) {
-            evento.preventDefault();
+        function empezar(clientX, clientY) {
             dibujando = true;
-            const pos = posicion(evento);
+            const pos = posicion(clientX, clientY);
             ctx.beginPath();
             ctx.moveTo(pos.x, pos.y);
             // Un toque sin arrastre (un punto) también cuenta como firma:
@@ -128,10 +126,9 @@
             firmas[idCanvas] = true;
         }
 
-        function mover(evento) {
+        function mover(clientX, clientY) {
             if (!dibujando) return;
-            evento.preventDefault();
-            const pos = posicion(evento);
+            const pos = posicion(clientX, clientY);
             ctx.lineTo(pos.x, pos.y);
             ctx.stroke();
             firmas[idCanvas] = true;
@@ -141,10 +138,29 @@
             dibujando = false;
         }
 
-        canvas.addEventListener('pointerdown', empezar);
-        canvas.addEventListener('pointermove', mover);
-        canvas.addEventListener('pointerup', terminar);
-        canvas.addEventListener('pointerleave', terminar);
+        // Ratón (computadora).
+        canvas.addEventListener('mousedown', (e) => empezar(e.clientX, e.clientY));
+        canvas.addEventListener('mousemove', (e) => mover(e.clientX, e.clientY));
+        window.addEventListener('mouseup', terminar);
+
+        // Táctil (celulares/tablets). Se maneja aparte de los eventos de
+        // "pointer" porque no todos los navegadores móviles los soportan de
+        // forma confiable (Safari antiguo, navegadores dentro de apps como
+        // WhatsApp/Instagram), lo que dejaba la firma sin registrarse.
+        canvas.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            const t = e.touches[0];
+            empezar(t.clientX, t.clientY);
+        }, { passive: false });
+
+        canvas.addEventListener('touchmove', (e) => {
+            e.preventDefault();
+            const t = e.touches[0];
+            mover(t.clientX, t.clientY);
+        }, { passive: false });
+
+        canvas.addEventListener('touchend', terminar);
+        canvas.addEventListener('touchcancel', terminar);
     }
 
     function limpiarFirma(idCanvas) {

@@ -11,6 +11,7 @@ use App\Http\Controllers\Admin\HorarioController;
 use App\Http\Controllers\Admin\InstructorController;
 use App\Http\Controllers\Admin\NivelController;
 use App\Http\Controllers\Admin\PagoController;
+use App\Http\Controllers\Admin\ReposicionController;
 use App\Http\Controllers\Admin\ReservaController;
 use Illuminate\Support\Facades\Route;
 
@@ -55,6 +56,7 @@ Route::middleware(['auth', 'role:admin,super_admin'])->group(function () {
     Route::get('/pagos/alumno/{alumno}', [PagoController::class, 'alumno'])->name('pagos.alumno');
     Route::get('/pagos/deudores', [PagoController::class, 'deudores'])->name('pagos.deudores');
     Route::patch('/pagos/{pago}/marcar-pagado', [PagoController::class, 'marcarPagado'])->name('pagos.marcar-pagado');
+    Route::delete('/pagos/{pago}', [PagoController::class, 'destroy'])->name('pagos.destroy');
 
     // --- Horarios ---
     Route::get('/horarios', [HorarioController::class, 'index'])->name('horarios.index');
@@ -66,6 +68,10 @@ Route::middleware(['auth', 'role:admin,super_admin'])->group(function () {
 
     // --- Citas (reagendamiento individual) ---
     Route::patch('/citas/{cita}/reagendar', [CitaController::class, 'reagendar'])->name('citas.reagendar');
+
+    // --- Reposiciones de clases (por faltas) ---
+    Route::get('/reposiciones', [ReposicionController::class, 'index'])->name('reposiciones.index');
+    Route::post('/citas/{cita}/reponer', [ReposicionController::class, 'store'])->name('citas.reponer');
 
     // --- Reservas (aprobación de reservas hechas por alumnos/tutores) ---
     Route::get('/reservas', [ReservaController::class, 'index'])->name('reservas.index');

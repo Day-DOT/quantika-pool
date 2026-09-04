@@ -20,6 +20,11 @@ class GenerarMensualidadesPendientes extends Command
         $hoy = now()->toDateString();
         $generados = 0;
 
+        $vencidos = Pago::where('estado', EstadoPago::Pendiente->value)
+            ->whereNotNull('fecha_vencimiento')
+            ->whereDate('fecha_vencimiento', '<', $hoy)
+            ->update(['estado' => EstadoPago::Vencido->value]);
+
         Alumno::query()
             ->where('estado', EstadoAlumno::Activo->value)
             ->whereNotNull('plan_id')
@@ -59,7 +64,7 @@ class GenerarMensualidadesPendientes extends Command
                 }
             });
 
-        $this->info("Se generaron {$generados} mensualidades pendientes.");
+        $this->info("Se marcaron {$vencidos} pagos como vencidos y se generaron {$generados} mensualidades pendientes.");
 
         return self::SUCCESS;
     }

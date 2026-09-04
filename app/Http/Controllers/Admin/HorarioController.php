@@ -179,6 +179,7 @@ class HorarioController extends Controller
         }
 
         $horario->update([
+            'nombre_grupo' => $datos['nombre_grupo'],
             'dia_semana' => $datos['dia_semana'],
             'hora_inicio' => $datos['hora_inicio'],
             'hora_fin' => $datos['hora_fin'],

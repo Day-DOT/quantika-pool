@@ -16,6 +16,7 @@ class ReagendarHorarioRequest extends FormRequest
     public function rules(): array
     {
         return [
+            'nombre_grupo' => ['required', 'string', 'max:100'],
             'dia_semana' => ['required', 'integer', Rule::in(array_map(fn ($c) => $c->value, DiaSemana::cases()))],
             'hora_inicio' => ['required', 'date_format:H:i'],
             'hora_fin' => ['required', 'date_format:H:i', 'after:hora_inicio'],

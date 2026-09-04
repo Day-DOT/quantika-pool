@@ -773,6 +773,10 @@
                     <div class="menu-icon">✓</div>
                     <span>Reservas pendientes</span>
                 </a>
+                <a href="{{ route('reposiciones.index') }}" class="menu-item {{ request()->routeIs('reposiciones.*') ? 'active' : '' }}">
+                    <div class="menu-icon">↻</div>
+                    <span>Reposiciones de clases</span>
+                </a>
                 <a href="{{ route('evaluaciones.index') }}" class="menu-item {{ request()->routeIs('evaluaciones.*') ? 'active' : '' }}">
                     <div class="menu-icon">📈</div>
                     <span>Evaluaciones</span>
@@ -852,7 +856,7 @@
         <header class="topbar">
 
             <div class="page-title">
-                <small>QUANTIKA POOL · {{ $esSuperAdmin ? 'SUPER ADMINISTRADOR' : mb_strtoupper(auth()->user()->sucursal->nombre ?? 'ADMINISTRACIÓN') }}</small>
+                <small>{{ mb_strtoupper(auth()->user()->sucursalActual()?->nombre ?? 'QUANTIKA POOL') }} · {{ $esSuperAdmin ? 'SUPER ADMINISTRADOR' : 'ADMINISTRACIÓN' }}</small>
                 <h1>@yield('page-title', 'Dashboard')</h1>
             </div>
 

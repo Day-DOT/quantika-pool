@@ -47,10 +47,13 @@ class CriterioEvaluacionController extends Controller
     {
         $this->authorize('create', CriterioEvaluacion::class);
 
-        CriterioEvaluacion::create($request->validated());
+        $criterio = CriterioEvaluacion::create($request->validated());
 
+        // Se regresa al formulario de creación (con el mismo nivel ya
+        // seleccionado) en vez de a la lista completa: lo normal es capturar
+        // varios criterios seguidos para el mismo nivel.
         return redirect()
-            ->route('super-admin.criterios.index')
+            ->route('super-admin.criterios.create', ['nivel_id' => $criterio->nivel_id])
             ->with('status', 'Criterio de evaluación creado correctamente.');
     }
 
