@@ -103,6 +103,10 @@ class ReposicionController extends Controller
             return back()->withErrors(['horario_id' => 'El horario debe pertenecer a la misma sucursal.']);
         }
 
+        if ($alumno->nivel && $nuevoHorario->nivel?->categoria_edad !== $alumno->nivel->categoria_edad) {
+            return back()->withErrors(['horario_id' => 'El horario debe pertenecer a la misma categoría de edad del alumno.']);
+        }
+
         if ($nuevaFecha->isoWeekday() !== $nuevoHorario->dia_semana->value) {
             return back()->withErrors([
                 'fecha' => "La fecha elegida no coincide con el día ({$nuevoHorario->dia_semana->label()}) del horario seleccionado.",

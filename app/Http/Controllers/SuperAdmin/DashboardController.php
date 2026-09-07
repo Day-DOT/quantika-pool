@@ -60,7 +60,7 @@ class DashboardController extends Controller
         $horarios = Horario::query()
             ->where('activo', true)
             ->when($sucursalId, fn ($q) => $q->where('sucursal_id', $sucursalId))
-            ->with(['nivel', 'instructor.user', 'carril', 'inscripciones' => fn ($q) => $q->where('activa', true)])
+            ->with(['nivel', 'instructor.user', 'carril', 'inscripciones' => fn ($q) => $q->where('activa', true)->with('alumno')])
             ->orderBy('hora_inicio')
             ->get();
 
@@ -73,6 +73,7 @@ class DashboardController extends Controller
                 return [
                     'horario' => $horario,
                     'cupoDisponible' => max(0, $horario->capacidad_maxima - $inscritos),
+                    'alumnos' => $horario->inscripciones->pluck('alumno')->filter(),
                 ];
             })->values();
 

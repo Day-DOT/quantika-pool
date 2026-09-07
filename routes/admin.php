@@ -83,6 +83,7 @@ Route::middleware(['auth', 'role:admin,super_admin'])->group(function () {
 
     // --- Configuración ---
     Route::get('/configuracion', [ConfiguracionController::class, 'index'])->name('configuracion.index');
+    Route::put('/configuracion', [ConfiguracionController::class, 'update'])->name('configuracion.update');
     Route::get('/configuracion/carriles', [CarrilController::class, 'index'])->name('carriles.index');
     Route::post('/configuracion/carriles', [CarrilController::class, 'store'])->name('carriles.store');
     Route::put('/configuracion/carriles/{carril}', [CarrilController::class, 'update'])->name('carriles.update');

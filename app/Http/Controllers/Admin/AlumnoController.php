@@ -90,6 +90,7 @@ class AlumnoController extends Controller
         $rutasDocumentos = [
             'certificado_medico_path' => $request->file('certificado_medico')?->store('alumnos/documentos', 'public'),
             'identificacion_path' => $request->file('identificacion')?->store('alumnos/documentos', 'public'),
+            'ine_tutor_path' => $request->file('ine_tutor')?->store('alumnos/documentos', 'public'),
             'foto_path' => $request->file('foto')?->store('alumnos/documentos', 'public'),
             'contrato_firmado_path' => $request->file('contrato_firmado')?->store('alumnos/documentos', 'public'),
         ];
@@ -160,6 +161,10 @@ class AlumnoController extends Controller
                 'nombre' => $datos['nombre'],
                 'apellidos' => $datos['apellidos'],
                 'fecha_nacimiento' => $datos['fecha_nacimiento'],
+                'tipo_sangre' => $datos['tipo_sangre'] ?? null,
+                'contacto_emergencia_nombre' => $datos['contacto_emergencia_nombre'] ?? null,
+                'contacto_emergencia_telefono' => $datos['contacto_emergencia_telefono'] ?? null,
+                'observaciones_medicas' => $datos['observaciones_medicas'] ?? null,
                 'telefono' => $datos['telefono'] ?? null,
                 'email' => $datos['email'] ?? null,
                 'observaciones' => $datos['observaciones'] ?? null,
@@ -264,10 +269,15 @@ class AlumnoController extends Controller
         $datos = $request->validated();
         $tieneTutor = $request->boolean('tiene_tutor');
 
+        if (! $tieneTutor && $alumno->ine_tutor_path) {
+            Storage::disk('public')->delete($alumno->ine_tutor_path);
+        }
+
         $rutasDocumentos = [];
         foreach ([
             'certificado_medico' => 'certificado_medico_path',
             'identificacion' => 'identificacion_path',
+            'ine_tutor' => 'ine_tutor_path',
             'foto' => 'foto_path',
             'contrato_firmado' => 'contrato_firmado_path',
         ] as $campo => $columna) {
@@ -289,12 +299,19 @@ class AlumnoController extends Controller
                 'nombre' => $datos['nombre'],
                 'apellidos' => $datos['apellidos'],
                 'fecha_nacimiento' => $datos['fecha_nacimiento'],
+                'tipo_sangre' => $datos['tipo_sangre'] ?? null,
+                'contacto_emergencia_nombre' => $datos['contacto_emergencia_nombre'] ?? null,
+                'contacto_emergencia_telefono' => $datos['contacto_emergencia_telefono'] ?? null,
+                'observaciones_medicas' => $datos['observaciones_medicas'] ?? null,
                 'telefono' => $datos['telefono'] ?? null,
                 'email' => $datos['email'] ?? null,
                 'observaciones' => $datos['observaciones'] ?? null,
                 'estado' => $datos['estado'],
                 'nivel_id' => $datos['nivel_id'] ?? null,
                 'plan_id' => $datos['plan_id'] ?? null,
+                'ine_tutor_path' => $tieneTutor
+                    ? ($rutasDocumentos['ine_tutor_path'] ?? $alumno->ine_tutor_path)
+                    : null,
                 ...$rutasDocumentos,
             ]);
 
@@ -430,6 +447,7 @@ class AlumnoController extends Controller
         foreach ([
             $alumno->certificado_medico_path,
             $alumno->identificacion_path,
+            $alumno->ine_tutor_path,
             $alumno->foto_path,
             $alumno->contrato_firmado_path,
         ] as $ruta) {

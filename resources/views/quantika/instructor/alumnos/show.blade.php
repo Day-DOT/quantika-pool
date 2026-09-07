@@ -21,6 +21,23 @@
             <div class="stat-change">{{ $alumno->nivel?->categoria }}</div>
         </div>
 
+        <div class="card card-pad" style="margin-top:18px;">
+            <h3 style="margin-bottom:12px;">Información médica</h3>
+            <div class="criterio-desc">
+                <strong>Tipo de sangre:</strong> {{ $alumno->tipo_sangre ?? 'No registrado' }}
+            </div>
+            <div class="criterio-desc">
+                <strong>Contacto de emergencia:</strong>
+                {{ $alumno->contacto_emergencia_nombre ?? 'No registrado' }}
+                @if ($alumno->contacto_emergencia_telefono)
+                    · {{ $alumno->contacto_emergencia_telefono }}
+                @endif
+            </div>
+            <div class="criterio-desc">
+                <strong>Observaciones médicas:</strong> {{ $alumno->observaciones_medicas ?? 'Sin observaciones' }}
+            </div>
+        </div>
+
         <div class="stat-card">
             <div class="stat-top"><span class="stat-name">Avance en el nivel</span><div class="stat-icon">✓</div></div>
             <div class="stat-value">{{ $porcentajeActual }}%</div>

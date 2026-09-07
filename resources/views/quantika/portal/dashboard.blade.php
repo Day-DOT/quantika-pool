@@ -82,8 +82,11 @@
                         @endif
                     </div>
                     <div style="flex:1;">
-                        <div class="level-number">NIVEL {{ $nivelActivo?->orden ?? '—' }} · {{ $nivelActivo?->categoria ?? '' }}</div>
+                        <div class="level-number">NIVEL {{ $nivelActivo?->orden ?? '—' }} · {{ \App\Models\ConfiguracionSistema::categoriasEdad()[$nivelActivo?->categoria_edad] ?? $nivelActivo?->categoria_edad ?? '' }}</div>
                         <div class="level-name">{{ $nivelActivo?->nombre ?? 'Sin nivel asignado' }}</div>
+                        @if ($nivelActivo?->subtitulo)
+                            <div class="level-description">{{ $nivelActivo->subtitulo }}</div>
+                        @endif
                         <div class="level-description">{{ $nivelActivo?->descripcion ?? 'Este alumno aún no tiene un nivel asignado.' }}</div>
 
                         <div class="progress-row">
@@ -105,6 +108,15 @@
                         </div>
                         <div class="stat-value">{{ $resumenActivo['proximasClases']->count() }}</div>
                         <div class="stat-sub">agendadas</div>
+                    </div>
+
+                    <div class="stat-card">
+                        <div class="stat-top">
+                            <span class="stat-name">Clases restantes del mes</span>
+                            <div class="stat-icon">◷</div>
+                        </div>
+                        <div class="stat-value">{{ $resumenActivo['clasesRestantes'] ?? '—' }}</div>
+                        <div class="stat-sub">según tu plan</div>
                     </div>
 
                     <div class="stat-card">
@@ -151,6 +163,7 @@
                                 <th>Fecha</th>
                                 <th>Horario</th>
                                 <th>Grupo</th>
+                                <th>Carril</th>
                                 <th>Instructor</th>
                             </tr>
                         </thead>
@@ -160,17 +173,18 @@
                                     <td>{{ $cita->fecha->translatedFormat('d M Y') }}</td>
                                     <td>{{ \Illuminate\Support\Carbon::parse($cita->hora_inicio)->format('H:i') }} - {{ \Illuminate\Support\Carbon::parse($cita->hora_fin)->format('H:i') }}</td>
                                     <td>{{ $cita->horario?->nombre_grupo ?? '—' }}</td>
+                                    <td>{{ $cita->horario?->carril?->nombre ?? '—' }}</td>
                                     <td>{{ $cita->horario?->instructor?->user?->name ?? '—' }}</td>
                                 </tr>
                             @empty
-                                <tr><td colspan="4" class="empty-row">Sin clases agendadas próximamente. Reserva una desde "Reservar clase".</td></tr>
+                                <tr><td colspan="5" class="empty-row">Sin clases agendadas próximamente. Recupera una desde "Recuperar clase".</td></tr>
                             @endforelse
                         </tbody>
                     </table>
                 </div>
 
                 <div style="margin-top:26px; display:flex; gap:12px; flex-wrap:wrap;">
-                    <a href="{{ route('portal.reservar.index', ['alumno' => $alumno->id]) }}" class="btn btn-primary">+ Reservar una clase</a>
+                    <a href="{{ route('portal.reservar.index', ['alumno' => $alumno->id]) }}" class="btn btn-primary">+ Recuperar una clase</a>
                     <a href="{{ route('portal.progreso', ['alumno' => $alumno->id]) }}" class="btn btn-outline">Ver boleta de progreso</a>
                 </div>
 

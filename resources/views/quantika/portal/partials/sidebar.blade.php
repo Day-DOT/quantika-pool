@@ -38,7 +38,7 @@
 
             <a href="{{ route('portal.reservar.index') }}" class="menu-item {{ ($activo ?? '') === 'reservar' ? 'active' : '' }}">
                 <div class="menu-icon">≋</div>
-                <span>Reservar clase</span>
+                <span>Recuperar clase</span>
             </a>
 
             <a href="{{ route('portal.progreso') }}" class="menu-item {{ ($activo ?? '') === 'progreso' ? 'active' : '' }}">

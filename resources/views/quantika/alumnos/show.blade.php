@@ -17,17 +17,8 @@
         <div style="display:flex;gap:10px;">
             <a href="{{ route('alumnos.edit', $alumno) }}" class="btn btn-outline btn-sm">✎ Editar</a>
             <a href="{{ url('/alumnos') }}" class="btn btn-outline btn-sm">← Regresar</a>
-            <form
-                action="{{ route('alumnos.destroy', $alumno) }}"
-                method="POST"
-                onsubmit="return confirm('¿Eliminar permanentemente a {{ $alumno->nombreCompleto() }}? Esto borra también su historial de citas, pagos y evaluaciones. Esta acción no se puede deshacer.');">
-                @csrf
-                @method('DELETE')
-                <button type="submit" class="btn btn-outline btn-sm" style="color:#ff6b6b; border-color:#ff6b6b;">🗑 Eliminar</button>
-            </form>
         </div>
     </div>
-
 
     <section class="stats-grid">
 
@@ -99,6 +90,27 @@
         <div class="stat-card">
             <span class="stat-name">SUCURSAL</span>
             <div class="stat-value" style="font-size:18px;">{{ $alumno->sucursal->nombre }}</div>
+        </div>
+
+        <div class="section-header">
+            <h3>Información médica y emergencia</h3>
+        </div>
+        <div class="panel">
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <span class="stat-name">TIPO DE SANGRE</span>
+                    <div class="stat-value" style="font-size:18px;">{{ $alumno->tipo_sangre ?? 'No registrado' }}</div>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-name">CONTACTO DE EMERGENCIA</span>
+                    <div class="stat-value" style="font-size:16px;">{{ $alumno->contacto_emergencia_nombre ?? 'No registrado' }}</div>
+                    <div class="stat-change">{{ $alumno->contacto_emergencia_telefono ?? 'Sin teléfono' }}</div>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-name">OBSERVACIONES MÉDICAS</span>
+                    <div class="stat-change" style="margin-top:8px;">{{ $alumno->observaciones_medicas ?? 'Sin observaciones' }}</div>
+                </div>
+            </div>
         </div>
 
         <div class="stat-card">
@@ -340,6 +352,9 @@
                                 <td>{{ $cita->fecha->translatedFormat('d M Y') }}</td>
                                 <td>
                                     {{ $cita->horario?->nombre_grupo }}
+                                    @if ($cita->reposicion_de_id)
+                                        <div style="color:var(--cyan); font-size:11px; font-weight:800;">RECUPERACIÓN DE FALTA</div>
+                                    @endif
                                     <div style="color:var(--muted); font-size:12px;">
                                         {{ substr($cita->hora_inicio, 0, 5) }}–{{ substr($cita->hora_fin, 0, 5) }}
                                     </div>
@@ -391,6 +406,18 @@
             @endif
         </div>
 
+    </div>
+
+    <div class="section-header" style="margin-top:30px;">
+        <h3>Zona de desactivación</h3>
+    </div>
+    <div class="panel" style="display:flex; justify-content:flex-end; gap:10px;">
+        <form action="{{ route('alumnos.destroy', $alumno) }}" method="POST"
+              onsubmit="return confirm('¿Eliminar permanentemente a {{ $alumno->nombreCompleto() }}? Esta acción no se puede deshacer.');">
+            @csrf
+            @method('DELETE')
+            <button type="submit" class="btn btn-outline btn-sm" style="color:#ff6b6b; border-color:#ff6b6b;">🗑 Eliminar permanentemente</button>
+        </form>
     </div>
 
 @endsection

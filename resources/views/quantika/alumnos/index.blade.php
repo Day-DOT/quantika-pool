@@ -657,15 +657,6 @@
                                         </form>
                                     @endif
 
-                                    <form
-                                        action="{{ route('alumnos.destroy', $alumno) }}"
-                                        method="POST"
-                                        style="display:inline;"
-                                        onsubmit="return confirm('¿Eliminar permanentemente a {{ $alumno->nombreCompleto() }}? Esto borra también su historial de citas, pagos y evaluaciones. Esta acción no se puede deshacer.');">
-                                        @csrf
-                                        @method('DELETE')
-                                        <button class="action-btn" type="submit" title="Eliminar">🗑</button>
-                                    </form>
                                 </div>
                             </td>
 
@@ -757,6 +748,11 @@
                         <label>Teléfono del tutor</label>
                         <input type="tel" class="form-input" name="tutor_telefono" value="{{ old('tutor_telefono') }}" placeholder="10 dígitos">
                     </div>
+
+                    <div class="form-group">
+                        <label>INE del tutor (obligatorio)</label>
+                        <input type="file" class="form-input" name="ine_tutor" accept=".pdf,.jpg,.jpeg,.png">
+                    </div>
                 </div>
 
                 @if ($esVistaGlobal)
@@ -780,7 +776,7 @@
                     <select class="form-select" name="nivel_id">
                         <option value="">Sin nivel asignado</option>
                         @foreach ($niveles->groupBy('categoria_edad') as $grupoEdad => $nivelesGrupo)
-                            <optgroup label="{{ $grupoEdad }}">
+                            <optgroup label="{{ \App\Models\ConfiguracionSistema::categoriasEdad()[$grupoEdad] ?? $grupoEdad }}">
                                 @foreach ($nivelesGrupo as $nivelOpcion)
                                     <option value="{{ $nivelOpcion->id }}" @selected(old('nivel_id') == $nivelOpcion->id)>
                                         {{ $nivelOpcion->nombre }}
@@ -803,9 +799,29 @@
                     </select>
                 </div>
 
+                <div class="form-group">
+                    <label>Tipo de sangre</label>
+                    <input type="text" class="form-input" name="tipo_sangre" value="{{ old('tipo_sangre') }}" maxlength="5" placeholder="Ej. O+">
+                </div>
+
+                <div class="form-group">
+                    <label>Contacto de emergencia</label>
+                    <input type="text" class="form-input" name="contacto_emergencia_nombre" value="{{ old('contacto_emergencia_nombre') }}">
+                </div>
+
+                <div class="form-group">
+                    <label>Teléfono de emergencia</label>
+                    <input type="text" class="form-input" name="contacto_emergencia_telefono" value="{{ old('contacto_emergencia_telefono') }}">
+                </div>
+
                 <div class="form-group full">
                     <label>Observaciones</label>
                     <input type="text" class="form-input" name="observaciones" value="{{ old('observaciones') }}" placeholder="Información adicional del alumno">
+                </div>
+
+                <div class="form-group full">
+                    <label>Observaciones médicas</label>
+                    <textarea class="form-textarea" name="observaciones_medicas">{{ old('observaciones_medicas') }}</textarea>
                 </div>
 
                 <div class="form-group">

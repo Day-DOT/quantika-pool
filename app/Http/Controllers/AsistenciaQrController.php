@@ -81,6 +81,10 @@ class AsistenciaQrController extends Controller
                 continue;
             }
 
+            if ($cita->exists && $cita->estado === EstadoCita::Cancelada) {
+                continue;
+            }
+
             $cita->asistio = true;
             $cita->estado = EstadoCita::Completada;
             $cita->registrado_por = $request->user()->id;

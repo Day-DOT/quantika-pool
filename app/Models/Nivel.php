@@ -15,6 +15,7 @@ class Nivel extends Model
     protected $fillable = [
         'orden',
         'nombre',
+        'subtitulo',
         'categoria',
         'categoria_edad',
         'total_sub_niveles',

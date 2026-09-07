@@ -32,6 +32,14 @@ class UpdateAlumnoRequest extends FormRequest
             // hermanos al mismo tutor, incluso editando después del alta).
             'tutor_email' => ['nullable', 'email', 'max:150'],
             'tutor_telefono' => ['nullable', 'string', 'max:20'],
+            'ine_tutor' => [
+                $this->boolean('tiene_tutor') && ! $this->route('alumno')?->ine_tutor_path ? 'required' : 'nullable',
+                'file', 'mimes:pdf,jpg,jpeg,png', 'max:5120',
+            ],
+            'tipo_sangre' => ['nullable', 'string', 'max:5'],
+            'contacto_emergencia_nombre' => ['nullable', 'string', 'max:150'],
+            'contacto_emergencia_telefono' => ['nullable', 'string', 'max:20'],
+            'observaciones_medicas' => ['nullable', 'string', 'max:2000'],
             'certificado_medico' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:5120'],
             'identificacion' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:5120'],
             'foto' => ['nullable', 'image', 'mimes:jpg,jpeg,png', 'max:5120'],

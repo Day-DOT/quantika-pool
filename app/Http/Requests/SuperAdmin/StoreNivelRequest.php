@@ -18,6 +18,7 @@ class StoreNivelRequest extends FormRequest
         return [
             'orden' => ['required', 'integer', 'min:1', 'max:255'],
             'nombre' => ['required', 'string', 'max:255'],
+            'subtitulo' => ['nullable', 'string', 'max:150'],
             'categoria' => ['required', 'string', 'max:255'],
             'categoria_edad' => ['required', Rule::in(Nivel::CATEGORIAS_EDAD)],
             'total_sub_niveles' => ['nullable', 'integer', 'min:1', 'max:26'],

@@ -52,10 +52,12 @@ class ReservaController extends Controller
         $sucursalId = (int) ($request->query('sucursal') ?? $alumno->sucursal_id ?? $sucursales->first()->id);
 
         $nivelActual = $alumno->nivel;
-
-        $ordenesRelevantes = $nivelActual
-            ? range(max(1, $nivelActual->orden - 1), $nivelActual->orden + 1)
-            : [];
+        $faltasDisponibles = $alumno->citas()
+            ->where('asistio', false)
+            ->whereDoesntHave('reposicion')
+            ->whereMonth('fecha', now()->month)
+            ->whereYear('fecha', now()->year)
+            ->count();
 
         $horarios = Horario::query()
             ->with(['nivel', 'instructor.user', 'carril'])
@@ -63,7 +65,7 @@ class ReservaController extends Controller
             ->where('activo', true)
             ->when(
                 $nivelActual,
-                fn ($query) => $query->whereHas('nivel', fn ($nivel) => $nivel->whereIn('orden', $ordenesRelevantes))
+                fn ($query) => $query->whereHas('nivel', fn ($nivel) => $nivel->where('categoria_edad', $nivelActual->categoria_edad))
             )
             ->orderBy('dia_semana')
             ->orderBy('hora_inicio')
@@ -89,6 +91,7 @@ class ReservaController extends Controller
             'horarios' => $horarios,
             'cuposDisponibles' => $alumno->cuposDisponiblesParaReservar(),
             'cuposUsados' => $alumno->inscripcionesVigentes()->count(),
+            'faltasDisponibles' => $faltasDisponibles,
         ]);
     }
 
@@ -110,7 +113,18 @@ class ReservaController extends Controller
 
         if (! $alumno->plan_id) {
             return back()->withErrors([
-                'plan' => 'Este alumno no tiene un plan de mensualidad asignado. Contacta a la escuela para que le asignen uno antes de reservar clases.',
+                'plan' => 'Este alumno no tiene un plan de mensualidad asignado. Contacta a la escuela para que le asignen uno antes de recuperar clases.',
+            ]);
+        }
+
+        if (! $alumno->citas()
+            ->where('asistio', false)
+            ->whereDoesntHave('reposicion')
+            ->whereMonth('fecha', now()->month)
+            ->whereYear('fecha', now()->year)
+            ->exists()) {
+            return back()->withErrors([
+                'horario_ids' => 'Solo puedes recuperar una clase después de tener una falta registrada sin reposición.',
             ]);
         }
 
@@ -123,7 +137,7 @@ class ReservaController extends Controller
 
                 if (count($horarioIds) > $cuposDisponibles) {
                     throw ValidationException::withMessages([
-                        'horario_ids' => "Solo puedes reservar {$cuposDisponibles} clase(s) más según tu plan ({$alumno->plan->clases_por_semana} clases/semana).",
+                        'horario_ids' => "Solo puedes recuperar {$cuposDisponibles} clase(s) más según tu plan ({$alumno->plan->clases_por_semana} clases/semana).",
                     ]);
                 }
 
@@ -137,6 +151,13 @@ class ReservaController extends Controller
                     if (! $horario->activo) {
                         throw ValidationException::withMessages([
                             'horario_ids' => "El grupo \"{$horario->nombre_grupo}\" ya no está disponible.",
+                        ]);
+                    }
+
+                    if ($alumno->nivel && $horario->nivel_id !== $alumno->nivel_id
+                        && $horario->nivel?->categoria_edad !== $alumno->nivel->categoria_edad) {
+                        throw ValidationException::withMessages([
+                            'horario_ids' => 'El horario seleccionado no corresponde a la categoría de edad del alumno.',
                         ]);
                     }
 
@@ -177,6 +198,6 @@ class ReservaController extends Controller
 
         return redirect()
             ->route('portal.reservar.index', ['alumno' => $alumno->id, 'sucursal' => $sucursalId])
-            ->with('status', 'Reserva enviada para ' . $alumno->nombreCompleto() . '. Queda pendiente de aprobación por el administrador.');
+            ->with('status', 'Solicitud de recuperación enviada para ' . $alumno->nombreCompleto() . '. Queda pendiente de aprobación por el administrador.');
     }
 }
