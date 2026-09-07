@@ -49,13 +49,25 @@
 
                         @foreach ($horariosDelDia as $horario)
 
-                            <a href="{{ route('instructor.grupos.show', $horario) }}" class="grupo-card">
+                            <div class="grupo-card">
+                                <a href="{{ route('instructor.grupos.show', $horario) }}">
                                 <div class="grupo-nombre">{{ $horario->nombre_grupo }}</div>
                                 <div class="grupo-meta">{{ $horario->nivel?->nombre }} · Carril {{ $horario->carril?->nombre }}</div>
                                 <div class="grupo-meta">{{ $horario->sucursal?->nombre }}</div>
                                 <div class="grupo-meta">{{ substr($horario->hora_inicio, 0, 5) }} – {{ substr($horario->hora_fin, 0, 5) }}</div>
                                 <div class="grupo-meta">{{ $alumnosPorHorario->get($horario->id, 0) }} / {{ $horario->capacidad_maxima }} alumno(s)</div>
-                            </a>
+                                </a>
+                                <details style="margin-top:10px;">
+                                    <summary style="cursor:pointer;color:var(--cyan);font-size:12px;">Ver alumnos inscritos</summary>
+                                    <div style="margin-top:7px;font-size:12px;">
+                                        @forelse ($horario->inscripciones as $inscripcion)
+                                            <div>{{ $inscripcion->alumno?->nombreCompleto() }}</div>
+                                        @empty
+                                            <div>Sin alumnos inscritos.</div>
+                                        @endforelse
+                                    </div>
+                                </details>
+                            </div>
 
                         @endforeach
 

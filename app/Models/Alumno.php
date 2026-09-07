@@ -29,6 +29,10 @@ class Alumno extends Model
         'nombre',
         'apellidos',
         'fecha_nacimiento',
+        'tipo_sangre',
+        'contacto_emergencia_nombre',
+        'contacto_emergencia_telefono',
+        'observaciones_medicas',
         'telefono',
         'email',
         'observaciones',
@@ -37,6 +41,7 @@ class Alumno extends Model
         'qr_token',
         'certificado_medico_path',
         'identificacion_path',
+        'ine_tutor_path',
         'foto_path',
         'contrato_firmado_path',
     ];
@@ -182,6 +187,21 @@ class Alumno extends Model
         $limite = $this->limiteSemanal();
 
         return $limite === null || $this->clasesEstaSemana() < $limite;
+    }
+
+    public function clasesEsteMes(): int
+    {
+        return $this->citas()
+            ->whereBetween('fecha', [now()->startOfMonth()->toDateString(), now()->endOfMonth()->toDateString()])
+            ->whereNotIn('estado', [EstadoCita::Cancelada->value])
+            ->count();
+    }
+
+    public function clasesRestantesEsteMes(): ?int
+    {
+        return $this->plan
+            ? max(0, ($this->plan->clases_por_semana * 4) - $this->clasesEsteMes())
+            : null;
     }
 
     /**

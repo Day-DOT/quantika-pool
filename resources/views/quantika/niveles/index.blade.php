@@ -300,7 +300,7 @@
 
     @foreach ($niveles->groupBy(fn ($fila) => $fila['nivel']->categoria_edad) as $categoriaEdad => $filasGrupo)
 
-        <div class="section-title" style="margin:30px 0 18px;">{{ $categoriaEdad }}</div>
+        <div class="section-title" style="margin:30px 0 18px;">{{ \App\Models\ConfiguracionSistema::categoriasEdad()[$categoriaEdad] ?? $categoriaEdad }}</div>
 
         <div class="levels-grid">
 
@@ -327,6 +327,10 @@
                     <h2 class="level-name">
                         {{ $nivel->nombre }}
                     </h2>
+
+                    @if ($nivel->subtitulo)
+                        <p class="level-description">{{ $nivel->subtitulo }}</p>
+                    @endif
 
                     <p class="level-description">
                         {{ $nivel->descripcion }}

@@ -19,11 +19,17 @@
     </div>
 
     <div class="form-group">
+        <label for="subtitulo">Subtítulo</label>
+        <input type="text" id="subtitulo" name="subtitulo" class="form-input" value="{{ old('subtitulo', $nivel->subtitulo ?? '') }}" maxlength="150">
+        @error('subtitulo') <span class="form-error">{{ $message }}</span> @enderror
+    </div>
+
+    <div class="form-group">
         <label for="categoria_edad">Grupo de edad</label>
         <select id="categoria_edad" name="categoria_edad" class="form-select" required>
             @foreach (\App\Models\Nivel::CATEGORIAS_EDAD as $opcion)
                 <option value="{{ $opcion }}" {{ old('categoria_edad', $nivel->categoria_edad ?? 'Niños') === $opcion ? 'selected' : '' }}>
-                    {{ $opcion }}
+                    {{ \App\Models\ConfiguracionSistema::categoriasEdad()[$opcion] }}
                 </option>
             @endforeach
         </select>

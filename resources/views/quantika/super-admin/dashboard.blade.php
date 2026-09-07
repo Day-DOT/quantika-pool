@@ -193,6 +193,16 @@
                             <span class="week-class-cupo {{ $fila['cupoDisponible'] <= 0 ? 'full' : ($fila['cupoDisponible'] <= 2 ? 'low' : 'ok') }}">
                                 {{ $fila['cupoDisponible'] <= 0 ? 'Sin cupo' : $fila['cupoDisponible'].'/'.$fila['horario']->capacidad_maxima.' lugares' }}
                             </span>
+                            <details style="margin-top:8px;">
+                                <summary style="cursor:pointer;font-size:11px;color:var(--cyan);">Ver alumnos</summary>
+                                <div style="font-size:11px;margin-top:6px;">
+                                    @forelse ($fila['alumnos'] as $alumno)
+                                        <div>{{ $alumno->nombreCompleto() }}</div>
+                                    @empty
+                                        <div>Sin alumnos inscritos.</div>
+                                    @endforelse
+                                </div>
+                            </details>
                         </div>
                     @empty
                         <div class="week-day-empty">Sin clases</div>

@@ -110,6 +110,19 @@ class User extends Authenticatable
         }
 
         if ($this->isAlumno()) {
+            $alumnoId = request()->integer('alumno');
+
+            if ($alumnoId) {
+                $alumnoSeleccionado = $this->alumnos()
+                    ->whereKey($alumnoId)
+                    ->with('sucursal')
+                    ->first();
+
+                if ($alumnoSeleccionado?->sucursal) {
+                    return $alumnoSeleccionado->sucursal;
+                }
+            }
+
             return $this->alumnos()->with('sucursal')->first()?->sucursal;
         }
 

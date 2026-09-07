@@ -63,7 +63,7 @@ class PortalDashboardController extends Controller
             ->first();
 
         $proximasClases = $alumno->citas()
-            ->with(['horario.nivel', 'horario.instructor.user'])
+            ->with(['horario.nivel', 'horario.instructor.user', 'horario.carril'])
             ->whereIn('estado', [
                 EstadoCita::Programada->value,
                 EstadoCita::Confirmada->value,
@@ -90,6 +90,7 @@ class PortalDashboardController extends Controller
             'porcentaje' => $ultimaEvaluacion?->porcentajeAvance() ?? 0.0,
             'proximasClases' => $proximasClases,
             'pago' => $pago,
+            'clasesRestantes' => $alumno->clasesRestantesEsteMes(),
         ];
     }
 }

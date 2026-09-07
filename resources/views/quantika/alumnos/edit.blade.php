@@ -67,7 +67,7 @@
                     <select name="nivel_id" class="form-select">
                         <option value="">Sin nivel asignado</option>
                         @foreach ($niveles->groupBy('categoria_edad') as $grupoEdad => $nivelesGrupo)
-                            <optgroup label="{{ $grupoEdad }}">
+                            <optgroup label="{{ \App\Models\ConfiguracionSistema::categoriasEdad()[$grupoEdad] ?? $grupoEdad }}">
                                 @foreach ($nivelesGrupo as $nivelOpcion)
                                     <option value="{{ $nivelOpcion->id }}" @selected(old('nivel_id', $alumno->nivel_id) == $nivelOpcion->id)>
                                         {{ $nivelOpcion->nombre }}
@@ -113,6 +113,34 @@
                         <label>Teléfono del tutor</label>
                         <input type="text" class="form-input" name="tutor_telefono" value="{{ old('tutor_telefono', $alumno->telefonoTutor()) }}">
                     </div>
+
+                    <div class="form-group">
+                        <label>INE del tutor {{ $alumno->ine_tutor_path ? '(reemplazar)' : '(obligatorio)' }}</label>
+                        <input type="file" class="form-input" name="ine_tutor" accept=".pdf,.jpg,.jpeg,.png">
+                        @if ($alumno->ine_tutor_path)
+                            <span class="form-hint"><a href="{{ \Illuminate\Support\Facades\Storage::url($alumno->ine_tutor_path) }}" target="_blank">Ver archivo actual</a></span>
+                        @endif
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Tipo de sangre</label>
+                    <input type="text" class="form-input" name="tipo_sangre" value="{{ old('tipo_sangre', $alumno->tipo_sangre) }}" maxlength="5" placeholder="Ej. O+">
+                </div>
+
+                <div class="form-group">
+                    <label>Contacto de emergencia</label>
+                    <input type="text" class="form-input" name="contacto_emergencia_nombre" value="{{ old('contacto_emergencia_nombre', $alumno->contacto_emergencia_nombre) }}">
+                </div>
+
+                <div class="form-group">
+                    <label>Teléfono de emergencia</label>
+                    <input type="text" class="form-input" name="contacto_emergencia_telefono" value="{{ old('contacto_emergencia_telefono', $alumno->contacto_emergencia_telefono) }}">
+                </div>
+
+                <div class="form-group full">
+                    <label>Observaciones médicas</label>
+                    <textarea class="form-textarea" name="observaciones_medicas">{{ old('observaciones_medicas', $alumno->observaciones_medicas) }}</textarea>
                 </div>
 
                 <div class="form-group full">

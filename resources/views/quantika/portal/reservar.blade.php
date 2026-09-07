@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Reservar clase · QUANTIKA POOL</title>
+    <title>Recuperar clase · QUANTIKA POOL</title>
     @include('quantika.portal.partials.styles')
 </head>
 <body>
@@ -15,7 +15,7 @@
     <main class="main">
 
         @include('quantika.portal.partials.topbar', [
-            'titulo' => 'Reservar clase',
+            'titulo' => 'Recuperar clase',
             'alumnos' => $alumnos,
             'alumno' => $alumno,
         ])
@@ -26,7 +26,7 @@
 
                 <div class="empty-state">
                     <h3>Aún no tienes alumnos registrados</h3>
-                    <p>No es posible reservar clases hasta que la escuela vincule un alumno a tu cuenta.</p>
+                    <p>No es posible recuperar clases hasta que la escuela vincule un alumno a tu cuenta.</p>
                 </div>
 
             @elseif ($sucursales->isEmpty())
@@ -39,7 +39,7 @@
             @else
 
                 <div class="section-header">
-                    <h3>Reservar clase para {{ $alumno->nombreCompleto() }}</h3>
+                    <h3>Recuperar clase para {{ $alumno->nombreCompleto() }}</h3>
                 </div>
 
                 <form method="GET" action="{{ route('portal.reservar.index') }}" style="max-width:340px; margin-bottom:26px;">
@@ -62,7 +62,7 @@
 
                     <div class="empty-state">
                         <h3>Sin plan de mensualidad asignado</h3>
-                        <p>{{ $alumno->nombreCompleto() }} no tiene un plan asignado todavía. Contacta a la escuela para que le asignen uno antes de reservar clases.</p>
+                        <p>{{ $alumno->nombreCompleto() }} no tiene un plan asignado todavía. Contacta a la escuela para que le asignen uno antes de recuperar clases.</p>
                     </div>
 
                 @else
@@ -81,6 +81,9 @@
                         </div>
                     </div>
 
+                    @if (($faltasDisponibles ?? 0) === 0)
+                        <div class="alert alert-warning">No tienes faltas disponibles para recuperar este mes.</div>
+                    @endif
                     <form method="POST" action="{{ route('portal.reservar.store') }}" id="formReservar">
                         @csrf
                         <input type="hidden" name="alumno_id" value="{{ $alumno->id }}">
@@ -158,7 +161,7 @@
                         @if ($cuposDisponibles > 0 && $horarios->isNotEmpty())
                             <div style="margin-top:20px; max-width:340px;">
                                 <button type="submit" class="btn btn-primary btn-block" id="btnReservar" disabled>
-                                    Reservar clases seleccionadas
+                                    Recuperar clases seleccionadas
                                 </button>
                             </div>
                         @endif
@@ -184,6 +187,7 @@
         }
 
         const limite = parseInt(contador.dataset.cuposDisponibles, 10) || 0;
+        const faltasDisponibles = @json($faltasDisponibles ?? 0);
         const checks = Array.from(document.querySelectorAll('.check-horario'));
         const restantesSpan = document.getElementById('cuposRestantes');
 
@@ -200,7 +204,7 @@
                 restantesSpan.textContent = Math.max(0, limite - seleccionados.length);
             }
 
-            boton.disabled = seleccionados.length === 0 || seleccionados.length > limite;
+            boton.disabled = faltasDisponibles === 0 || seleccionados.length === 0 || seleccionados.length > limite;
         }
 
         checks.forEach((c) => c.addEventListener('change', actualizar));

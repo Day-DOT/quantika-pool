@@ -124,6 +124,21 @@
 
     <div class="settings-grid">
 
+        <div class="setting-card">
+            <div class="setting-icon">🏷️</div>
+            <h2>Divisiones por edad</h2>
+            <p>Edita los nombres visibles de las divisiones principales.</p>
+            <form method="POST" action="{{ route('configuracion.update') }}" style="margin-top:18px;">
+                @csrf
+                @method('PUT')
+                @foreach ($categoriasEdad as $clave => $etiqueta)
+                    <label style="display:block;margin-top:8px;color:#9fc0ca;font-size:12px;">{{ $clave }}</label>
+                    <input class="form-input" name="categoria_{{ match($clave) { 'Bebés' => 'bebes', 'Niños' => 'ninos', default => 'adultos' } }}" value="{{ $etiqueta }}" required>
+                @endforeach
+                <button class="setting-button" type="submit">Guardar <span>→</span></button>
+            </form>
+        </div>
+
         <!-- SUCURSALES -->
         <div class="setting-card">
 
