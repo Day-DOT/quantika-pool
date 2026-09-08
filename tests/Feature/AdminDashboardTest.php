@@ -132,6 +132,7 @@ class AdminDashboardTest extends TestCase
         $response->assertSee('Calendario de clases de la semana');
         $response->assertSee('Delfines Calendario');
         $response->assertSee($instructor->user->name);
+        $response->assertSee('Carril: '.$carril->nombre);
         $response->assertSee('3/4 lugares');
     }
 

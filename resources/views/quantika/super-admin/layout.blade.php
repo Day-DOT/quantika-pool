@@ -684,6 +684,12 @@
             margin-top: 3px;
         }
 
+        .week-class-carril {
+            color: #b5d3de;
+            font-size: 10px;
+            margin-top: 3px;
+        }
+
         .week-class-cupo {
             display: inline-block;
             margin-top: 5px;

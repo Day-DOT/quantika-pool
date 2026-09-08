@@ -776,6 +776,9 @@
                             <div class="week-class-instructor">
                                 {{ $fila['horario']->instructor?->user?->name ?? 'Sin instructor' }}
                             </div>
+                            <div class="week-class-carril">
+                                Carril: {{ $fila['horario']->carril?->nombre ?? 'Sin carril' }}
+                            </div>
                             <span class="week-class-cupo {{ $fila['cupoDisponible'] <= 0 ? 'full' : ($fila['cupoDisponible'] <= 2 ? 'low' : 'ok') }}">
                                 {{ $fila['cupoDisponible'] <= 0 ? 'Sin cupo' : $fila['cupoDisponible'].'/'.$fila['horario']->capacidad_maxima.' lugares' }}
                             </span>

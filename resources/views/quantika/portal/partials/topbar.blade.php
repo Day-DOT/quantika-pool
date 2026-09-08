@@ -16,7 +16,7 @@
 <header class="topbar">
 
     <div class="page-title">
-        <small>QUANTIKA POOL · PORTAL DE TUTORES</small>
+        <small>QUANTIKA POOL · PORTAL DE ALUMNOS Y TUTORES</small>
         <h1>{{ $titulo }}</h1>
     </div>
 

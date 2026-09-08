@@ -21,7 +21,7 @@
         <div class="avatar">{{ mb_strtoupper($iniciales) }}</div>
         <div>
             <strong>{{ $usuario->name }}</strong>
-            <span>Portal de tutores</span>
+            <span>Portal de alumnos y tutores</span>
         </div>
     </div>
 
