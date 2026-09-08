@@ -94,6 +94,7 @@ class SuperAdminDashboardTest extends TestCase
         $response->assertSee('Calendario de clases de la semana');
         $response->assertSee('Tiburones Calendario');
         $response->assertSee($instructor->user->name);
+        $response->assertSee('Carril: '.$carril->nombre);
         $response->assertSee('4/5 lugares');
     }
 
