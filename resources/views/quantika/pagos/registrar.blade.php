@@ -1,7 +1,8 @@
 @extends('quantika.super-admin.layout')
 
-@section('title', 'Registrar pago')
-@section('page-title', 'Registrar pago')
+@php($pago = $pago ?? null)
+@section('title', $pago ? 'Editar pago' : 'Registrar pago')
+@section('page-title', $pago ? 'Editar pago' : 'Registrar pago')
 
 @push('styles')
 <style>
@@ -56,8 +57,11 @@
         Registra una mensualidad, inscripción o concepto adicional.
     </p>
 
-    <form method="POST" action="{{ route('pagos.store') }}" enctype="multipart/form-data">
+    <form method="POST" action="{{ $pago ? route('pagos.update', $pago) : route('pagos.store') }}" enctype="multipart/form-data">
         @csrf
+        @if ($pago)
+            @method('PUT')
+        @endif
 
         <div class="panel form-card">
 
@@ -68,7 +72,7 @@
                     <select name="alumno_id" class="form-select" required>
                         <option value="">Selecciona un alumno</option>
                         @foreach ($alumnos as $alumnoOpcion)
-                            <option value="{{ $alumnoOpcion->id }}" @selected($alumnoSeleccionado == $alumnoOpcion->id)>
+                            <option value="{{ $alumnoOpcion->id }}" @selected(old('alumno_id', $alumnoSeleccionado) == $alumnoOpcion->id)>
                                 {{ $alumnoOpcion->nombreCompleto() }}
                             </option>
                         @endforeach
@@ -84,31 +88,31 @@
                     <label>Concepto</label>
                     <select name="concepto" class="form-select" required>
                         @foreach ($conceptos as $conceptoOpcion)
-                            <option value="{{ $conceptoOpcion->value }}">{{ $conceptoOpcion->label() }}</option>
+                            <option value="{{ $conceptoOpcion->value }}" @selected(old('concepto', $pago?->concepto?->value) === $conceptoOpcion->value)>{{ $conceptoOpcion->label() }}</option>
                         @endforeach
                     </select>
                 </div>
 
                 <div class="form-group">
                     <label>Monto</label>
-                    <input type="number" name="monto" step="0.01" min="0" placeholder="$0.00" class="form-input" style="font-size:22px;font-weight:800;" required>
+                    <input type="number" name="monto" step="0.01" min="0" value="{{ old('monto', $pago?->monto) }}" placeholder="$0.00" class="form-input" style="font-size:22px;font-weight:800;" required>
                 </div>
 
                 <div class="form-group">
                     <label>Fecha de vencimiento</label>
-                    <input type="date" name="fecha_vencimiento" class="form-input">
+                    <input type="date" name="fecha_vencimiento" value="{{ old('fecha_vencimiento', $pago?->fecha_vencimiento?->format('Y-m-d')) }}" class="form-input">
                 </div>
 
                 <div class="form-group">
                     <label>Fecha de pago</label>
-                    <input type="date" name="fecha_pago" class="form-input">
+                    <input type="date" name="fecha_pago" value="{{ old('fecha_pago', $pago?->fecha_pago?->format('Y-m-d')) }}" class="form-input">
                 </div>
 
                 <div class="form-group">
                     <label>Método de pago</label>
                     <select name="metodo_pago" class="form-select">
                         @foreach ($metodos as $metodoOpcion)
-                            <option value="{{ $metodoOpcion->value }}">{{ $metodoOpcion->label() }}</option>
+                            <option value="{{ $metodoOpcion->value }}" @selected(old('metodo_pago', $pago?->metodo_pago?->value) === $metodoOpcion->value)>{{ $metodoOpcion->label() }}</option>
                         @endforeach
                     </select>
                 </div>
@@ -119,7 +123,7 @@
                     <div class="status-options">
                         @foreach ($estados as $estadoOpcion)
                             <label class="status-option">
-                                <input type="radio" name="estado" value="{{ $estadoOpcion->value }}" @checked($estadoOpcion->value === 'pendiente')>
+                                <input type="radio" name="estado" value="{{ $estadoOpcion->value }}" @checked(old('estado', $pago?->estado?->value ?? 'pendiente') === $estadoOpcion->value)>
                                 <span>
                                     {{ match($estadoOpcion->value) {
                                         'pendiente' => '🟡',
@@ -140,14 +144,14 @@
 
                 <div class="form-group full">
                     <label>Observaciones</label>
-                    <textarea name="observaciones" class="form-textarea" placeholder="Agrega alguna observación...">{{ old('observaciones') }}</textarea>
+                    <textarea name="observaciones" class="form-textarea" placeholder="Agrega alguna observación...">{{ old('observaciones', $pago?->observaciones) }}</textarea>
                 </div>
 
             </div>
 
             <div class="form-actions">
                 <a href="{{ route('pagos.index') }}" class="btn btn-outline">Cancelar</a>
-                <button type="submit" class="btn btn-primary">Registrar pago</button>
+                <button type="submit" class="btn btn-primary">{{ $pago ? 'Guardar cambios' : 'Registrar pago' }}</button>
             </div>
 
         </div>
