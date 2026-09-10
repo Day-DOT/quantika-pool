@@ -304,6 +304,58 @@
         margin-top: 8px;
     }
 
+    .calendar {
+        display: grid;
+        grid-template-columns: repeat(7, minmax(0, 1fr));
+        gap: 8px;
+    }
+
+    .calendar-heading {
+        color: #7fa5b4;
+        font-size: 10px;
+        font-weight: 800;
+        letter-spacing: .6px;
+        text-align: center;
+        text-transform: uppercase;
+        padding: 4px 0;
+    }
+
+    .calendar-day {
+        min-height: 116px;
+        padding: 8px;
+        border-radius: 12px;
+        background: rgba(0, 28, 42, .32);
+        border: 1px solid rgba(255,255,255,.05);
+    }
+
+    .calendar-day.is-today { border-color: rgba(66,213,238,.55); }
+    .calendar-day.is-empty { background: transparent; border-color: transparent; }
+    .calendar-number { color: #a8c3cc; font-size: 11px; font-weight: 800; margin-bottom: 6px; }
+    .calendar-event {
+        display: block;
+        margin-top: 4px;
+        padding: 5px 6px;
+        border-radius: 7px;
+        font-size: 10px;
+        line-height: 1.25;
+        overflow: hidden;
+    }
+    .calendar-event strong { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .calendar-event-green { color: #6ff2c7; background: rgba(22,224,164,.13); border-left: 3px solid #16e0a4; }
+    .calendar-event-yellow { color: #ffd76d; background: rgba(255,189,32,.13); border-left: 3px solid #ffbd20; }
+    .calendar-event-red { color: #ff9aa0; background: rgba(255,107,107,.13); border-left: 3px solid #ff6b6b; }
+    .calendar-event-actions { display: flex; gap: 6px; margin-top: 4px; }
+    .calendar-event-actions a, .calendar-event-actions button {
+        color: inherit; background: transparent; border: 0; cursor: pointer; font-size: 9px; padding: 0;
+        text-decoration: underline;
+    }
+    .calendar-legend { display: flex; flex-wrap: wrap; gap: 14px; color: var(--muted); font-size: 11px; margin-bottom: 15px; }
+    .calendar-legend span { display: inline-flex; align-items: center; gap: 5px; }
+    .calendar-dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
+    .calendar-dot-green { background: #16e0a4; }
+    .calendar-dot-yellow { background: #ffbd20; }
+    .calendar-dot-red { background: #ff6b6b; }
+
     /* =========================
        RESPONSIVE
     ========================= */
@@ -315,6 +367,9 @@
 
     @media(max-width: 700px) {
         .stats { grid-template-columns: 1fr; }
+        .calendar { gap: 4px; }
+        .calendar-day { min-height: 86px; padding: 5px; }
+        .calendar-event { font-size: 9px; padding: 4px; }
     }
 </style>
 @endpush
@@ -446,6 +501,64 @@
 
         </div>
 
+    </div>
+
+    <!-- CALENDARIO DE PAGOS -->
+    <div class="card" style="margin-top:22px;">
+        <div class="card-header">
+            <div>
+                <div class="card-title">Calendario de pagos · {{ ucfirst($calendarioMes->locale('es')->monthName) }}</div>
+                <div class="card-description">Consulta próximos pagos, pagos pasados y vencidos por fecha.</div>
+            </div>
+        </div>
+
+        <div class="calendar-legend">
+            <span><i class="calendar-dot calendar-dot-green"></i> Próximo o pagado</span>
+            <span><i class="calendar-dot calendar-dot-yellow"></i> Vencido de 1 a 4 días</span>
+            <span><i class="calendar-dot calendar-dot-red"></i> Vencido 5 días o más</span>
+        </div>
+
+        <div class="calendar">
+            @foreach (['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'] as $dia)
+                <div class="calendar-heading">{{ $dia }}</div>
+            @endforeach
+
+            @for ($i = 0; $i < $calendarioMes->dayOfWeek; $i++)
+                <div class="calendar-day is-empty"></div>
+            @endfor
+
+            @for ($dia = 1; $dia <= $calendarioMes->daysInMonth; $dia++)
+                @php
+                    $fechaCalendario = $calendarioMes->copy()->day($dia);
+                    $pagosDelDia = $calendarioPagos->filter(fn ($pago) => $pago->fecha_vencimiento->isSameDay($fechaCalendario));
+                @endphp
+                <div class="calendar-day {{ $fechaCalendario->isToday() ? 'is-today' : '' }}">
+                    <div class="calendar-number">{{ $dia }}</div>
+                    @foreach ($pagosDelDia as $pagoCalendario)
+                        @php
+                            $diasVencido = $pagoCalendario->estado->value !== 'pagado' && $pagoCalendario->fecha_vencimiento->isPast()
+                                ? $pagoCalendario->fecha_vencimiento->diffInDays($hoy)
+                                : 0;
+                            $colorCalendario = $diasVencido >= 5 ? 'red' : ($diasVencido > 0 ? 'yellow' : 'green');
+                        @endphp
+                        <div class="calendar-event calendar-event-{{ $colorCalendario }}">
+                            <strong>{{ $pagoCalendario->alumno->nombreCompleto() }}</strong>
+                            ${{ number_format((float) $pagoCalendario->monto, 0) }}
+                            <div class="calendar-event-actions">
+                                <a href="{{ route('pagos.edit', $pagoCalendario) }}">Editar</a>
+                                @if ($pagoCalendario->estado->value !== 'pagado')
+                                    <form action="{{ route('pagos.destroy', $pagoCalendario) }}" method="POST" onsubmit="return confirm('¿Eliminar este pago?');">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="submit">Eliminar</button>
+                                    </form>
+                                @endif
+                            </div>
+                        </div>
+                    @endforeach
+                </div>
+            @endfor
+        </div>
     </div>
 
 

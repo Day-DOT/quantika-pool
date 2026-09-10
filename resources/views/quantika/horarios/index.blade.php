@@ -632,6 +632,57 @@
 
     }
 
+    .class-detail {
+        display: grid;
+        gap: 16px;
+    }
+
+    .class-detail-summary {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
+    }
+
+    .class-detail-item {
+        padding: 10px 12px;
+        border-radius: 10px;
+        background: rgba(255,255,255,.05);
+    }
+
+    .class-detail-item small {
+        display: block;
+        color: #789aa6;
+        font-size: 10px;
+        margin-bottom: 4px;
+    }
+
+    .class-detail-item strong {
+        font-size: 12px;
+    }
+
+    .class-students {
+        display: grid;
+        gap: 7px;
+        max-height: 260px;
+        overflow-y: auto;
+    }
+
+    .class-student {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 10px 12px;
+        border-radius: 10px;
+        background: rgba(255,255,255,.035);
+    }
+
+    .class-student small {
+        display: block;
+        color: #789aa6;
+        font-size: 10px;
+        margin-top: 3px;
+    }
+
     /* =========================
        PANEL INFERIOR
     ========================= */
@@ -1388,7 +1439,11 @@
                                     data-instructor="{{ $horario->instructor_id }}"
                                     data-nivel="{{ $horario->nivel_id }}"
                                     data-carril="{{ $horario->carril_id }}"
-                                    data-search="{{ mb_strtolower($horario->nombre_grupo.' '.$horario->instructor?->user?->name.' '.$horario->nivel?->nombre) }}">
+                                    data-search="{{ mb_strtolower($horario->nombre_grupo.' '.$horario->instructor?->user?->name.' '.$horario->nivel?->nombre) }}"
+                                    onclick="abrirDetalleClase({{ $horario->id }})"
+                                    role="button"
+                                    tabindex="0"
+                                    onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();abrirDetalleClase({{ $horario->id }});}">
 
                                     <div class="class-time">
                                         {{ substr($horario->hora_inicio, 0, 5) }} — {{ substr($horario->hora_fin, 0, 5) }}
@@ -1473,14 +1528,6 @@
                     @endforeach
                 </select>
             @endif
-
-            <label>Nivel</label>
-            <select name="nivel_id" required style="{{ $campoEstilo }}">
-                <option value="">Seleccionar nivel</option>
-                @foreach ($niveles as $nivelOpcion)
-                    <option value="{{ $nivelOpcion->id }}">{{ $nivelOpcion->nombre }}</option>
-                @endforeach
-            </select>
 
             <label>Instructor</label>
             <select name="instructor_id" required style="{{ $campoEstilo }}">
@@ -1682,6 +1729,16 @@
 
 </div>
 
+<div id="detalleClaseOverlay" style="display:none;position:fixed;inset:0;z-index:210;background:rgba(1,15,23,.7);align-items:center;justify-content:center;">
+    <div style="width:100%;max-width:600px;max-height:90vh;overflow-y:auto;background:#052d40;border:1px solid rgba(65,208,235,.25);border-radius:20px;padding:28px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;">
+            <h2 id="detalleClaseTitulo" style="font-size:20px;">Detalle de la clase</h2>
+            <button type="button" onclick="cerrarDetalleClase()" style="background:none;border:none;color:white;font-size:22px;cursor:pointer;">×</button>
+        </div>
+        <div id="detalleClaseContenido" class="class-detail"></div>
+    </div>
+</div>
+
 @endsection
 
 @push('scripts')
@@ -1744,6 +1801,50 @@ function abrirModalHorario(tipo) {
 
 function cerrarModalHorario() {
     document.getElementById('modalOverlay').style.display = 'none';
+}
+
+const detallesClases = @json($detallesClases);
+
+function abrirDetalleClase(horarioId) {
+    const clase = detallesClases[horarioId];
+    if (!clase) {
+        return;
+    }
+
+    const alumnos = clase.alumnos || [];
+    const alumnosHtml = alumnos.length
+        ? alumnos.map(function (alumno) {
+            const contacto = [alumno.telefono, alumno.email].filter(Boolean).join(' · ');
+            return `<div class="class-student">
+                <div><strong>${escapeHtml(alumno.nombre)}</strong><small>${escapeHtml(contacto || 'Sin datos de contacto')}</small></div>
+                <small>${escapeHtml(alumno.estado)}</small>
+            </div>`;
+        }).join('')
+        : '<div style="color:var(--muted);font-size:12px;">No hay alumnos inscritos en esta clase.</div>';
+
+    document.getElementById('detalleClaseTitulo').textContent = clase.grupo;
+    document.getElementById('detalleClaseContenido').innerHTML = `
+        <div class="class-detail-summary">
+            <div class="class-detail-item"><small>Día y horario</small><strong>${escapeHtml(clase.dia)} · ${escapeHtml(clase.hora)}</strong></div>
+            <div class="class-detail-item"><small>Carril</small><strong>${escapeHtml(clase.carril)}</strong></div>
+            <div class="class-detail-item"><small>Instructor</small><strong>${escapeHtml(clase.instructor)}</strong></div>
+            <div class="class-detail-item"><small>Alumnos</small><strong>${alumnos.length} / ${escapeHtml(String(clase.capacidad))}</strong></div>
+        </div>
+        <div>
+            <h3 style="font-size:14px;margin-bottom:9px;">Alumnos inscritos</h3>
+            <div class="class-students">${alumnosHtml}</div>
+        </div>`;
+    document.getElementById('detalleClaseOverlay').style.display = 'flex';
+}
+
+function cerrarDetalleClase() {
+    document.getElementById('detalleClaseOverlay').style.display = 'none';
+}
+
+function escapeHtml(value) {
+    return String(value).replace(/[&<>"']/g, function (character) {
+        return {'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;'}[character];
+    });
 }
 
 @if ($errors->any())

@@ -115,8 +115,9 @@
                                 </span>
                             </td>
                             <td>
-                                @if ($pago->estado->value !== 'pagado')
-                                    <div style="display:flex; gap:8px;">
+                                <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                                    <a href="{{ route('pagos.edit', $pago) }}" class="btn btn-outline" style="padding:8px 14px;font-size:12px;">Editar</a>
+                                    @if ($pago->estado->value !== 'pagado')
                                         <form action="{{ route('pagos.marcar-pagado', $pago) }}" method="POST" onsubmit="return confirm('¿Marcar este pago como pagado?');">
                                             @csrf
                                             @method('PATCH')
@@ -127,8 +128,8 @@
                                             @method('DELETE')
                                             <button type="submit" class="btn btn-outline" style="padding:8px 14px;font-size:12px;color:#ff6b6b;">Eliminar</button>
                                         </form>
-                                    </div>
-                                @endif
+                                    @endif
+                                </div>
                             </td>
                         </tr>
                     @empty

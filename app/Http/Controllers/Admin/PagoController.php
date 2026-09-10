@@ -9,6 +9,7 @@ use App\Enums\MetodoPago;
 use App\Http\Controllers\Admin\Concerns\ScopesSucursal;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\StorePagoRequest;
+use App\Http\Requests\Admin\UpdatePagoRequest;
 use App\Models\Alumno;
 use App\Models\Pago;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
@@ -122,6 +123,17 @@ class PagoController extends Controller
             ])
             ->values();
 
+        $calendarioMes = $hoy->copy()->startOfMonth();
+        $calendarioPagosQuery = Pago::query()
+            ->whereNotNull('fecha_vencimiento')
+            ->whereBetween('fecha_vencimiento', [
+                $calendarioMes->toDateString(),
+                $calendarioMes->copy()->endOfMonth()->toDateString(),
+            ])
+            ->with('alumno')
+            ->orderBy('fecha_vencimiento');
+        $this->aplicarSucursal($calendarioPagosQuery);
+
         return view('quantika.pagos.index', [
             'cobradoMes' => $cobradoMes,
             'cambioPct' => $cambioPct,
@@ -137,6 +149,9 @@ class PagoController extends Controller
             'deudoresPreview' => $deudoresPreview,
             'proximosVencer' => $proximosVencer,
             'proximosAPagar' => $proximosAPagar,
+            'hoy' => $hoy,
+            'calendarioMes' => $calendarioMes,
+            'calendarioPagos' => $calendarioPagosQuery->get(),
         ]);
     }
 
@@ -185,6 +200,65 @@ class PagoController extends Controller
         ]);
 
         return redirect()->route('pagos.alumno', $alumno)->with('status', "Pago de {$alumno->nombreCompleto()} registrado correctamente.");
+    }
+
+    public function edit(Pago $pago): View
+    {
+        $this->authorize('update', $pago);
+
+        $alumnosQuery = Alumno::query()
+            ->where(function ($query) use ($pago) {
+                $query->where('estado', EstadoAlumno::Activo->value)
+                    ->orWhere('id', $pago->alumno_id);
+            })
+            ->with('sucursal');
+        $this->aplicarSucursal($alumnosQuery);
+
+        return view('quantika.pagos.registrar', [
+            'alumnos' => $alumnosQuery->orderBy('nombre')->get(),
+            'alumnoSeleccionado' => $pago->alumno_id,
+            'conceptos' => ConceptoPago::cases(),
+            'metodos' => MetodoPago::cases(),
+            'estados' => EstadoPago::cases(),
+            'periodoSugerido' => $pago->periodo ?? now()->format('Y-m'),
+            'pago' => $pago,
+        ]);
+    }
+
+    public function update(UpdatePagoRequest $request, Pago $pago): RedirectResponse
+    {
+        $datos = $request->validated();
+        $alumno = Alumno::findOrFail($datos['alumno_id']);
+
+        if (! auth()->user()->isSuperAdmin() && $alumno->sucursal_id !== $pago->sucursal_id) {
+            abort(403);
+        }
+
+        $actualizacion = [
+            'alumno_id' => $alumno->id,
+            'sucursal_id' => $alumno->sucursal_id,
+            'concepto' => $datos['concepto'],
+            'periodo' => $datos['periodo'] ?? null,
+            'monto' => $datos['monto'],
+            'fecha_vencimiento' => $datos['fecha_vencimiento'] ?? null,
+            'fecha_pago' => $datos['estado'] === EstadoPago::Pagado->value
+                ? ($datos['fecha_pago'] ?? $pago->fecha_pago?->toDateString() ?? now()->toDateString())
+                : ($datos['fecha_pago'] ?? null),
+            'metodo_pago' => $datos['metodo_pago'] ?? null,
+            'estado' => $datos['estado'],
+            'observaciones' => $datos['observaciones'] ?? null,
+        ];
+
+        if ($request->hasFile('comprobante')) {
+            if ($pago->comprobante_path) {
+                Storage::disk('public')->delete($pago->comprobante_path);
+            }
+            $actualizacion['comprobante_path'] = $request->file('comprobante')->store('comprobantes', 'public');
+        }
+
+        $pago->update($actualizacion);
+
+        return redirect()->route('pagos.alumno', $alumno)->with('status', 'Pago actualizado correctamente.');
     }
 
     public function alumno(Alumno $alumno): View

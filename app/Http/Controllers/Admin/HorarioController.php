@@ -49,7 +49,12 @@ class HorarioController extends Controller
             ];
         });
 
-        $horariosQuery = Horario::query()->where('activo', true)->with(['nivel', 'instructor.user', 'carril', 'inscripciones' => fn ($q) => $q->where('activa', true)]);
+        $horariosQuery = Horario::query()->where('activo', true)->with([
+            'nivel',
+            'instructor.user',
+            'carril',
+            'inscripciones' => fn ($q) => $q->where('activa', true)->with('alumno'),
+        ]);
         $this->aplicarSucursal($horariosQuery);
         $horarios = $horariosQuery->get();
 
@@ -118,6 +123,22 @@ class HorarioController extends Controller
             'carrilesDisponibles' => $carrilesSelectQuery->get(),
             'diasSemana' => DiaSemana::cases(),
             'horariosExistentes' => $horarios,
+            'detallesClases' => $horarios->mapWithKeys(fn (Horario $horario) => [
+                $horario->id => [
+                    'grupo' => $horario->nombre_grupo,
+                    'dia' => $horario->dia_semana->label(),
+                    'hora' => substr($horario->hora_inicio, 0, 5).' - '.substr($horario->hora_fin, 0, 5),
+                    'carril' => $horario->carril?->nombre ?? 'Sin carril',
+                    'instructor' => $horario->instructor?->user?->name ?? 'Sin instructor',
+                    'capacidad' => $horario->capacidad_maxima,
+                    'alumnos' => $horario->inscripciones->map(fn (Inscripcion $inscripcion) => [
+                        'nombre' => $inscripcion->alumno?->nombreCompleto() ?? 'Alumno no disponible',
+                        'telefono' => $inscripcion->alumno?->telefono,
+                        'email' => $inscripcion->alumno?->email,
+                        'estado' => $inscripcion->estado?->label() ?? 'Sin estado',
+                    ])->values(),
+                ],
+            ]),
             'alumnosConInscripcion' => $alumnosTodos->filter(fn (Alumno $a) => $a->inscripciones->where('activa', true)->isNotEmpty()),
             // Un alumno puede tomar varias clases distintas la misma semana, así
             // que "Asignar alumno" se ofrece a todos, no solo a los que aún no
@@ -152,7 +173,7 @@ class HorarioController extends Controller
 
         Horario::create([
             'sucursal_id' => $sucursalId,
-            'nivel_id' => $datos['nivel_id'],
+            'nivel_id' => $datos['nivel_id'] ?? null,
             'instructor_id' => $datos['instructor_id'],
             'carril_id' => $datos['carril_id'],
             'nombre_grupo' => $datos['nombre_grupo'],

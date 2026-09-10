@@ -53,6 +53,8 @@ Route::middleware(['auth', 'role:admin,super_admin'])->group(function () {
     Route::get('/pagos', [PagoController::class, 'index'])->name('pagos.index');
     Route::get('/pagos/registrar', [PagoController::class, 'create'])->name('pagos.registrar');
     Route::post('/pagos', [PagoController::class, 'store'])->name('pagos.store');
+    Route::get('/pagos/{pago}/editar', [PagoController::class, 'edit'])->name('pagos.edit');
+    Route::put('/pagos/{pago}', [PagoController::class, 'update'])->name('pagos.update');
     Route::get('/pagos/alumno/{alumno}', [PagoController::class, 'alumno'])->name('pagos.alumno');
     Route::get('/pagos/deudores', [PagoController::class, 'deudores'])->name('pagos.deudores');
     Route::patch('/pagos/{pago}/marcar-pagado', [PagoController::class, 'marcarPagado'])->name('pagos.marcar-pagado');

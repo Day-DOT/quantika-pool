@@ -28,7 +28,7 @@ class StoreHorarioRequest extends FormRequest
                 'exists:sucursales,id',
             ],
             'nombre_grupo' => ['required', 'string', 'max:100'],
-            'nivel_id' => ['required', 'integer', 'exists:niveles,id'],
+            'nivel_id' => ['nullable', 'integer', 'exists:niveles,id'],
             'instructor_id' => ['required', 'integer', 'exists:instructores,id'],
             'carril_id' => ['required', 'integer', 'exists:carriles,id'],
             'dia_semana' => ['required', 'integer', Rule::in(array_map(fn ($c) => $c->value, DiaSemana::cases()))],
