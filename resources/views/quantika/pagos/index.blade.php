@@ -385,7 +385,7 @@
         </div>
 
         <div class="actions" style="display:flex;gap:10px;flex-wrap:wrap;">
-            <a href="{{ route('pagos.registrar') }}" class="btn btn-primary">+ Registrar pago</a>
+            <a href="{{ route('pagos.registrar') }}" class="btn btn-primary">+ Registrar fecha de pago</a>
         </div>
     </div>
 
@@ -507,8 +507,13 @@
     <div class="card" style="margin-top:22px;">
         <div class="card-header">
             <div>
-                <div class="card-title">Calendario de pagos · {{ ucfirst($calendarioMes->locale('es')->monthName) }}</div>
-                <div class="card-description">Consulta próximos pagos, pagos pasados y vencidos por fecha.</div>
+                <div class="card-title">Calendario de pagos · {{ ucfirst($calendarioMes->locale('es')->monthName) }} {{ $calendarioMes->year }}</div>
+                <div class="card-description">Consulta pagos anteriores, próximos y vencidos por fecha.</div>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;">
+                <a href="{{ route('pagos.index', ['mes' => $calendarioMes->copy()->subMonthNoOverflow()->format('Y-m')]) }}" class="btn btn-outline btn-sm" aria-label="Mes anterior">←</a>
+                <a href="{{ route('pagos.index', ['mes' => now()->format('Y-m')]) }}" class="btn btn-outline btn-sm">Mes actual</a>
+                <a href="{{ route('pagos.index', ['mes' => $calendarioMes->copy()->addMonthNoOverflow()->format('Y-m')]) }}" class="btn btn-outline btn-sm" aria-label="Mes siguiente">→</a>
             </div>
         </div>
 
@@ -594,7 +599,7 @@
                                 Vence en {{ $fila['diasRestantes'] }} días
                             @endif
                         </span>
-                        <a href="{{ route('pagos.registrar', ['alumno' => $alumno->id]) }}" class="btn btn-outline btn-sm">Registrar pago</a>
+                        <a href="{{ route('pagos.registrar', ['alumno' => $alumno->id]) }}" class="btn btn-outline btn-sm">Registrar fecha de pago</a>
                     </div>
                 </div>
             @empty
@@ -643,7 +648,7 @@
                             <form action="{{ route('pagos.marcar-pagado', $pago) }}" method="POST" onsubmit="return confirm('¿Marcar este pago como pagado?');">
                                 @csrf
                                 @method('PATCH')
-                                <button type="submit" class="btn btn-secondary" style="padding:6px 12px;font-size:12px;">Registrar pago</button>
+                                <button type="submit" class="btn btn-secondary" style="padding:6px 12px;font-size:12px;">Registrar fecha de pago</button>
                             </form>
                         </div>
                     </div>

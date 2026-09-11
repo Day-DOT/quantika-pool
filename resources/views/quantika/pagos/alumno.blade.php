@@ -64,7 +64,7 @@
         </div>
 
         <a href="{{ route('pagos.registrar', ['alumno' => $alumno->id]) }}" class="btn btn-primary">
-            + Registrar pago
+            + Registrar fecha de pago
         </a>
     </div>
 

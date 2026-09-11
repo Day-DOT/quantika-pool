@@ -1,8 +1,8 @@
 @extends('quantika.super-admin.layout')
 
 @php($pago = $pago ?? null)
-@section('title', $pago ? 'Editar pago' : 'Registrar pago')
-@section('page-title', $pago ? 'Editar pago' : 'Registrar pago')
+@section('title', $pago ? 'Editar pago' : 'Registrar fecha de pago')
+@section('page-title', $pago ? 'Editar pago' : 'Registrar fecha de pago')
 
 @push('styles')
 <style>
@@ -42,6 +42,10 @@
         background: rgba(40,202,228,.08);
     }
 
+    .student-search {
+        margin-bottom: 8px;
+    }
+
     @media(max-width:650px) {
         .form-actions { flex-direction: column; }
         .form-actions .btn { width: 100%; }
@@ -69,10 +73,11 @@
 
                 <div class="form-group">
                     <label>Alumno</label>
-                    <select name="alumno_id" class="form-select" required>
+                    <input type="search" id="buscar-alumno" class="form-input student-search" placeholder="Buscar alumno por nombre..." autocomplete="off">
+                    <select name="alumno_id" id="alumno-id" class="form-select" required>
                         <option value="">Selecciona un alumno</option>
                         @foreach ($alumnos as $alumnoOpcion)
-                            <option value="{{ $alumnoOpcion->id }}" @selected(old('alumno_id', $alumnoSeleccionado) == $alumnoOpcion->id)>
+                            <option value="{{ $alumnoOpcion->id }}" data-nombre="{{ \Illuminate\Support\Str::lower($alumnoOpcion->nombreCompleto()) }}" @selected(old('alumno_id', $alumnoSeleccionado) == $alumnoOpcion->id)>
                                 {{ $alumnoOpcion->nombreCompleto() }}
                             </option>
                         @endforeach
@@ -106,15 +111,6 @@
                 <div class="form-group">
                     <label>Fecha de pago</label>
                     <input type="date" name="fecha_pago" value="{{ old('fecha_pago', $pago?->fecha_pago?->format('Y-m-d')) }}" class="form-input">
-                </div>
-
-                <div class="form-group">
-                    <label>Método de pago</label>
-                    <select name="metodo_pago" class="form-select">
-                        @foreach ($metodos as $metodoOpcion)
-                            <option value="{{ $metodoOpcion->value }}" @selected(old('metodo_pago', $pago?->metodo_pago?->value) === $metodoOpcion->value)>{{ $metodoOpcion->label() }}</option>
-                        @endforeach
-                    </select>
                 </div>
 
                 <div class="form-group full">
@@ -151,7 +147,7 @@
 
             <div class="form-actions">
                 <a href="{{ route('pagos.index') }}" class="btn btn-outline">Cancelar</a>
-                <button type="submit" class="btn btn-primary">{{ $pago ? 'Guardar cambios' : 'Registrar pago' }}</button>
+                <button type="submit" class="btn btn-primary">{{ $pago ? 'Guardar cambios' : 'Registrar fecha de pago' }}</button>
             </div>
 
         </div>
@@ -159,3 +155,23 @@
     </form>
 
 @endsection
+
+@push('scripts')
+<script>
+    const buscadorAlumno = document.getElementById('buscar-alumno');
+    const selectorAlumno = document.getElementById('alumno-id');
+
+    buscadorAlumno?.addEventListener('input', function () {
+        const busqueda = this.value.trim().toLowerCase();
+
+        Array.from(selectorAlumno.options).forEach(function (opcion) {
+            opcion.hidden = Boolean(opcion.value) && !opcion.dataset.nombre.includes(busqueda);
+        });
+
+        const seleccionActual = selectorAlumno.selectedOptions[0];
+        if (seleccionActual?.hidden) {
+            selectorAlumno.value = '';
+        }
+    });
+</script>
+@endpush
