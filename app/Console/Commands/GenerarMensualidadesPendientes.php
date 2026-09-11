@@ -37,7 +37,19 @@ class GenerarMensualidadesPendientes extends Command
 
                     $proximaFecha = $alumno->proximaFechaPago();
 
-                    if (! $proximaFecha || $proximaFecha->toDateString() > $hoy) {
+                    if (! $proximaFecha) {
+                        continue;
+                    }
+
+                    // Después de registrar un pago, agenda de inmediato el
+                    // siguiente vencimiento para que aparezca en el calendario.
+                    // Para alumnos sin pagos, conserva la fecha de inicio del
+                    // servicio y espera hasta que llegue su primer vencimiento.
+                    if ($alumno->ultimoPagoMensualidad?->estado === EstadoPago::Pendiente
+                        || ($alumno->ultimoPagoMensualidad
+                            && $alumno->ultimoPagoMensualidad->estado !== EstadoPago::Pagado
+                            && $proximaFecha->toDateString() > $hoy)
+                        || (! $alumno->ultimoPagoMensualidad && $proximaFecha->toDateString() > $hoy)) {
                         continue;
                     }
 
