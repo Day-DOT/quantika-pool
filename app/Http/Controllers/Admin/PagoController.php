@@ -24,11 +24,15 @@ class PagoController extends Controller
     use AuthorizesRequests;
     use ScopesSucursal;
 
-    public function index(): View
+    public function index(Request $request): View
     {
         $this->authorize('viewAny', Pago::class);
 
         $hoy = Carbon::now();
+        $mesCalendario = $request->validate([
+            'mes' => ['nullable', 'date_format:Y-m'],
+        ])['mes'] ?? $hoy->format('Y-m');
+        $calendarioMes = Carbon::createFromFormat('Y-m', $mesCalendario)->startOfMonth();
         $periodoActual = $hoy->format('Y-m');
 
         $cobradoMesQuery = Pago::query()
@@ -123,7 +127,6 @@ class PagoController extends Controller
             ])
             ->values();
 
-        $calendarioMes = $hoy->copy()->startOfMonth();
         $calendarioPagosQuery = Pago::query()
             ->whereNotNull('fecha_vencimiento')
             ->whereBetween('fecha_vencimiento', [
@@ -166,7 +169,6 @@ class PagoController extends Controller
             'alumnos' => $alumnosQuery->orderBy('nombre')->get(),
             'alumnoSeleccionado' => $request->integer('alumno'),
             'conceptos' => ConceptoPago::cases(),
-            'metodos' => MetodoPago::cases(),
             'estados' => EstadoPago::cases(),
             'periodoSugerido' => now()->format('Y-m'),
         ]);
@@ -218,7 +220,6 @@ class PagoController extends Controller
             'alumnos' => $alumnosQuery->orderBy('nombre')->get(),
             'alumnoSeleccionado' => $pago->alumno_id,
             'conceptos' => ConceptoPago::cases(),
-            'metodos' => MetodoPago::cases(),
             'estados' => EstadoPago::cases(),
             'periodoSugerido' => $pago->periodo ?? now()->format('Y-m'),
             'pago' => $pago,
