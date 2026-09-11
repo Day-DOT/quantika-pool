@@ -73,6 +73,37 @@ class GenerarMensualidadesPendientesTest extends TestCase
         $this->assertEquals(1, Pago::where('alumno_id', $alumno->id)->count());
     }
 
+    public function test_agenda_el_siguiente_pago_despues_de_un_pago_pagado(): void
+    {
+        $sucursal = Sucursal::factory()->create();
+        $plan = Plan::factory()->create(['precio' => 950]);
+
+        $alumno = Alumno::factory()->create([
+            'sucursal_id' => $sucursal->id,
+            'plan_id' => $plan->id,
+            'estado' => EstadoAlumno::Activo->value,
+        ]);
+
+        Pago::factory()->create([
+            'alumno_id' => $alumno->id,
+            'sucursal_id' => $sucursal->id,
+            'concepto' => ConceptoPago::Mensualidad->value,
+            'estado' => EstadoPago::Pagado->value,
+            'fecha_vencimiento' => now()->toDateString(),
+            'fecha_pago' => now()->toDateString(),
+        ]);
+
+        $this->artisan('pagos:generar-mensualidades')->assertExitCode(0);
+
+        $this->assertDatabaseHas('pagos', [
+            'alumno_id' => $alumno->id,
+            'concepto' => ConceptoPago::Mensualidad->value,
+            'estado' => EstadoPago::Pendiente->value,
+            'fecha_vencimiento' => now()->addMonthNoOverflow()->toDateString(),
+            'monto' => '950.00',
+        ]);
+    }
+
     public function test_no_genera_nada_para_un_alumno_inactivo(): void
     {
         $sucursal = Sucursal::factory()->create();

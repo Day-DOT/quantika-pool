@@ -349,6 +349,42 @@
         color: inherit; background: transparent; border: 0; cursor: pointer; font-size: 9px; padding: 0;
         text-decoration: underline;
     }
+    .calendar-more {
+        width: 100%;
+        margin-top: 6px;
+        padding: 4px 6px;
+        border: 1px solid rgba(69,215,237,.35);
+        border-radius: 7px;
+        background: rgba(69,215,237,.08);
+        color: #8ae8f5;
+        cursor: pointer;
+        font-size: 10px;
+    }
+    .calendar-payments-dialog {
+        width: min(560px, calc(100% - 32px));
+        padding: 0;
+        border: 1px solid rgba(55,191,218,.35);
+        border-radius: 18px;
+        background: linear-gradient(145deg, rgba(8,61,81,.99), rgba(3,38,53,.99));
+        color: #e7f7fa;
+    }
+    .calendar-payments-dialog::backdrop { background: rgba(0, 12, 20, .72); }
+    .calendar-payments-dialog-content { padding: 22px; }
+    .calendar-payments-dialog-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 16px;
+    }
+    .calendar-payments-dialog-close {
+        border: 0;
+        background: transparent;
+        color: #9bc2cc;
+        cursor: pointer;
+        font-size: 22px;
+    }
+    .calendar-modal-event { margin-top: 8px; }
     .calendar-legend { display: flex; flex-wrap: wrap; gap: 14px; color: var(--muted); font-size: 11px; margin-bottom: 15px; }
     .calendar-legend span { display: inline-flex; align-items: center; gap: 5px; }
     .calendar-dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
@@ -536,10 +572,11 @@
                 @php
                     $fechaCalendario = $calendarioMes->copy()->day($dia);
                     $pagosDelDia = $calendarioPagos->filter(fn ($pago) => $pago->fecha_vencimiento->isSameDay($fechaCalendario));
+                    $pagosVisibles = $pagosDelDia->take(2);
                 @endphp
                 <div class="calendar-day {{ $fechaCalendario->isToday() ? 'is-today' : '' }}">
                     <div class="calendar-number">{{ $dia }}</div>
-                    @foreach ($pagosDelDia as $pagoCalendario)
+                    @foreach ($pagosVisibles as $pagoCalendario)
                         @php
                             $diasVencido = $pagoCalendario->estado->value !== 'pagado' && $pagoCalendario->fecha_vencimiento->isPast()
                                 ? $pagoCalendario->fecha_vencimiento->diffInDays($hoy)
@@ -561,7 +598,49 @@
                             </div>
                         </div>
                     @endforeach
+                    @if ($pagosDelDia->isNotEmpty())
+                        <button type="button" class="calendar-more" data-dialog-target="pagos-dia-{{ $fechaCalendario->format('Y-m-d') }}">
+                            Ver todos ({{ $pagosDelDia->count() }})
+                        </button>
+                    @endif
                 </div>
+
+                @if ($pagosDelDia->isNotEmpty())
+                    <dialog id="pagos-dia-{{ $fechaCalendario->format('Y-m-d') }}" class="calendar-payments-dialog">
+                        <div class="calendar-payments-dialog-content">
+                            <div class="calendar-payments-dialog-header">
+                                <div>
+                                    <div class="card-title">Pagos del {{ $fechaCalendario->translatedFormat('d \d\e F Y') }}</div>
+                                    <div class="card-description">{{ $pagosDelDia->count() }} pagos registrados para este día</div>
+                                </div>
+                                <button type="button" class="calendar-payments-dialog-close" aria-label="Cerrar">×</button>
+                            </div>
+
+                            @foreach ($pagosDelDia as $pagoCalendario)
+                                @php
+                                    $diasVencido = $pagoCalendario->estado->value !== 'pagado' && $pagoCalendario->fecha_vencimiento->isPast()
+                                        ? $pagoCalendario->fecha_vencimiento->diffInDays($hoy)
+                                        : 0;
+                                    $colorCalendario = $diasVencido >= 5 ? 'red' : ($diasVencido > 0 ? 'yellow' : 'green');
+                                @endphp
+                                <div class="calendar-event calendar-modal-event calendar-event-{{ $colorCalendario }}">
+                                    <strong>{{ $pagoCalendario->alumno->nombreCompleto() }}</strong>
+                                    ${{ number_format((float) $pagoCalendario->monto, 0) }}
+                                    <div class="calendar-event-actions">
+                                        <a href="{{ route('pagos.edit', $pagoCalendario) }}">Editar</a>
+                                        @if ($pagoCalendario->estado->value !== 'pagado')
+                                            <form action="{{ route('pagos.destroy', $pagoCalendario) }}" method="POST" onsubmit="return confirm('¿Eliminar este pago?');">
+                                                @csrf
+                                                @method('DELETE')
+                                                <button type="submit">Eliminar</button>
+                                            </form>
+                                        @endif
+                                    </div>
+                                </div>
+                            @endforeach
+                        </div>
+                    </dialog>
+                @endif
             @endfor
         </div>
     </div>
@@ -733,3 +812,25 @@
     </div>
 
 @endsection
+
+@push('scripts')
+<script>
+    document.querySelectorAll('[data-dialog-target]').forEach(function (button) {
+        button.addEventListener('click', function () {
+            document.getElementById(button.dataset.dialogTarget)?.showModal();
+        });
+    });
+
+    document.querySelectorAll('.calendar-payments-dialog').forEach(function (dialog) {
+        dialog.querySelector('.calendar-payments-dialog-close')?.addEventListener('click', function () {
+            dialog.close();
+        });
+
+        dialog.addEventListener('click', function (event) {
+            if (event.target === dialog) {
+                dialog.close();
+            }
+        });
+    });
+</script>
+@endpush
