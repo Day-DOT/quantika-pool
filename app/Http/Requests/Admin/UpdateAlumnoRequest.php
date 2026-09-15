@@ -33,7 +33,7 @@ class UpdateAlumnoRequest extends FormRequest
             'tutor_email' => ['nullable', 'email', 'max:150'],
             'tutor_telefono' => ['nullable', 'string', 'max:20'],
             'ine_tutor' => [
-                $this->boolean('tiene_tutor') && ! $this->route('alumno')?->ine_tutor_path ? 'required' : 'nullable',
+                'nullable',
                 'file', 'mimes:pdf,jpg,jpeg,png', 'max:5120',
             ],
             'tipo_sangre' => ['nullable', 'string', 'max:5'],

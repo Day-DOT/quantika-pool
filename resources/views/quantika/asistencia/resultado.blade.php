@@ -89,6 +89,18 @@
         <div class="icon {{ $exito ? 'exito' : 'error' }}">{{ $exito ? '✓' : '!' }}</div>
         <h1>{{ $alumno?->nombreCompleto() ?? 'Código QR' }}</h1>
         <p>{{ $mensaje }}</p>
+        @if ($alumno)
+            <div style="text-align:left;margin:18px 0;color:var(--muted);font-size:13px;line-height:1.7;">
+                <strong style="color:#eaf6fb;">Ficha rápida</strong><br>
+                Nivel: {{ $alumno->nombreNivelConSubNivel() ?? 'Sin nivel' }}<br>
+                Sucursal: {{ $alumno->sucursal?->nombre ?? 'Sin sucursal' }}<br>
+                Tutor: {{ $alumno->nombreTutor() ?? 'Sin tutor' }}<br>
+                @if ($horariosHoy?->isNotEmpty())
+                    Clase(s) de hoy:
+                    {{ $horariosHoy->map(fn ($horario) => $horario->nombre_grupo.' ('.substr($horario->hora_inicio, 0, 5).')')->join(', ') }}
+                @endif
+            </div>
+        @endif
         <a href="{{ route('asistencia.escanear') }}" class="btn">Escanear otro código</a>
     </div>
 

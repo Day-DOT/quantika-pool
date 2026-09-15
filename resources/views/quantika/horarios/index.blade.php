@@ -1549,6 +1549,9 @@
                 @endforeach
             </select>
 
+            <label>Capacidad máxima</label>
+            <input type="number" name="capacidad_maxima" min="1" max="200" required style="{{ $campoEstilo }}">
+
             <label>Día de la semana</label>
             <select name="dia_semana" required style="{{ $campoEstilo }}">
                 @foreach ($diasSemana as $diaOpcion)
@@ -1661,6 +1664,9 @@
                 @endforeach
             </select>
 
+            <label>Capacidad máxima</label>
+            <input type="number" name="capacidad_maxima" min="1" max="200" required style="{{ $campoEstilo }}">
+
             <div style="display:flex;gap:12px;margin-top:6px;">
                 <button type="submit" class="btn-modal-submit">Guardar cambios</button>
             </div>
@@ -1710,12 +1716,26 @@
                 @endforeach
             </select>
 
-            <label>Nuevo grupo / horario</label>
+            <label>Clase de origen</label>
+            <select name="inscripcion_id" required style="{{ $campoEstilo }}">
+                <option value="">Seleccionar clase actual</option>
+                @foreach ($alumnosConInscripcion as $alumnoOpcion)
+                    @foreach ($alumnoOpcion->inscripciones->where('activa', true) as $inscripcionOpcion)
+                        <option value="{{ $inscripcionOpcion->id }}" data-alumno="{{ $alumnoOpcion->id }}">
+                            {{ $alumnoOpcion->nombreCompleto() }} · {{ $inscripcionOpcion->horario?->nombre_grupo }}
+                        </option>
+                    @endforeach
+                @endforeach
+            </select>
+
+            <label>Clase destino</label>
             <select name="horario_id" required style="{{ $campoEstilo }}">
                 <option value="">Seleccionar grupo</option>
                 @foreach ($horariosExistentes as $horarioOpcion)
                     <option value="{{ $horarioOpcion->id }}">
-                        {{ $horarioOpcion->nombre_grupo }} · {{ $horarioOpcion->dia_semana->label() }} {{ substr($horarioOpcion->hora_inicio, 0, 5) }}
+                        {{ $horarioOpcion->nombre_grupo }} · {{ $horarioOpcion->instructor?->user?->name ?? 'Sin instructor' }} ·
+                        {{ $horarioOpcion->inscripciones->where('activa', true)->count() }}/{{ $horarioOpcion->capacidad_maxima }} ·
+                        {{ $horarioOpcion->dia_semana->label() }} {{ substr($horarioOpcion->hora_inicio, 0, 5) }}
                     </option>
                 @endforeach
             </select>
@@ -1834,7 +1854,31 @@ function abrirDetalleClase(horarioId) {
             <h3 style="font-size:14px;margin-bottom:9px;">Alumnos inscritos</h3>
             <div class="class-students">${alumnosHtml}</div>
         </div>`;
+    document.getElementById('detalleClaseContenido').insertAdjacentHTML('beforeend', `
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:16px;">
+            <button type="button" class="btn-modal-submit" onclick="asignarDesdeCalendario(${horarioId})">Asignar alumno a esta clase</button>
+            <button type="button" class="btn-modal-submit" style="background:#7b3541;" onclick="eliminarClase(${horarioId})">Eliminar clase</button>
+        </div>`);
     document.getElementById('detalleClaseOverlay').style.display = 'flex';
+}
+
+function asignarDesdeCalendario(horarioId) {
+    cerrarDetalleClase();
+    abrirModalHorario('asignar');
+    document.querySelector('#formAsignarAlumno select[name="horario_id"]').value = horarioId;
+}
+
+function eliminarClase(horarioId) {
+    if (! confirm('¿Eliminar esta clase? Si tiene alumnos inscritos o clases futuras, el sistema lo impedirá.')) {
+        return;
+    }
+
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = '/horarios/' + horarioId;
+    form.innerHTML = '@csrf @method("DELETE")';
+    document.body.appendChild(form);
+    form.submit();
 }
 
 function cerrarDetalleClase() {

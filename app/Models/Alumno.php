@@ -87,6 +87,12 @@ class Alumno extends Model
         return $this->tutorUser?->name ?? $this->tutor_contacto_nombre;
     }
 
+    public function tieneTutor(): bool
+    {
+        return $this->tutor_user_id !== null
+            || $this->tutor_contacto_nombre !== null;
+    }
+
     public function telefonoTutor(): ?string
     {
         return $this->tutorUser?->telefono ?? $this->tutor_contacto_telefono;

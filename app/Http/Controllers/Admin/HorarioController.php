@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Enums\DiaSemana;
 use App\Enums\EstadoCita;
 use App\Enums\EstadoInscripcion;
+use App\Http\Controllers\Concerns\AgendaCitasIniciales;
 use App\Http\Controllers\Admin\Concerns\ScopesSucursal;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\AsignarAlumnoRequest;
@@ -29,6 +30,7 @@ use Illuminate\View\View;
 
 class HorarioController extends Controller
 {
+    use AgendaCitasIniciales;
     use AuthorizesRequests;
     use ScopesSucursal;
 
@@ -205,6 +207,7 @@ class HorarioController extends Controller
             'hora_inicio' => $datos['hora_inicio'],
             'hora_fin' => $datos['hora_fin'],
             'carril_id' => $datos['carril_id'],
+            'capacidad_maxima' => $datos['capacidad_maxima'] ?? $horario->capacidad_maxima,
         ]);
 
         return redirect()->route('horarios.index')->with('status', "Clase \"{$horario->nombre_grupo}\" reagendada correctamente.");
@@ -228,6 +231,28 @@ class HorarioController extends Controller
             'status',
             "Instructor de \"{$horario->nombre_grupo}\" actualizado correctamente."
         );
+    }
+
+    public function destroy(Horario $horario): RedirectResponse
+    {
+        $this->authorize('delete', $horario);
+
+        $inscritos = $horario->inscripciones()->where('activa', true)->count();
+        $citasFuturas = $horario->citas()
+            ->whereDate('fecha', '>=', today()->toDateString())
+            ->whereNotIn('estado', [\App\Enums\EstadoCita::Cancelada->value, \App\Enums\EstadoCita::Completada->value])
+            ->count();
+
+        if ($inscritos > 0 || $citasFuturas > 0) {
+            return back()->withErrors([
+                'horario' => 'No se puede eliminar una clase con alumnos inscritos o clases futuras programadas.',
+            ]);
+        }
+
+        $nombre = $horario->nombre_grupo;
+        $horario->update(['activo' => false]);
+
+        return back()->with('status', "La clase \"{$nombre}\" fue desactivada correctamente.");
     }
 
     public function asignarAlumno(AsignarAlumnoRequest $request): RedirectResponse
@@ -282,6 +307,8 @@ class HorarioController extends Controller
                     'aprobado_por' => $request->user()->id,
                     'aprobado_en' => now(),
                 ]);
+
+                $this->agendarPrimerasCitas($horario, $alumno, $request->user()->id);
             });
         } catch (ValidationException $e) {
             return back()->withErrors($e->errors());
@@ -302,6 +329,12 @@ class HorarioController extends Controller
         try {
             DB::transaction(function () use ($alumno, $datos, $request) {
                 $horario = Horario::where('id', $datos['horario_id'])->lockForUpdate()->first();
+                $inscripcionOrigen = Inscripcion::query()
+                    ->when($datos['inscripcion_id'] ?? null, fn ($query, $id) => $query->whereKey($id))
+                    ->where('alumno_id', $alumno->id)
+                    ->where('activa', true)
+                    ->lockForUpdate()
+                    ->firstOrFail();
 
                 if ($alumno->sucursal_id !== $horario->sucursal_id) {
                     throw ValidationException::withMessages([
@@ -320,9 +353,16 @@ class HorarioController extends Controller
                     ]);
                 }
 
-                Inscripcion::where('alumno_id', $alumno->id)
-                    ->where('activa', true)
-                    ->update(['activa' => false, 'fecha_fin' => now()->toDateString()]);
+                if ($inscripcionOrigen->horario_id === $horario->id) {
+                    throw ValidationException::withMessages([
+                        'horario_id' => 'La clase destino debe ser diferente a la clase de origen.',
+                    ]);
+                }
+
+                $inscripcionOrigen->update([
+                    'activa' => false,
+                    'fecha_fin' => now()->toDateString(),
+                ]);
 
                 Inscripcion::create([
                     'horario_id' => $horario->id,
@@ -334,6 +374,8 @@ class HorarioController extends Controller
                     'aprobado_por' => $request->user()->id,
                     'aprobado_en' => now(),
                 ]);
+
+                $this->agendarPrimerasCitas($horario, $alumno, $request->user()->id);
             });
         } catch (ValidationException $e) {
             return back()->withErrors($e->errors());

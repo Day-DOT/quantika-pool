@@ -15,6 +15,7 @@ class CambiarGrupoRequest extends FormRequest
     {
         return [
             'alumno_id' => ['required', 'integer', 'exists:alumnos,id'],
+            'inscripcion_id' => ['nullable', 'integer', 'exists:inscripciones,id'],
             'horario_id' => ['required', 'integer', 'exists:horarios,id'],
         ];
     }

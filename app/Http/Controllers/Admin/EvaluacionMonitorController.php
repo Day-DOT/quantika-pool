@@ -68,7 +68,9 @@ class EvaluacionMonitorController extends Controller
             ->orderBy('nombre')
             ->get()
             ->map(function (Alumno $alumno) {
-                $ultimaEvaluacion = $alumno->evaluaciones->first();
+                $ultimaEvaluacion = $alumno->nivel_id
+                    ? $alumno->evaluaciones->first(fn ($evaluacion) => $evaluacion->nivel_id === $alumno->nivel_id)
+                    : null;
 
                 return [
                     'alumno' => $alumno,
