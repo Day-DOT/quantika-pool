@@ -62,16 +62,10 @@ class Pago extends Model
 
     public function scopeVencidos($query)
     {
-        return $query->where(function ($query) {
-            $query->where('estado', EstadoPago::Vencido->value)
-                ->orWhere(function ($query) {
-                    $query->whereIn('estado', [
-                        EstadoPago::Pendiente->value,
-                        EstadoPago::EnRevision->value,
-                    ])->whereNotNull('fecha_vencimiento')
-                        ->whereDate('fecha_vencimiento', '<', now()->toDateString());
-                });
-        });
+        return $query
+            ->whereNotNull('fecha_vencimiento')
+            ->whereDate('fecha_vencimiento', '<', now()->toDateString())
+            ->where('estado', '!=', EstadoPago::Pagado->value);
     }
 
     /**
