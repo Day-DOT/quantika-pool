@@ -43,8 +43,13 @@
         @endif
 
         <div class="top-user">
-            <div class="avatar">{{ mb_strtoupper($inicialesUsuario) }}</div>
-            <span>{{ $usuario->name }}</span>
+            @if ($alumno?->foto_path)
+                <img class="avatar avatar-photo" src="{{ \Illuminate\Support\Facades\Storage::disk('public')->url($alumno->foto_path) }}" alt="Foto de {{ $alumno->nombreCompleto() }}">
+                <span>{{ $alumno->nombreCompleto() }}</span>
+            @else
+                <div class="avatar">{{ mb_strtoupper($inicialesUsuario) }}</div>
+                <span>{{ $usuario->name }}</span>
+            @endif
         </div>
 
         <form method="POST" action="{{ route('logout') }}">

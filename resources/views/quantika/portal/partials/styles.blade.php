@@ -237,6 +237,7 @@
     }
 
     .top-user .avatar { width: 40px; height: 40px; border-radius: 13px; font-size: 13px; }
+    .top-user .avatar-photo { object-fit: cover; }
 
     .btn-logout {
         height: 52px;

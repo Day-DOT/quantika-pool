@@ -45,7 +45,9 @@
                                 class="kid-card {{ $alumno->id === $unAlumno->id ? 'active' : '' }}"
                             >
                                 <div class="animal" style="--level-color: {{ $unAlumno->nivel?->color_hex ?? '#42d8ef' }}">
-                                    @if ($unAlumno->nivel?->imagen)
+                                    @if ($unAlumno->foto_path)
+                                        <img src="{{ \Illuminate\Support\Facades\Storage::disk('public')->url($unAlumno->foto_path) }}" alt="Foto de {{ $unAlumno->nombreCompleto() }}" style="width:100%;height:100%;object-fit:cover;border-radius:inherit;">
+                                    @elseif ($unAlumno->nivel?->imagen)
                                         <img src="{{ asset($unAlumno->nivel->imagen) }}" alt="{{ $unAlumno->nivel->nombre }}">
                                     @endif
                                 </div>
