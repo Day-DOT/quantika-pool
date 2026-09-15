@@ -34,7 +34,7 @@ class GenerarMensualidadesPendientesTest extends TestCase
             'alumno_id' => $alumno->id,
             'concepto' => ConceptoPago::Mensualidad->value,
             'estado' => EstadoPago::Pendiente->value,
-            'monto' => '950.00',
+            'monto' => 950,
         ]);
     }
 
@@ -95,13 +95,14 @@ class GenerarMensualidadesPendientesTest extends TestCase
 
         $this->artisan('pagos:generar-mensualidades')->assertExitCode(0);
 
-        $this->assertDatabaseHas('pagos', [
-            'alumno_id' => $alumno->id,
-            'concepto' => ConceptoPago::Mensualidad->value,
-            'estado' => EstadoPago::Pendiente->value,
-            'fecha_vencimiento' => now()->addMonthNoOverflow()->toDateString(),
-            'monto' => '950.00',
-        ]);
+        $siguientePago = Pago::where('alumno_id', $alumno->id)
+            ->where('concepto', ConceptoPago::Mensualidad->value)
+            ->where('estado', EstadoPago::Pendiente->value)
+            ->whereDate('fecha_vencimiento', now()->addMonthNoOverflow()->toDateString())
+            ->first();
+
+        $this->assertNotNull($siguientePago);
+        $this->assertSame(950.0, (float) $siguientePago->monto);
     }
 
     public function test_no_genera_nada_para_un_alumno_inactivo(): void

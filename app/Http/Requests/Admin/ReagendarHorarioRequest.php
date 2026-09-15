@@ -21,6 +21,7 @@ class ReagendarHorarioRequest extends FormRequest
             'hora_inicio' => ['required', 'date_format:H:i'],
             'hora_fin' => ['required', 'date_format:H:i', 'after:hora_inicio'],
             'carril_id' => ['required', 'integer', 'exists:carriles,id'],
+            'capacidad_maxima' => ['nullable', 'integer', 'min:1', 'max:200'],
         ];
     }
 }

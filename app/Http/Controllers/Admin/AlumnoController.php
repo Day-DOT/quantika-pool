@@ -217,7 +217,9 @@ class AlumnoController extends Controller
         $citasAsistidas = $alumno->citas()->where('asistio', true)->count();
         $asistenciaPct = $citasCompletadas > 0 ? round(($citasAsistidas / $citasCompletadas) * 100) : null;
 
-        $ultimaEvaluacion = $alumno->evaluaciones->first();
+        $ultimaEvaluacion = $alumno->nivel_id
+            ? $alumno->evaluaciones->first(fn ($evaluacion) => $evaluacion->nivel_id === $alumno->nivel_id)
+            : null;
 
         $proximasCitas = $alumno->citas()
             ->whereDate('fecha', '>=', now()->toDateString())
@@ -244,6 +246,14 @@ class AlumnoController extends Controller
             'citasCompletadas' => $citasCompletadas,
             'citasAsistidas' => $citasAsistidas,
             'progresoNivel' => $ultimaEvaluacion?->porcentajeAvance() ?? 0,
+            'documentosPendientes' => collect([
+                'Certificado médico' => $alumno->certificado_medico_path,
+                'Identificación del alumno' => $alumno->identificacion_path,
+                'INE del tutor' => $alumno->tieneTutor() ? $alumno->ine_tutor_path : true,
+                'Fotografía' => $alumno->foto_path,
+                'Contrato firmado' => $alumno->contrato_firmado_path,
+            ])->filter(fn ($ruta) => ! $ruta)->keys()->values(),
+            'pagosVencidos' => $alumno->pagos()->vencidos()->orderBy('fecha_vencimiento')->get(),
             'proximasCitas' => $proximasCitas,
             'horariosDisponibles' => $horariosDisponibles,
             'instructoresDisponibles' => $instructoresDisponibles,

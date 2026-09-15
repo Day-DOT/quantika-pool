@@ -64,6 +64,24 @@
 
     </section>
 
+    @if ($documentosPendientes->isNotEmpty() || $pagosVencidos->isNotEmpty())
+        <div class="panel" style="margin-top:20px;border-color:rgba(255,107,107,.4);">
+            <strong style="color:#ff9aa0;">Pendientes importantes</strong>
+            @if ($documentosPendientes->isNotEmpty())
+                <div style="margin-top:8px;">
+                    Documentos pendientes: {{ $documentosPendientes->join(', ') }}.
+                </div>
+            @endif
+            @if ($pagosVencidos->isNotEmpty())
+                <div style="margin-top:8px;">
+                    Adeudos vencidos: {{ $pagosVencidos->count() }} pago(s), por
+                    ${{ number_format((float) $pagosVencidos->sum('monto'), 2) }}.
+                    <a href="{{ route('pagos.alumno', $alumno) }}" class="section-link">Ver pagos</a>
+                </div>
+            @endif
+        </div>
+    @endif
+
 
     <div class="section-header">
         <h3>Avance del alumno</h3>

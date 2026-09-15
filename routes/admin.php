@@ -65,6 +65,7 @@ Route::middleware(['auth', 'role:admin,super_admin'])->group(function () {
     Route::post('/horarios', [HorarioController::class, 'store'])->name('horarios.store');
     Route::patch('/horarios/{horario}/reagendar', [HorarioController::class, 'reagendar'])->name('horarios.reagendar');
     Route::patch('/horarios/{horario}/instructor', [HorarioController::class, 'cambiarInstructor'])->name('horarios.cambiar-instructor');
+    Route::delete('/horarios/{horario}', [HorarioController::class, 'destroy'])->name('horarios.destroy');
     Route::post('/inscripciones', [HorarioController::class, 'asignarAlumno'])->name('inscripciones.store');
     Route::patch('/inscripciones/cambiar-grupo', [HorarioController::class, 'cambiarGrupo'])->name('inscripciones.cambiar-grupo');
 

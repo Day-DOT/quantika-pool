@@ -34,11 +34,13 @@ class AsistenciaQrController extends Controller
         if (! $alumno) {
             return view('quantika.asistencia.resultado', [
                 'alumno' => null,
+                'horariosHoy' => collect(),
                 'exito' => false,
                 'mensaje' => 'Este código QR no es válido.',
             ]);
         }
 
+        $alumno->load(['nivel', 'sucursal', 'tutorUser']);
         $hoy = today();
         $diaSemanaHoy = $hoy->dayOfWeekIso;
 
@@ -53,6 +55,7 @@ class AsistenciaQrController extends Controller
         if ($horariosHoy->isEmpty()) {
             return view('quantika.asistencia.resultado', [
                 'alumno' => $alumno,
+                'horariosHoy' => $horariosHoy,
                 'exito' => false,
                 'mensaje' => 'Este alumno no tiene clase programada para hoy.',
             ]);
@@ -96,6 +99,7 @@ class AsistenciaQrController extends Controller
         if ($gruposRegistrados->isEmpty()) {
             return view('quantika.asistencia.resultado', [
                 'alumno' => $alumno,
+                'horariosHoy' => $horariosHoy,
                 'exito' => false,
                 'mensaje' => 'No tienes permiso para registrar la asistencia de este alumno.',
             ]);
@@ -103,6 +107,7 @@ class AsistenciaQrController extends Controller
 
         return view('quantika.asistencia.resultado', [
             'alumno' => $alumno,
+            'horariosHoy' => $horariosHoy,
             'exito' => true,
             'mensaje' => 'Asistencia registrada en: '.$gruposRegistrados->implode(', ').'.',
         ]);

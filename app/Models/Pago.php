@@ -62,10 +62,16 @@ class Pago extends Model
 
     public function scopeVencidos($query)
     {
-        // El comando "pagos:generar-mensualidades" corre a diario y marca
-        // como Vencido cualquier Pendiente cuya fecha ya pasó, así que aquí
-        // basta con leer el estado guardado (fuente de verdad).
-        return $query->where('estado', EstadoPago::Vencido->value);
+        return $query->where(function ($query) {
+            $query->where('estado', EstadoPago::Vencido->value)
+                ->orWhere(function ($query) {
+                    $query->whereIn('estado', [
+                        EstadoPago::Pendiente->value,
+                        EstadoPago::EnRevision->value,
+                    ])->whereNotNull('fecha_vencimiento')
+                        ->whereDate('fecha_vencimiento', '<', now()->toDateString());
+                });
+        });
     }
 
     /**
