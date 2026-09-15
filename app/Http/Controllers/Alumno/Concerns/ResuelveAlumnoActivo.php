@@ -23,6 +23,10 @@ trait ResuelveAlumnoActivo
     {
         return $request->user()
             ->alumnos()
+            ->orWhere(function ($query) use ($request) {
+                $query->whereNull('tutor_user_id')
+                    ->where('email', $request->user()->email);
+            })
             ->with(['nivel', 'sucursal'])
             ->orderBy('nombre')
             ->get();

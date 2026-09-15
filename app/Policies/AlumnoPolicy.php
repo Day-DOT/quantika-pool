@@ -30,7 +30,8 @@ class AlumnoPolicy
         }
 
         if ($user->isAlumno()) {
-            return $user->id === $alumno->tutor_user_id;
+            return $user->id === $alumno->tutor_user_id
+                || ($alumno->tutor_user_id === null && $alumno->email === $user->email);
         }
 
         return false;

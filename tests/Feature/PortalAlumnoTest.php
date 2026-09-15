@@ -57,6 +57,20 @@ class PortalAlumnoTest extends TestCase
             ->assertDontSee('Mis alumnos');
     }
 
+    public function test_dashboard_muestra_alumno_con_correo_del_alumno_si_no_tiene_tutor_vinculado(): void
+    {
+        $tutor = User::factory()->tutor()->create(['email' => 'dayanna@example.com']);
+        $alumno = Alumno::factory()->create([
+            'tutor_user_id' => null,
+            'email' => $tutor->email,
+        ]);
+
+        $this->actingAs($tutor)
+            ->get(route('portal.dashboard'))
+            ->assertOk()
+            ->assertSee($alumno->nombreCompleto());
+    }
+
     public function test_dashboard_muestra_selector_cuando_el_tutor_tiene_varios_alumnos(): void
     {
         $sucursal = Sucursal::factory()->create();
