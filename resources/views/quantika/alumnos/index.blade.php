@@ -584,7 +584,16 @@
 
                             <td>
                                 <div class="student">
-                                    <div class="student-avatar">{{ $fila['iniciales'] }}</div>
+                                    @if ($alumno->foto_path)
+                                        <img
+                                            class="student-avatar"
+                                            src="{{ \Illuminate\Support\Facades\Storage::disk('public')->url($alumno->foto_path) }}"
+                                            alt="Foto de {{ $alumno->nombreCompleto() }}"
+                                            style="object-fit:cover;"
+                                        >
+                                    @else
+                                        <div class="student-avatar">{{ $fila['iniciales'] }}</div>
+                                    @endif
                                     <div>
                                         <div class="student-name">{{ $alumno->nombreCompleto() }}</div>
                                         <div class="student-email">{{ $alumno->email ?? ($alumno->tutorUser?->email ?? 'Sin correo') }}</div>

@@ -89,6 +89,11 @@ class PortalAlumnoTest extends TestCase
         $alumno->refresh();
         $this->assertNotNull($alumno->foto_path);
         Storage::disk('public')->assertExists($alumno->foto_path);
+
+        $this->actingAs($tutor)
+            ->get(route('portal.dashboard', ['alumno' => $alumno->id]))
+            ->assertOk()
+            ->assertSee(Storage::disk('public')->url($alumno->foto_path), false);
     }
 
     public function test_dashboard_muestra_selector_cuando_el_tutor_tiene_varios_alumnos(): void

@@ -106,6 +106,15 @@
                         <div class="section-header" style="margin:0 0 10px;">
                             <h3>Foto de identificación</h3>
                         </div>
+                        @if ($alumno->foto_path)
+                            <img
+                                src="{{ \Illuminate\Support\Facades\Storage::disk('public')->url($alumno->foto_path) }}"
+                                alt="Foto actual de {{ $alumno->nombreCompleto() }}"
+                                style="width:88px;height:88px;object-fit:cover;border-radius:18px;border:2px solid var(--cyan);margin-bottom:10px;"
+                            >
+                        @else
+                            <p class="card-description" style="color:var(--yellow);">Este alumno todavía no tiene una foto guardada.</p>
+                        @endif
                         <p class="card-description">Toma o selecciona una foto clara para identificar fácilmente a este alumno en el portal.</p>
                         <form method="POST" action="{{ route('portal.foto.update', ['alumno' => $alumno->id]) }}" enctype="multipart/form-data" style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;">
                             @csrf
