@@ -123,6 +123,26 @@ class AdminPagosTest extends TestCase
         $response->assertSee($alumno->nombreCompleto());
     }
 
+    public function test_admin_ve_como_deudor_un_pago_pendiente_con_fecha_vencida(): void
+    {
+        $sucursal = Sucursal::factory()->create();
+        $admin = User::factory()->admin($sucursal->id)->create();
+        $alumno = Alumno::factory()->create(['sucursal_id' => $sucursal->id]);
+
+        Pago::factory()->create([
+            'alumno_id' => $alumno->id,
+            'sucursal_id' => $sucursal->id,
+            'estado' => EstadoPago::Pendiente->value,
+            'fecha_vencimiento' => now()->subDays(5)->toDateString(),
+        ]);
+
+        $response = $this->actingAs($admin)->get(route('pagos.index'));
+
+        $response->assertOk();
+        $response->assertSee($alumno->nombreCompleto());
+        $response->assertSee('1 de 1 alumnos con saldo vencido');
+    }
+
     public function test_admin_ve_pagos_proximos_a_vencer_en_el_index(): void
     {
         $sucursal = Sucursal::factory()->create();
