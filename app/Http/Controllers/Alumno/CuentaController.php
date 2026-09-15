@@ -9,6 +9,8 @@ use App\Http\Controllers\Controller;
 use App\Models\Pago;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\Request;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
 
 class CuentaController extends Controller
@@ -66,5 +68,34 @@ class CuentaController extends Controller
             'pagos' => $pagos,
             'pendientesCount' => $pendientesCount,
         ]);
+    }
+
+    public function actualizarFoto(Request $request): RedirectResponse
+    {
+        $alumnos = $this->alumnosDelTutor($request);
+        $alumno = $this->alumnoActivo($request, $alumnos);
+
+        if (! $alumno) {
+            return redirect()->route('portal.dashboard');
+        }
+
+        $this->authorize('update', $alumno);
+
+        $datos = $request->validate([
+            'foto' => ['required', 'image', 'mimes:jpg,jpeg,png', 'max:5120'],
+        ]);
+
+        $rutaAnterior = $alumno->foto_path;
+        $alumno->update([
+            'foto_path' => $datos['foto']->store('alumnos/documentos', 'public'),
+        ]);
+
+        if ($rutaAnterior) {
+            Storage::disk('public')->delete($rutaAnterior);
+        }
+
+        return redirect()
+            ->route('portal.dashboard', ['alumno' => $alumno->id])
+            ->with('status', 'La fotografía de '.$alumno->nombreCompleto().' se actualizó correctamente.');
     }
 }

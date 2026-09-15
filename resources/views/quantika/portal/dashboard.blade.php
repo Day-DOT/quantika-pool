@@ -77,7 +77,9 @@
 
                 <div class="level-block" style="--level-color: {{ $nivelActivo?->color_hex ?? '#42d8ef' }}">
                     <div class="animal">
-                        @if ($nivelActivo?->imagen)
+                        @if ($alumno->foto_path)
+                            <img src="{{ \Illuminate\Support\Facades\Storage::disk('public')->url($alumno->foto_path) }}" alt="Foto de {{ $alumno->nombreCompleto() }}" style="width:100%;height:100%;object-fit:cover;border-radius:inherit;">
+                        @elseif ($nivelActivo?->imagen)
                             <img src="{{ asset($nivelActivo->imagen) }}" alt="{{ $nivelActivo->nombre }}">
                         @endif
                     </div>
@@ -96,6 +98,18 @@
                         <div class="progress">
                             <span style="width:{{ round($resumenActivo['porcentaje']) }}%"></span>
                         </div>
+                    </div>
+
+                    <div class="data-card" style="margin-top:18px;padding:18px;">
+                        <div class="section-header" style="margin:0 0 10px;">
+                            <h3>Foto de identificación</h3>
+                        </div>
+                        <p class="card-description">Toma o selecciona una foto clara para identificar fácilmente a este alumno en el portal.</p>
+                        <form method="POST" action="{{ route('portal.foto.update', ['alumno' => $alumno->id]) }}" enctype="multipart/form-data" style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;">
+                            @csrf
+                            <input type="file" name="foto" accept="image/jpeg,image/png" capture="user" required>
+                            <button type="submit" class="btn btn-primary">Guardar foto</button>
+                        </form>
                     </div>
                 </div>
 

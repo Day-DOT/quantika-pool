@@ -48,7 +48,9 @@ class AlumnoPolicy
             return $user->sucursal_id === $alumno->sucursal_id;
         }
 
-        return $user->isAlumno() && $user->id === $alumno->tutor_user_id;
+        return $user->isAlumno()
+            && ($user->id === $alumno->tutor_user_id
+                || ($alumno->tutor_user_id === null && $alumno->email === $user->email));
     }
 
     public function delete(User $user, Alumno $alumno): bool
