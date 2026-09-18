@@ -1677,10 +1677,13 @@
             @csrf
 
             <label>Alumno</label>
+            <input type="search" id="buscarAlumnoAsignacion" placeholder="Buscar por nombre, correo o matrícula..." style="{{ $campoEstilo }}" autocomplete="off">
             <select name="alumno_id" required style="{{ $campoEstilo }}">
                 <option value="">Seleccionar alumno</option>
                 @foreach ($alumnosParaAsignar as $alumnoOpcion)
-                    <option value="{{ $alumnoOpcion->id }}">{{ $alumnoOpcion->nombreCompleto() }}</option>
+                    <option value="{{ $alumnoOpcion->id }}" data-search="{{ mb_strtolower($alumnoOpcion->nombreCompleto().' '.($alumnoOpcion->email ?? '').' '.($alumnoOpcion->matricula ?? '')) }}">
+                        {{ $alumnoOpcion->nombreCompleto() }}{{ $alumnoOpcion->matricula ? ' · '.$alumnoOpcion->matricula : '' }}
+                    </option>
                 @endforeach
             </select>
 
@@ -1880,6 +1883,24 @@ function eliminarClase(horarioId) {
     document.body.appendChild(form);
     form.submit();
 }
+
+document.getElementById('buscarAlumnoAsignacion')?.addEventListener('input', function () {
+    const termino = this.value.trim().toLowerCase();
+    const selector = document.querySelector('#formAsignarAlumno select[name="alumno_id"]');
+
+    Array.from(selector.options).forEach(function (option, index) {
+        if (index === 0) {
+            option.hidden = false;
+            return;
+        }
+
+        option.hidden = termino !== '' && !option.dataset.search.includes(termino);
+    });
+
+    if (selector.selectedOptions[0]?.hidden) {
+        selector.value = '';
+    }
+});
 
 function cerrarDetalleClase() {
     document.getElementById('detalleClaseOverlay').style.display = 'none';

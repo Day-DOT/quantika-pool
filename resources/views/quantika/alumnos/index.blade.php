@@ -577,7 +577,7 @@
                     @forelse ($alumnos as $fila)
                         @php($alumno = $fila['alumno'])
                         <tr
-                            data-search="{{ mb_strtolower($alumno->nombreCompleto().' '.($alumno->email ?? '').' '.($alumno->nombreTutor() ?? '')) }}"
+                            data-search="{{ mb_strtolower($alumno->nombreCompleto().' '.($alumno->matricula ?? '').' '.($alumno->email ?? '').' '.($alumno->nombreTutor() ?? '')) }}"
                             data-nivel="{{ $alumno->nivel_id }}"
                             data-sucursal="{{ $alumno->sucursal_id }}"
                             data-estado="{{ $alumno->estado->value }}">
@@ -596,7 +596,7 @@
                                     @endif
                                     <div>
                                         <div class="student-name">{{ $alumno->nombreCompleto() }}</div>
-                                        <div class="student-email">{{ $alumno->email ?? ($alumno->tutorUser?->email ?? 'Sin correo') }}</div>
+                                        <div class="student-email">{{ $alumno->matricula }} · {{ $alumno->email ?? ($alumno->tutorUser?->email ?? 'Sin correo') }}</div>
                                     </div>
                                 </div>
                             </td>

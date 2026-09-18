@@ -114,6 +114,12 @@
 
     </div>
 
+    @if ($evaluaciones->first() && $evaluaciones->first()['evaluacion']->fecha->lt(now()->subDays(7)))
+        <div class="eval-card" style="border-color:rgba(255,95,109,.45);color:#ffc7c7;">
+            <strong>Evaluación pendiente:</strong> han pasado más de 7 días desde la última evaluación.
+        </div>
+    @endif
+
     @forelse ($evaluaciones as $fila)
         @php($evaluacion = $fila['evaluacion'])
         <div class="eval-card">

@@ -29,7 +29,9 @@ class EvaluacionController extends Controller
     {
         $instructor = $this->instructorActivo($request);
 
-        $evaluaciones = Evaluacion::where('instructor_id', $instructor->id)
+        $evaluaciones = Evaluacion::whereHas('alumno.inscripciones', function ($query) use ($instructor) {
+                $query->where('activa', true)->whereHas('horario', fn ($q) => $q->where('instructor_id', $instructor->id));
+            })
             ->with(['alumno', 'nivel', 'detalles'])
             ->orderByDesc('fecha')
             ->orderByDesc('id')
@@ -165,7 +167,6 @@ class EvaluacionController extends Controller
     private function evaluacionEnCurso(Alumno $alumno, Instructor $instructor): ?Evaluacion
     {
         return Evaluacion::where('alumno_id', $alumno->id)
-            ->where('instructor_id', $instructor->id)
             ->where('nivel_id', $alumno->nivel_id)
             ->latest('fecha')
             ->latest('id')

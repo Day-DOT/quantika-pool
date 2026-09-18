@@ -586,9 +586,14 @@
                         <div class="calendar-event calendar-event-{{ $colorCalendario }}">
                             <strong>{{ $pagoCalendario->alumno->nombreCompleto() }}</strong>
                             ${{ number_format((float) $pagoCalendario->monto, 0) }}
+                            @if ($pagoCalendario->es_proyeccion ?? false)
+                                <small style="display:block;">Proyección</small>
+                            @endif
                             <div class="calendar-event-actions">
-                                <a href="{{ route('pagos.edit', $pagoCalendario) }}">Editar</a>
-                                @if ($pagoCalendario->estado->value !== 'pagado')
+                                @if (! ($pagoCalendario->es_proyeccion ?? false))
+                                    <a href="{{ route('pagos.edit', $pagoCalendario) }}">Editar</a>
+                                @endif
+                                @if (! ($pagoCalendario->es_proyeccion ?? false) && $pagoCalendario->estado->value !== 'pagado')
                                     <form action="{{ route('pagos.destroy', $pagoCalendario) }}" method="POST" onsubmit="return confirm('¿Eliminar este pago?');">
                                         @csrf
                                         @method('DELETE')
@@ -626,9 +631,14 @@
                                 <div class="calendar-event calendar-modal-event calendar-event-{{ $colorCalendario }}">
                                     <strong>{{ $pagoCalendario->alumno->nombreCompleto() }}</strong>
                                     ${{ number_format((float) $pagoCalendario->monto, 0) }}
+                                    @if ($pagoCalendario->es_proyeccion ?? false)
+                                        <small style="display:block;">Proyección</small>
+                                    @endif
                                     <div class="calendar-event-actions">
-                                        <a href="{{ route('pagos.edit', $pagoCalendario) }}">Editar</a>
-                                        @if ($pagoCalendario->estado->value !== 'pagado')
+                                        @if (! ($pagoCalendario->es_proyeccion ?? false))
+                                            <a href="{{ route('pagos.edit', $pagoCalendario) }}">Editar</a>
+                                        @endif
+                                        @if (! ($pagoCalendario->es_proyeccion ?? false) && $pagoCalendario->estado->value !== 'pagado')
                                             <form action="{{ route('pagos.destroy', $pagoCalendario) }}" method="POST" onsubmit="return confirm('¿Eliminar este pago?');">
                                                 @csrf
                                                 @method('DELETE')

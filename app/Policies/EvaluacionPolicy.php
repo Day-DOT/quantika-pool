@@ -24,7 +24,11 @@ class EvaluacionPolicy
         }
 
         if ($user->isInstructor()) {
-            return $user->instructor?->id === $evaluacion->instructor_id;
+            return $user->instructor !== null
+                && $evaluacion->alumno?->inscripciones()
+                    ->where('activa', true)
+                    ->whereHas('horario', fn ($q) => $q->where('instructor_id', $user->instructor->id))
+                    ->exists();
         }
 
         if ($user->isAlumno()) {
@@ -41,11 +45,11 @@ class EvaluacionPolicy
 
     public function update(User $user, Evaluacion $evaluacion): bool
     {
-        return $user->isInstructor() && $user->instructor?->id === $evaluacion->instructor_id;
+        return $user->isInstructor() && $this->view($user, $evaluacion);
     }
 
     public function delete(User $user, Evaluacion $evaluacion): bool
     {
-        return $user->isInstructor() && $user->instructor?->id === $evaluacion->instructor_id;
+        return $user->isInstructor() && $this->view($user, $evaluacion);
     }
 }

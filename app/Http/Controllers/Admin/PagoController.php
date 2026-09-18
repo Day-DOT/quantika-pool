@@ -136,6 +136,42 @@ class PagoController extends Controller
             ->with('alumno')
             ->orderBy('fecha_vencimiento');
         $this->aplicarSucursal($calendarioPagosQuery);
+        $calendarioPagos = $calendarioPagosQuery->get();
+
+        $proyeccionesQuery = Alumno::query()
+            ->where('estado', EstadoAlumno::Activo->value)
+            ->whereNotNull('plan_id')
+            ->with(['plan', 'ultimoPagoMensualidad', 'sucursal']);
+        $this->aplicarSucursal($proyeccionesQuery);
+
+        $proyecciones = $proyeccionesQuery->get()
+            ->filter(function (Alumno $alumno) use ($calendarioMes) {
+                $fecha = $alumno->proximaFechaPago();
+
+                return $fecha
+                    && $alumno->plan?->precio !== null
+                    && $fecha->isSameMonth($calendarioMes)
+                    && ! $alumno->pagos()
+                        ->whereDate('fecha_vencimiento', $fecha->toDateString())
+                        ->exists();
+            })
+            ->map(function (Alumno $alumno) {
+                $pago = new \App\Models\Pago([
+                    'alumno_id' => $alumno->id,
+                    'sucursal_id' => $alumno->sucursal_id,
+                    'concepto' => ConceptoPago::Mensualidad->value,
+                    'periodo' => $alumno->proximaFechaPago()->format('Y-m'),
+                    'monto' => $alumno->plan->precio,
+                    'fecha_vencimiento' => $alumno->proximaFechaPago()->toDateString(),
+                    'estado' => EstadoPago::Pendiente->value,
+                ]);
+                $pago->setRelation('alumno', $alumno);
+                $pago->setAttribute('es_proyeccion', true);
+
+                return $pago;
+            });
+
+        $calendarioPagos = $calendarioPagos->concat($proyecciones)->sortBy('fecha_vencimiento')->values();
 
         return view('quantika.pagos.index', [
             'cobradoMes' => $cobradoMes,
@@ -154,7 +190,7 @@ class PagoController extends Controller
             'proximosAPagar' => $proximosAPagar,
             'hoy' => $hoy,
             'calendarioMes' => $calendarioMes,
-            'calendarioPagos' => $calendarioPagosQuery->get(),
+            'calendarioPagos' => $calendarioPagos,
         ]);
     }
 

@@ -20,6 +20,7 @@ class Alumno extends Model
 
     protected $fillable = [
         'tutor_user_id',
+        'matricula',
         'tutor_contacto_nombre',
         'tutor_contacto_telefono',
         'sucursal_id',
@@ -60,6 +61,14 @@ class Alumno extends Model
     {
         static::creating(function (Alumno $alumno) {
             $alumno->qr_token ??= Str::random(40);
+        });
+
+        static::created(function (Alumno $alumno) {
+            if (! $alumno->matricula) {
+                $alumno->updateQuietly([
+                    'matricula' => 'ALU-'.str_pad((string) $alumno->id, 6, '0', STR_PAD_LEFT),
+                ]);
+            }
         });
     }
 

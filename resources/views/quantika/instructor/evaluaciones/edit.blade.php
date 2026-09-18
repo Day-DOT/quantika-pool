@@ -11,8 +11,12 @@
 
     <div class="section-header">
         <h3>{{ $evaluacion->alumno->nombreCompleto() }} · {{ $evaluacion->nivel?->nombre }}</h3>
-        <span class="section-link">Iniciada el {{ $evaluacion->fecha->format('d/m/Y') }}</span>
+        <span class="section-link">Iniciada el {{ $evaluacion->fecha->format('d/m/Y') }} · Evaluó: {{ $evaluacion->instructor?->user?->name ?? 'Sin instructor' }}</span>
     </div>
+
+    @if ($evaluacion->fecha->lt(now()->subDays(7)))
+        <div class="flash-errors" style="margin-bottom:18px;">Evaluación pendiente: han pasado más de 7 días desde la última evaluación.</div>
+    @endif
 
     <div class="card card-pad" style="margin-bottom:24px;">
 

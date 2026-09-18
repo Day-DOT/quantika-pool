@@ -295,7 +295,7 @@ class AlumnoController extends Controller
                 continue;
             }
 
-            if ($alumno->{$columna}) {
+            if ($alumno->{$columna} && str_starts_with($alumno->{$columna}, 'alumnos/documentos/')) {
                 Storage::disk('public')->delete($alumno->{$columna});
             }
 
@@ -461,7 +461,7 @@ class AlumnoController extends Controller
             $alumno->foto_path,
             $alumno->contrato_firmado_path,
         ] as $ruta) {
-            if ($ruta) {
+            if ($ruta && str_starts_with($ruta, 'alumnos/documentos/')) {
                 Storage::disk('public')->delete($ruta);
             }
         }

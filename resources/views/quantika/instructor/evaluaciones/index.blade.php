@@ -27,6 +27,7 @@
                             <th>Alumno</th>
                             <th>Nivel</th>
                             <th>Fecha</th>
+                            <th>Instructor</th>
                             <th>Avance</th>
                             <th>Observaciones</th>
                             <th>Acciones</th>
@@ -59,6 +60,7 @@
                                 </td>
                                 <td>{{ $evaluacion->nivel?->nombre }}</td>
                                 <td>{{ $evaluacion->fecha->format('d/m/Y') }}</td>
+                                <td>{{ $evaluacion->instructor?->user?->name ?? '—' }}</td>
                                 <td><span class="badge {{ $claseBadge }}">{{ $porcentaje }}%</span></td>
                                 <td>{{ $evaluacion->observaciones ?? '—' }}</td>
                                 <td>

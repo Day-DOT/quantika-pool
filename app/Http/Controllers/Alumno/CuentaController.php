@@ -90,7 +90,7 @@ class CuentaController extends Controller
             'foto_path' => $datos['foto']->store('alumnos/documentos', 'public'),
         ]);
 
-        if ($rutaAnterior) {
+        if ($rutaAnterior && str_starts_with($rutaAnterior, 'alumnos/documentos/')) {
             Storage::disk('public')->delete($rutaAnterior);
         }
 

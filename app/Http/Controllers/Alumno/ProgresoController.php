@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Alumno;
 
 use App\Http\Controllers\Alumno\Concerns\ResuelveAlumnoActivo;
 use App\Http\Controllers\Controller;
+use App\Models\Nivel;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
@@ -36,6 +37,8 @@ class ProgresoController extends Controller
                 'historial' => collect(),
                 'historialNiveles' => collect(),
                 'evaluacionAnterior' => null,
+                'mapaNiveles' => collect(),
+                'evaluacionPendiente' => false,
             ]);
         }
 
@@ -77,6 +80,19 @@ class ProgresoController extends Controller
                 return $registro;
             });
 
+        $nivelesMapa = $nivelActual
+            ? Nivel::query()
+                ->where('categoria_edad', $nivelActual->categoria_edad)
+                ->ordenados()
+                ->get()
+            : collect();
+        $nivelesAprobados = $alumno->historialNiveles()
+            ->whereNotNull('fecha_fin')
+            ->pluck('nivel_id')
+            ->all();
+        $evaluacionPendiente = $ultimaEvaluacion !== null
+            && $ultimaEvaluacion->fecha->lt(now()->subDays(7));
+
         // Comparativa: última evaluación registrada vs. la anterior a esa,
         // sin importar el nivel (puede ser el mismo nivel u otro).
         $evaluacionAnterior = $historial->skip(1)->first();
@@ -92,6 +108,15 @@ class ProgresoController extends Controller
             'historial' => $historial,
             'historialNiveles' => $historialNiveles,
             'evaluacionAnterior' => $evaluacionAnterior,
+            'mapaNiveles' => $nivelesMapa->map(function (Nivel $nivel) use ($nivelActual, $nivelesAprobados) {
+                return [
+                    'nivel' => $nivel,
+                    'estado' => in_array($nivel->id, $nivelesAprobados, true)
+                        ? 'Aprobado'
+                        : ($nivelActual?->id === $nivel->id ? 'Actual' : 'Pendiente'),
+                ];
+            }),
+            'evaluacionPendiente' => $evaluacionPendiente,
         ]);
     }
 }

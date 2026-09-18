@@ -54,14 +54,40 @@
                                 Todavía no se ha registrado una evaluación para este nivel.
                             @endif
                         </div>
+                        @if ($ultimaEvaluacion && $evaluacionPendiente)
+                            <div class="flash-errors" style="margin-top:12px;">Evaluación pendiente: han pasado más de 7 días desde la última evaluación.</div>
+                        @endif
 
                         <div class="progress-row">
                             <span>Dominio global del nivel</span>
                             <span>{{ round($porcentaje) }}%</span>
                         </div>
+
                         <div class="progress">
                             <span style="width:{{ round($porcentaje) }}%"></span>
                         </div>
+                    </div>
+                </div>
+
+                <div class="section-header"><h3>Trayectoria de niveles</h3></div>
+                <div class="data-card" style="padding:20px;">
+                    <div style="display:flex;gap:12px;flex-wrap:wrap;">
+                        @forelse ($mapaNiveles as $nivelMapa)
+                            @php
+                                $claseTrayectoria = $nivelMapa['estado'] === 'Aprobado'
+                                    ? 'badge-green'
+                                    : ($nivelMapa['estado'] === 'Actual' ? 'badge-cyan' : 'badge-muted');
+                            @endphp
+                            <div style="flex:1 1 180px;min-width:180px;padding:14px;border:1px solid var(--border);border-radius:14px;">
+                                @if ($nivelMapa['nivel']->imagen)
+                                    <img src="{{ asset($nivelMapa['nivel']->imagen) }}" alt="" style="width:38px;height:38px;object-fit:contain;">
+                                @endif
+                                <strong style="display:block;margin-top:6px;">{{ $nivelMapa['nivel']->nombre }}</strong>
+                                <span class="badge {{ $claseTrayectoria }}" style="margin-top:8px;">{{ $nivelMapa['estado'] }}</span>
+                            </div>
+                        @empty
+                            <div class="empty-row">No hay niveles configurados para mostrar la trayectoria.</div>
+                        @endforelse
                     </div>
                 </div>
 
