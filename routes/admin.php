@@ -68,6 +68,7 @@ Route::middleware(['auth', 'role:admin,super_admin'])->group(function () {
     Route::delete('/horarios/{horario}', [HorarioController::class, 'destroy'])->name('horarios.destroy');
     Route::post('/inscripciones', [HorarioController::class, 'asignarAlumno'])->name('inscripciones.store');
     Route::patch('/inscripciones/cambiar-grupo', [HorarioController::class, 'cambiarGrupo'])->name('inscripciones.cambiar-grupo');
+    Route::delete('/inscripciones/{inscripcion}', [HorarioController::class, 'retirarAlumno'])->name('inscripciones.destroy');
 
     // --- Citas (reagendamiento individual) ---
     Route::patch('/citas/{cita}/reagendar', [CitaController::class, 'reagendar'])->name('citas.reagendar');

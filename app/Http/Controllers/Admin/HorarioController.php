@@ -134,6 +134,7 @@ class HorarioController extends Controller
                     'instructor' => $horario->instructor?->user?->name ?? 'Sin instructor',
                     'capacidad' => $horario->capacidad_maxima,
                     'alumnos' => $horario->inscripciones->map(fn (Inscripcion $inscripcion) => [
+                        'inscripcion_id' => $inscripcion->id,
                         'nombre' => $inscripcion->alumno?->nombreCompleto() ?? 'Alumno no disponible',
                         'telefono' => $inscripcion->alumno?->telefono,
                         'email' => $inscripcion->alumno?->email,
@@ -385,5 +386,36 @@ class HorarioController extends Controller
             'status',
             "{$alumno->nombreCompleto()} fue movido al grupo \"{$nuevoHorario->nombre_grupo}\"."
         );
+    }
+
+    public function retirarAlumno(Inscripcion $inscripcion): RedirectResponse
+    {
+        $horario = $inscripcion->horario()->firstOrFail();
+        $this->authorize('delete', $horario);
+
+        if (! $inscripcion->activa) {
+            return back()->withErrors([
+                'inscripcion' => 'Este alumno ya no está inscrito en la clase seleccionada.',
+            ]);
+        }
+
+        DB::transaction(function () use ($inscripcion) {
+            $inscripcion->update([
+                'activa' => false,
+                'fecha_fin' => today()->toDateString(),
+            ]);
+
+            Cita::query()
+                ->where('alumno_id', $inscripcion->alumno_id)
+                ->where('horario_id', $inscripcion->horario_id)
+                ->whereDate('fecha', '>=', today()->toDateString())
+                ->whereNotIn('estado', [
+                    EstadoCita::Cancelada->value,
+                    EstadoCita::Completada->value,
+                ])
+                ->update(['estado' => EstadoCita::Cancelada->value]);
+        });
+
+        return back()->with('status', "{$inscripcion->alumno->nombreCompleto()} fue retirado únicamente de la clase seleccionada.");
     }
 }

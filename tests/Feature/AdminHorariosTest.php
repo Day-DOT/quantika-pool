@@ -320,6 +320,47 @@ class AdminHorariosTest extends TestCase
         $this->assertDatabaseMissing('inscripciones', ['alumno_id' => $nuevo->id]);
     }
 
+    public function test_admin_retirar_un_alumno_solo_de_la_clase_seleccionada(): void
+    {
+        $e = $this->crearEscenario();
+        $primeraClase = Horario::factory()->create([
+            'sucursal_id' => $e['sucursal']->id,
+            'instructor_id' => $e['instructor']->id,
+            'nivel_id' => $e['nivel']->id,
+            'carril_id' => $e['carril']->id,
+        ]);
+        $segundaClase = Horario::factory()->create([
+            'sucursal_id' => $e['sucursal']->id,
+            'instructor_id' => $e['instructor']->id,
+            'nivel_id' => $e['nivel']->id,
+            'carril_id' => $e['otroCarril']->id,
+        ]);
+        $alumno = Alumno::factory()->create(['sucursal_id' => $e['sucursal']->id]);
+        $primeraInscripcion = Inscripcion::factory()->create([
+            'horario_id' => $primeraClase->id,
+            'alumno_id' => $alumno->id,
+            'activa' => true,
+        ]);
+        $segundaInscripcion = Inscripcion::factory()->create([
+            'horario_id' => $segundaClase->id,
+            'alumno_id' => $alumno->id,
+            'activa' => true,
+        ]);
+
+        $this->actingAs($e['admin'])
+            ->delete(route('inscripciones.destroy', $primeraInscripcion))
+            ->assertRedirect();
+
+        $this->assertDatabaseHas('inscripciones', [
+            'id' => $primeraInscripcion->id,
+            'activa' => false,
+        ]);
+        $this->assertDatabaseHas('inscripciones', [
+            'id' => $segundaInscripcion->id,
+            'activa' => true,
+        ]);
+    }
+
     public function test_no_se_puede_asignar_un_alumno_ya_inscrito_en_la_misma_clase(): void
     {
         $e = $this->crearEscenario();

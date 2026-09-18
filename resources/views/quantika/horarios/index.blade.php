@@ -1838,9 +1838,10 @@ function abrirDetalleClase(horarioId) {
     const alumnosHtml = alumnos.length
         ? alumnos.map(function (alumno) {
             const contacto = [alumno.telefono, alumno.email].filter(Boolean).join(' · ');
-            return `<div class="class-student">
+            return `<div class="class-student" style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
                 <div><strong>${escapeHtml(alumno.nombre)}</strong><small>${escapeHtml(contacto || 'Sin datos de contacto')}</small></div>
-                <small>${escapeHtml(alumno.estado)}</small>
+                <div style="display:flex;align-items:center;gap:8px;"><small>${escapeHtml(alumno.estado)}</small>
+                <button type="button" class="btn-modal-submit" style="padding:7px 10px;background:#7b3541;" onclick="retirarAlumnoDeClase(${alumno.inscripcion_id}, '${escapeHtml(alumno.nombre).replace(/'/g, "\\'")}')">Quitar</button></div>
             </div>`;
         }).join('')
         : '<div style="color:var(--muted);font-size:12px;">No hay alumnos inscritos en esta clase.</div>';
@@ -1879,6 +1880,19 @@ function eliminarClase(horarioId) {
     const form = document.createElement('form');
     form.method = 'POST';
     form.action = '/horarios/' + horarioId;
+    form.innerHTML = '@csrf @method("DELETE")';
+    document.body.appendChild(form);
+    form.submit();
+}
+
+function retirarAlumnoDeClase(inscripcionId, nombre) {
+    if (! confirm('¿Retirar a ' + nombre + ' únicamente de esta clase? Sus otras clases no se modificarán.')) {
+        return;
+    }
+
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = '/inscripciones/' + inscripcionId;
     form.innerHTML = '@csrf @method("DELETE")';
     document.body.appendChild(form);
     form.submit();
