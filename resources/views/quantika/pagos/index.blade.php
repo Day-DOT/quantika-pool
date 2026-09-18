@@ -586,20 +586,14 @@
                         <div class="calendar-event calendar-event-{{ $colorCalendario }}">
                             <strong>{{ $pagoCalendario->alumno->nombreCompleto() }}</strong>
                             ${{ number_format((float) $pagoCalendario->monto, 0) }}
-                            @if ($pagoCalendario->es_proyeccion ?? false)
-                                <small style="display:block;">Proyección</small>
-                                <form action="{{ route('pagos.proyecciones.convertir') }}" method="POST" onsubmit="return confirm('¿Convertir esta proyección en un pago marcado como pagado?');">
-                                    @csrf
-                                    <input type="hidden" name="alumno_id" value="{{ $pagoCalendario->alumno_id }}">
-                                    <input type="hidden" name="fecha_vencimiento" value="{{ $pagoCalendario->fecha_vencimiento->toDateString() }}">
-                                    <button type="submit">Convertir en pagado</button>
-                                </form>
-                            @endif
                             <div class="calendar-event-actions">
-                                @if (! ($pagoCalendario->es_proyeccion ?? false))
-                                    <a href="{{ route('pagos.edit', $pagoCalendario) }}">Editar</a>
-                                @endif
-                                @if (! ($pagoCalendario->es_proyeccion ?? false) && $pagoCalendario->estado->value !== 'pagado')
+                                <a href="{{ route('pagos.edit', $pagoCalendario) }}">Editar</a>
+                                @if ($pagoCalendario->estado->value !== 'pagado')
+                                    <form action="{{ route('pagos.marcar-pagado', $pagoCalendario) }}" method="POST" onsubmit="return confirm('¿Marcar este pago como pagado y agendar el siguiente mes?');">
+                                        @csrf
+                                        @method('PATCH')
+                                        <button type="submit">Marcar pagado</button>
+                                    </form>
                                     <form action="{{ route('pagos.destroy', $pagoCalendario) }}" method="POST" onsubmit="return confirm('¿Eliminar este pago?');">
                                         @csrf
                                         @method('DELETE')
@@ -637,20 +631,14 @@
                                 <div class="calendar-event calendar-modal-event calendar-event-{{ $colorCalendario }}">
                                     <strong>{{ $pagoCalendario->alumno->nombreCompleto() }}</strong>
                                     ${{ number_format((float) $pagoCalendario->monto, 0) }}
-                                    @if ($pagoCalendario->es_proyeccion ?? false)
-                                        <small style="display:block;">Proyección</small>
-                                        <form action="{{ route('pagos.proyecciones.convertir') }}" method="POST" onsubmit="return confirm('¿Convertir esta proyección en un pago marcado como pagado?');">
-                                            @csrf
-                                            <input type="hidden" name="alumno_id" value="{{ $pagoCalendario->alumno_id }}">
-                                            <input type="hidden" name="fecha_vencimiento" value="{{ $pagoCalendario->fecha_vencimiento->toDateString() }}">
-                                            <button type="submit">Convertir en pagado</button>
-                                        </form>
-                                    @endif
                                     <div class="calendar-event-actions">
-                                        @if (! ($pagoCalendario->es_proyeccion ?? false))
-                                            <a href="{{ route('pagos.edit', $pagoCalendario) }}">Editar</a>
-                                        @endif
-                                        @if (! ($pagoCalendario->es_proyeccion ?? false) && $pagoCalendario->estado->value !== 'pagado')
+                                        <a href="{{ route('pagos.edit', $pagoCalendario) }}">Editar</a>
+                                        @if ($pagoCalendario->estado->value !== 'pagado')
+                                            <form action="{{ route('pagos.marcar-pagado', $pagoCalendario) }}" method="POST" onsubmit="return confirm('¿Marcar este pago como pagado y agendar el siguiente mes?');">
+                                                @csrf
+                                                @method('PATCH')
+                                                <button type="submit">Marcar pagado</button>
+                                            </form>
                                             <form action="{{ route('pagos.destroy', $pagoCalendario) }}" method="POST" onsubmit="return confirm('¿Eliminar este pago?');">
                                                 @csrf
                                                 @method('DELETE')

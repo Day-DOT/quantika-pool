@@ -93,7 +93,7 @@ class AdminPagosTest extends TestCase
         ]);
     }
 
-    public function test_admin_convierte_una_proyeccion_en_pago_pagado(): void
+    public function test_marcar_pago_como_pagado_agenda_la_mensualidad_siguiente(): void
     {
         $sucursal = Sucursal::factory()->create();
         $admin = User::factory()->admin($sucursal->id)->create();
@@ -101,13 +101,15 @@ class AdminPagosTest extends TestCase
         $alumno = Alumno::factory()->create([
             'sucursal_id' => $sucursal->id,
             'plan_id' => $plan->id,
-            'fecha_inscripcion' => Carbon::now()->subMonthNoOverflow()->toDateString(),
         ]);
-        $fechaVencimiento = $alumno->proximaFechaPago()->toDateString();
-
-        $response = $this->actingAs($admin)->post(route('pagos.proyecciones.convertir'), [
+        $fechaVencimiento = now()->toDateString();
+        $response = $this->actingAs($admin)->post(route('pagos.store'), [
             'alumno_id' => $alumno->id,
+            'concepto' => 'mensualidad',
+            'periodo' => now()->format('Y-m'),
+            'monto' => 650,
             'fecha_vencimiento' => $fechaVencimiento,
+            'estado' => 'pagado',
         ]);
 
         $response->assertRedirect();
@@ -116,6 +118,12 @@ class AdminPagosTest extends TestCase
             'monto' => 650,
             'fecha_vencimiento' => $fechaVencimiento . ' 00:00:00',
             'estado' => EstadoPago::Pagado->value,
+        ]);
+        $this->assertDatabaseHas('pagos', [
+            'alumno_id' => $alumno->id,
+            'monto' => 650,
+            'fecha_vencimiento' => now()->addMonthNoOverflow()->toDateString() . ' 00:00:00',
+            'estado' => EstadoPago::Pendiente->value,
         ]);
     }
 

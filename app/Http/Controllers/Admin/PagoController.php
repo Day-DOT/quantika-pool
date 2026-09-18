@@ -16,7 +16,6 @@ use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
 
@@ -139,41 +138,6 @@ class PagoController extends Controller
         $this->aplicarSucursal($calendarioPagosQuery);
         $calendarioPagos = $calendarioPagosQuery->get();
 
-        $proyeccionesQuery = Alumno::query()
-            ->where('estado', EstadoAlumno::Activo->value)
-            ->whereNotNull('plan_id')
-            ->with(['plan', 'ultimoPagoMensualidad', 'sucursal']);
-        $this->aplicarSucursal($proyeccionesQuery);
-
-        $proyecciones = $proyeccionesQuery->get()
-            ->filter(function (Alumno $alumno) use ($calendarioMes) {
-                $fecha = $alumno->proximaFechaPago();
-
-                return $fecha
-                    && $alumno->plan?->precio !== null
-                    && $fecha->isSameMonth($calendarioMes)
-                    && ! $alumno->pagos()
-                        ->whereDate('fecha_vencimiento', $fecha->toDateString())
-                        ->exists();
-            })
-            ->map(function (Alumno $alumno) {
-                $pago = new \App\Models\Pago([
-                    'alumno_id' => $alumno->id,
-                    'sucursal_id' => $alumno->sucursal_id,
-                    'concepto' => ConceptoPago::Mensualidad->value,
-                    'periodo' => $alumno->proximaFechaPago()->format('Y-m'),
-                    'monto' => $alumno->plan->precio,
-                    'fecha_vencimiento' => $alumno->proximaFechaPago()->toDateString(),
-                    'estado' => EstadoPago::Pendiente->value,
-                ]);
-                $pago->setRelation('alumno', $alumno);
-                $pago->setAttribute('es_proyeccion', true);
-
-                return $pago;
-            });
-
-        $calendarioPagos = $calendarioPagos->concat($proyecciones)->sortBy('fecha_vencimiento')->values();
-
         return view('quantika.pagos.index', [
             'cobradoMes' => $cobradoMes,
             'cambioPct' => $cambioPct,
@@ -238,6 +202,10 @@ class PagoController extends Controller
             'registrado_por' => auth()->id(),
         ]);
 
+        if ($pago->estado === EstadoPago::Pagado) {
+            $this->agendarSiguienteMensualidad($pago);
+        }
+
         return redirect()->route('pagos.alumno', $alumno)->with('status', "Pago de {$alumno->nombreCompleto()} registrado correctamente.");
     }
 
@@ -296,6 +264,10 @@ class PagoController extends Controller
 
         $pago->update($actualizacion);
 
+        if ($pago->estado === EstadoPago::Pagado) {
+            $this->agendarSiguienteMensualidad($pago);
+        }
+
         return redirect()->route('pagos.alumno', $alumno)->with('status', 'Pago actualizado correctamente.');
     }
 
@@ -339,70 +311,41 @@ class PagoController extends Controller
             'fecha_pago' => now()->toDateString(),
             'metodo_pago' => $metodo,
         ]);
+        $this->agendarSiguienteMensualidad($pago);
 
         return back()->with('status', 'Pago marcado como pagado.');
     }
 
-    public function convertirProyeccion(Request $request): RedirectResponse
+    private function agendarSiguienteMensualidad(Pago $pago): void
     {
-        $this->authorize('create', Pago::class);
+        if ($pago->concepto !== ConceptoPago::Mensualidad
+            || ! $pago->fecha_vencimiento
+            || ! $pago->alumno?->plan
+            || $pago->alumno->estado !== EstadoAlumno::Activo
+            || $pago->alumno->plan->precio === null) {
+            return;
+        }
 
-        $datos = $request->validate([
-            'alumno_id' => ['required', 'integer', 'exists:alumnos,id'],
-            'fecha_vencimiento' => ['required', 'date'],
+        $siguienteFecha = $pago->fecha_vencimiento->copy()->addMonthNoOverflow();
+        $yaExiste = Pago::query()
+            ->where('alumno_id', $pago->alumno_id)
+            ->where('concepto', ConceptoPago::Mensualidad->value)
+            ->whereDate('fecha_vencimiento', $siguienteFecha->toDateString())
+            ->exists();
+
+        if ($yaExiste) {
+            return;
+        }
+
+        Pago::create([
+            'alumno_id' => $pago->alumno_id,
+            'sucursal_id' => $pago->sucursal_id,
+            'concepto' => ConceptoPago::Mensualidad->value,
+            'periodo' => $siguienteFecha->format('Y-m'),
+            'monto' => $pago->alumno->plan->precio,
+            'fecha_vencimiento' => $siguienteFecha->toDateString(),
+            'estado' => EstadoPago::Pendiente->value,
         ]);
-
-        $alumno = Alumno::with(['plan'])->findOrFail($datos['alumno_id']);
-
-        if (! auth()->user()->isSuperAdmin() && $alumno->sucursal_id !== auth()->user()->sucursal_id) {
-            abort(403);
-        }
-
-        $fechaVencimiento = Carbon::parse($datos['fecha_vencimiento'])->toDateString();
-        $fechaProyectada = $alumno->proximaFechaPago()?->toDateString();
-
-        if ($alumno->estado !== EstadoAlumno::Activo
-            || ! $alumno->plan
-            || $alumno->plan->precio === null
-            || $fechaProyectada !== $fechaVencimiento) {
-            abort(422, 'La proyección seleccionada ya no está disponible para convertirse.');
-        }
-
-        DB::transaction(function () use ($alumno, $fechaVencimiento): void {
-            $pagoExistente = Pago::query()
-                ->where('alumno_id', $alumno->id)
-                ->whereDate('fecha_vencimiento', $fechaVencimiento)
-                ->lockForUpdate()
-                ->first();
-
-            if ($pagoExistente) {
-                if ($pagoExistente->estado !== EstadoPago::Pagado) {
-                    $pagoExistente->update([
-                        'estado' => EstadoPago::Pagado->value,
-                        'fecha_pago' => now()->toDateString(),
-                        'metodo_pago' => MetodoPago::Efectivo->value,
-                        'registrado_por' => auth()->id(),
-                    ]);
-                }
-
-                return;
-            }
-
-            Pago::create([
-                'alumno_id' => $alumno->id,
-                'sucursal_id' => $alumno->sucursal_id,
-                'concepto' => ConceptoPago::Mensualidad->value,
-                'periodo' => Carbon::parse($fechaVencimiento)->format('Y-m'),
-                'monto' => $alumno->plan->precio,
-                'fecha_vencimiento' => $fechaVencimiento,
-                'fecha_pago' => now()->toDateString(),
-                'metodo_pago' => MetodoPago::Efectivo->value,
-                'estado' => EstadoPago::Pagado->value,
-                'registrado_por' => auth()->id(),
-            ]);
-        });
-
-        return back()->with('status', "Proyección de {$alumno->nombreCompleto()} convertida en pago pagado.");
     }
 
     public function destroy(Pago $pago): RedirectResponse
