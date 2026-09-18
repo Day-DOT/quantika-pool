@@ -588,6 +588,12 @@
                             ${{ number_format((float) $pagoCalendario->monto, 0) }}
                             @if ($pagoCalendario->es_proyeccion ?? false)
                                 <small style="display:block;">Proyección</small>
+                                <form action="{{ route('pagos.proyecciones.convertir') }}" method="POST" onsubmit="return confirm('¿Convertir esta proyección en un pago marcado como pagado?');">
+                                    @csrf
+                                    <input type="hidden" name="alumno_id" value="{{ $pagoCalendario->alumno_id }}">
+                                    <input type="hidden" name="fecha_vencimiento" value="{{ $pagoCalendario->fecha_vencimiento->toDateString() }}">
+                                    <button type="submit">Convertir en pagado</button>
+                                </form>
                             @endif
                             <div class="calendar-event-actions">
                                 @if (! ($pagoCalendario->es_proyeccion ?? false))
@@ -633,6 +639,12 @@
                                     ${{ number_format((float) $pagoCalendario->monto, 0) }}
                                     @if ($pagoCalendario->es_proyeccion ?? false)
                                         <small style="display:block;">Proyección</small>
+                                        <form action="{{ route('pagos.proyecciones.convertir') }}" method="POST" onsubmit="return confirm('¿Convertir esta proyección en un pago marcado como pagado?');">
+                                            @csrf
+                                            <input type="hidden" name="alumno_id" value="{{ $pagoCalendario->alumno_id }}">
+                                            <input type="hidden" name="fecha_vencimiento" value="{{ $pagoCalendario->fecha_vencimiento->toDateString() }}">
+                                            <button type="submit">Convertir en pagado</button>
+                                        </form>
                                     @endif
                                     <div class="calendar-event-actions">
                                         @if (! ($pagoCalendario->es_proyeccion ?? false))

@@ -5,8 +5,10 @@ namespace Tests\Feature;
 use App\Enums\EstadoPago;
 use App\Models\Alumno;
 use App\Models\Pago;
+use App\Models\Plan;
 use App\Models\Sucursal;
 use App\Models\User;
+use Illuminate\Support\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -88,6 +90,32 @@ class AdminPagosTest extends TestCase
             'sucursal_id' => $sucursal->id,
             'monto' => 650,
             'estado' => 'pendiente',
+        ]);
+    }
+
+    public function test_admin_convierte_una_proyeccion_en_pago_pagado(): void
+    {
+        $sucursal = Sucursal::factory()->create();
+        $admin = User::factory()->admin($sucursal->id)->create();
+        $plan = Plan::factory()->create(['precio' => 650]);
+        $alumno = Alumno::factory()->create([
+            'sucursal_id' => $sucursal->id,
+            'plan_id' => $plan->id,
+            'fecha_inscripcion' => Carbon::now()->subMonthNoOverflow()->toDateString(),
+        ]);
+        $fechaVencimiento = $alumno->proximaFechaPago()->toDateString();
+
+        $response = $this->actingAs($admin)->post(route('pagos.proyecciones.convertir'), [
+            'alumno_id' => $alumno->id,
+            'fecha_vencimiento' => $fechaVencimiento,
+        ]);
+
+        $response->assertRedirect();
+        $this->assertDatabaseHas('pagos', [
+            'alumno_id' => $alumno->id,
+            'monto' => 650,
+            'fecha_vencimiento' => $fechaVencimiento . ' 00:00:00',
+            'estado' => EstadoPago::Pagado->value,
         ]);
     }
 

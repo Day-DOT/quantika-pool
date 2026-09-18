@@ -16,6 +16,7 @@ use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
 
@@ -340,6 +341,68 @@ class PagoController extends Controller
         ]);
 
         return back()->with('status', 'Pago marcado como pagado.');
+    }
+
+    public function convertirProyeccion(Request $request): RedirectResponse
+    {
+        $this->authorize('create', Pago::class);
+
+        $datos = $request->validate([
+            'alumno_id' => ['required', 'integer', 'exists:alumnos,id'],
+            'fecha_vencimiento' => ['required', 'date'],
+        ]);
+
+        $alumno = Alumno::with(['plan'])->findOrFail($datos['alumno_id']);
+
+        if (! auth()->user()->isSuperAdmin() && $alumno->sucursal_id !== auth()->user()->sucursal_id) {
+            abort(403);
+        }
+
+        $fechaVencimiento = Carbon::parse($datos['fecha_vencimiento'])->toDateString();
+        $fechaProyectada = $alumno->proximaFechaPago()?->toDateString();
+
+        if ($alumno->estado !== EstadoAlumno::Activo
+            || ! $alumno->plan
+            || $alumno->plan->precio === null
+            || $fechaProyectada !== $fechaVencimiento) {
+            abort(422, 'La proyección seleccionada ya no está disponible para convertirse.');
+        }
+
+        DB::transaction(function () use ($alumno, $fechaVencimiento): void {
+            $pagoExistente = Pago::query()
+                ->where('alumno_id', $alumno->id)
+                ->whereDate('fecha_vencimiento', $fechaVencimiento)
+                ->lockForUpdate()
+                ->first();
+
+            if ($pagoExistente) {
+                if ($pagoExistente->estado !== EstadoPago::Pagado) {
+                    $pagoExistente->update([
+                        'estado' => EstadoPago::Pagado->value,
+                        'fecha_pago' => now()->toDateString(),
+                        'metodo_pago' => MetodoPago::Efectivo->value,
+                        'registrado_por' => auth()->id(),
+                    ]);
+                }
+
+                return;
+            }
+
+            Pago::create([
+                'alumno_id' => $alumno->id,
+                'sucursal_id' => $alumno->sucursal_id,
+                'concepto' => ConceptoPago::Mensualidad->value,
+                'periodo' => Carbon::parse($fechaVencimiento)->format('Y-m'),
+                'monto' => $alumno->plan->precio,
+                'fecha_vencimiento' => $fechaVencimiento,
+                'fecha_pago' => now()->toDateString(),
+                'metodo_pago' => MetodoPago::Efectivo->value,
+                'estado' => EstadoPago::Pagado->value,
+                'registrado_por' => auth()->id(),
+            ]);
+        });
+
+        return back()->with('status', "Proyección de {$alumno->nombreCompleto()} convertida en pago pagado.");
     }
 
     public function destroy(Pago $pago): RedirectResponse

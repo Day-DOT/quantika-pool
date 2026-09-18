@@ -57,6 +57,7 @@ Route::middleware(['auth', 'role:admin,super_admin'])->group(function () {
     Route::put('/pagos/{pago}', [PagoController::class, 'update'])->name('pagos.update');
     Route::get('/pagos/alumno/{alumno}', [PagoController::class, 'alumno'])->name('pagos.alumno');
     Route::get('/pagos/deudores', [PagoController::class, 'deudores'])->name('pagos.deudores');
+    Route::post('/pagos/proyecciones/convertir', [PagoController::class, 'convertirProyeccion'])->name('pagos.proyecciones.convertir');
     Route::patch('/pagos/{pago}/marcar-pagado', [PagoController::class, 'marcarPagado'])->name('pagos.marcar-pagado');
     Route::delete('/pagos/{pago}', [PagoController::class, 'destroy'])->name('pagos.destroy');
 
