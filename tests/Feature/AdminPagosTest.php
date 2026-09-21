@@ -34,6 +34,30 @@ class AdminPagosTest extends TestCase
         $response->assertOk();
     }
 
+    public function test_los_indicadores_muestran_el_mes_seleccionado(): void
+    {
+        $sucursal = Sucursal::factory()->create();
+        $admin = User::factory()->admin($sucursal->id)->create();
+        $alumno = Alumno::factory()->create(['sucursal_id' => $sucursal->id]);
+
+        Pago::factory()->create([
+            'alumno_id' => $alumno->id,
+            'sucursal_id' => $sucursal->id,
+            'periodo' => '2026-08',
+            'estado' => EstadoPago::Pagado->value,
+            'monto' => 650,
+            'fecha_pago' => '2026-08-15',
+            'fecha_vencimiento' => '2026-08-15',
+        ]);
+
+        $response = $this->actingAs($admin)->get(route('pagos.index', ['mes' => '2026-08']));
+
+        $response->assertOk();
+        $response->assertViewHas('pagadosMonto', 650.0);
+        $response->assertViewHas('pagadosCount', 1);
+        $response->assertViewHas('cobradoMes', 650.0);
+    }
+
     public function test_super_admin_ve_el_index_de_pagos_de_todas_las_sucursales(): void
     {
         $superAdmin = User::factory()->superAdmin()->create();

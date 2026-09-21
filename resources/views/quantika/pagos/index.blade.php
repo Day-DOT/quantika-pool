@@ -436,7 +436,7 @@
     <div class="stats">
 
         <div class="stat">
-            <div class="stat-label">COBRADO ESTE MES</div>
+            <div class="stat-label">COBRADO EN {{ mb_strtoupper($calendarioMes->locale('es')->isoFormat('MMMM YYYY')) }}</div>
             <div class="stat-value green">${{ number_format($cobradoMes, 0) }}</div>
             <div class="stat-small">
                 @if ($cambioPct === null)
@@ -476,7 +476,7 @@
 
             <div class="card-header">
                 <div>
-                    <div class="card-title">Ingresos del mes</div>
+                    <div class="card-title">Ingresos de los últimos 8 meses</div>
                     <div class="card-description">Comportamiento de los pagos registrados.</div>
                 </div>
 

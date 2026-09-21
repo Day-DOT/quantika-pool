@@ -32,6 +32,7 @@ Route::middleware(['auth', 'role:admin,super_admin'])->group(function () {
     Route::get('/alumnos/{alumno}', [AlumnoController::class, 'show'])->name('alumnos.show');
     Route::get('/alumnos/{alumno}/editar', [AlumnoController::class, 'edit'])->name('alumnos.edit');
     Route::put('/alumnos/{alumno}', [AlumnoController::class, 'update'])->name('alumnos.update');
+    Route::delete('/alumnos/{alumno}/foto', [AlumnoController::class, 'destroyFoto'])->name('alumnos.foto.destroy');
     Route::patch('/alumnos/{alumno}/baja', [AlumnoController::class, 'baja'])->name('alumnos.baja');
     Route::patch('/alumnos/{alumno}/reactivar', [AlumnoController::class, 'reactivar'])->name('alumnos.reactivar');
     Route::delete('/alumnos/{alumno}', [AlumnoController::class, 'destroy'])->name('alumnos.destroy');

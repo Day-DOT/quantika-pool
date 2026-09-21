@@ -73,6 +73,11 @@ class AsistenciaQrTest extends TestCase
         $response = $this->actingAs($admin)->get(route('asistencia.registrar', $alumno->qr_token));
 
         $response->assertOk();
+        $response->assertSee('Registrar asistencia');
+        $this->assertDatabaseMissing('citas', ['alumno_id' => $alumno->id]);
+
+        $response = $this->actingAs($admin)->post(route('asistencia.confirmar', $alumno->qr_token));
+        $response->assertOk();
         $response->assertSee('Asistencia registrada');
 
         $this->assertDatabaseHas('citas', [

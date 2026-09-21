@@ -281,6 +281,26 @@ class AdminAlumnosTest extends TestCase
         Storage::disk('public')->assertMissing('alumnos/documentos/foto-anterior.png');
     }
 
+    public function test_admin_puede_eliminar_la_foto_de_un_alumno(): void
+    {
+        Storage::fake('public');
+
+        $sucursal = Sucursal::factory()->create();
+        $admin = User::factory()->admin($sucursal->id)->create();
+        $alumno = Alumno::factory()->create([
+            'sucursal_id' => $sucursal->id,
+            'foto_path' => 'alumnos/documentos/foto.png',
+        ]);
+        Storage::disk('public')->put($alumno->foto_path, 'contenido');
+
+        $this->actingAs($admin)
+            ->delete(route('alumnos.foto.destroy', $alumno))
+            ->assertRedirect();
+
+        $this->assertNull($alumno->fresh()->foto_path);
+        Storage::disk('public')->assertMissing('alumnos/documentos/foto.png');
+    }
+
     public function test_admin_no_puede_registrar_alumno_en_otra_sucursal(): void
     {
         // El admin no elige sucursal_id: el controlador la fuerza a la suya.

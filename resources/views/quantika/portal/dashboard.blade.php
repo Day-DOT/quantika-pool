@@ -79,9 +79,7 @@
 
                 <div class="level-block" style="--level-color: {{ $nivelActivo?->color_hex ?? '#42d8ef' }}">
                     <div class="animal">
-                        @if ($alumno->foto_path)
-                            <img src="{{ \Illuminate\Support\Facades\Storage::disk('public')->url($alumno->foto_path) }}" alt="Foto de {{ $alumno->nombreCompleto() }}" style="width:100%;height:100%;object-fit:cover;border-radius:inherit;">
-                        @elseif ($nivelActivo?->imagen)
+                        @if ($nivelActivo?->imagen)
                             <img src="{{ asset($nivelActivo->imagen) }}" alt="{{ $nivelActivo->nombre }}">
                         @endif
                     </div>
@@ -115,12 +113,7 @@
                         @else
                             <p class="card-description" style="color:var(--yellow);">Este alumno todavía no tiene una foto guardada.</p>
                         @endif
-                        <p class="card-description">Toma o selecciona una foto clara para identificar fácilmente a este alumno en el portal.</p>
-                        <form method="POST" action="{{ route('portal.foto.update', ['alumno' => $alumno->id]) }}" enctype="multipart/form-data" style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;">
-                            @csrf
-                            <input type="file" name="foto" accept="image/jpeg,image/png" capture="user" required>
-                            <button type="submit" class="btn btn-primary">Guardar foto</button>
-                        </form>
+                        <p class="card-description">La fotografía de identificación solo puede ser agregada, reemplazada o eliminada por un administrador.</p>
                     </div>
                 </div>
 

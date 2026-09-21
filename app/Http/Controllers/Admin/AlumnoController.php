@@ -23,6 +23,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 class AlumnoController extends Controller
@@ -107,6 +108,12 @@ class AlumnoController extends Controller
                 // tutor) o se crea una nueva pendiente de activar.
                 $tutor = User::where('email', $datos['tutor_email'])->first();
 
+                if ($tutor && $tutor->role !== Rol::Alumno) {
+                    throw ValidationException::withMessages([
+                        'tutor_email' => 'Ese correo ya pertenece a una cuenta administrativa o de instructor. Usa otro correo para el tutor.',
+                    ]);
+                }
+
                 if (! $tutor) {
                     $cuentaPendienteActivar = true;
 
@@ -121,6 +128,7 @@ class AlumnoController extends Controller
                         'activo' => true,
                     ]);
                     $tutor->forceFill(['password_configurada' => false])->save();
+
                 } elseif (empty($tutor->telefono) && ! empty($datos['tutor_telefono'])) {
                     $tutor->update(['telefono' => $datos['tutor_telefono']]);
                 }
@@ -135,6 +143,12 @@ class AlumnoController extends Controller
                 // su propia cuenta de portal para que pueda ver sus
                 // calificaciones, citas y pagos por sí mismo.
                 $tutor = User::where('email', $datos['email'])->first();
+
+                if ($tutor && $tutor->role !== Rol::Alumno) {
+                    throw ValidationException::withMessages([
+                        'email' => 'Ese correo ya pertenece a una cuenta administrativa o de instructor. Usa otro correo para el alumno.',
+                    ]);
+                }
 
                 if (! $tutor) {
                     $cuentaPendienteActivar = true;
@@ -333,6 +347,12 @@ class AlumnoController extends Controller
                 $tutorExistente = User::where('email', $tutorEmailNuevo)->first();
 
                 if ($tutorExistente) {
+                    if ($tutorExistente->role !== Rol::Alumno) {
+                        throw ValidationException::withMessages([
+                            'tutor_email' => 'Ese correo ya pertenece a una cuenta administrativa o de instructor. Usa otro correo para el tutor.',
+                        ]);
+                    }
+
                     // Ya existe una cuenta con ese correo (p.ej. el tutor de
                     // un hermano): se enlaza directamente a esa cuenta.
                     $alumno->update([
@@ -377,6 +397,12 @@ class AlumnoController extends Controller
                 // Sin tutor, pero el alumno tiene su propio correo: se le
                 // crea (o enlaza) su propia cuenta de portal.
                 $tutor = User::where('email', $datos['email'])->first();
+
+                if ($tutor && $tutor->role !== Rol::Alumno) {
+                    throw ValidationException::withMessages([
+                        'email' => 'Ese correo ya pertenece a una cuenta administrativa o de instructor. Usa otro correo para el alumno.',
+                    ]);
+                }
 
                 if (! $tutor) {
                     $tutor = User::create([
@@ -424,6 +450,19 @@ class AlumnoController extends Controller
         });
 
         return redirect()->route('alumnos.show', $alumno)->with('status', 'Alumno actualizado correctamente.');
+    }
+
+    public function destroyFoto(Alumno $alumno): RedirectResponse
+    {
+        $this->authorize('update', $alumno);
+
+        if ($alumno->foto_path && str_starts_with($alumno->foto_path, 'alumnos/documentos/')) {
+            Storage::disk('public')->delete($alumno->foto_path);
+        }
+
+        $alumno->update(['foto_path' => null]);
+
+        return back()->with('status', 'La fotografía del alumno se eliminó correctamente.');
     }
 
     public function baja(Request $request, Alumno $alumno): RedirectResponse
