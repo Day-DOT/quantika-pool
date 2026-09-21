@@ -20,7 +20,6 @@ use App\Models\Sucursal;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
-use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 class PortalAlumnoTest extends TestCase
@@ -73,27 +72,17 @@ class PortalAlumnoTest extends TestCase
             ->assertSee($alumno->nombreCompleto());
     }
 
-    public function test_tutor_puede_tomar_y_guardar_foto_del_alumno(): void
+    public function test_tutor_no_puede_modificar_la_foto_del_alumno(): void
     {
-        Storage::fake('public');
         [$tutor, $alumno] = $this->crearTutorConAlumno();
 
-        $foto = UploadedFile::fake()->image('alumno.jpg');
-
         $this->actingAs($tutor)
-            ->post(route('portal.foto.update', ['alumno' => $alumno->id]), [
-                'foto' => $foto,
+            ->post('/portal/foto', [
+                'foto' => UploadedFile::fake()->image('alumno.jpg'),
             ])
-            ->assertRedirect(route('portal.dashboard', ['alumno' => $alumno->id]));
+            ->assertNotFound();
 
-        $alumno->refresh();
-        $this->assertNotNull($alumno->foto_path);
-        Storage::disk('public')->assertExists($alumno->foto_path);
-
-        $this->actingAs($tutor)
-            ->get(route('portal.dashboard', ['alumno' => $alumno->id]))
-            ->assertOk()
-            ->assertSee(Storage::disk('public')->url($alumno->foto_path), false);
+        $this->assertNull($alumno->fresh()->foto_path);
     }
 
     public function test_dashboard_muestra_selector_cuando_el_tutor_tiene_varios_alumnos(): void

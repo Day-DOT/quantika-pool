@@ -127,4 +127,89 @@ class RegistroTutorTest extends TestCase
         $response->assertSessionHasErrors('tutor_email');
         $this->assertGuest();
     }
+
+    public function test_un_tutor_puede_activar_la_cuenta_con_cualquiera_de_sus_varios_alumnos(): void
+    {
+        $sucursal = Sucursal::factory()->create();
+        $tutor = User::factory()->tutor()->create([
+            'email' => 'familia@example.com',
+        ]);
+        $tutor->forceFill(['password_configurada' => false])->save();
+
+        Alumno::factory()->create([
+            'sucursal_id' => $sucursal->id,
+            'tutor_user_id' => $tutor->id,
+            'nombre' => 'Primera',
+            'apellidos' => 'Menor',
+            'fecha_nacimiento' => '2015-01-10',
+        ]);
+        $segundo = Alumno::factory()->create([
+            'sucursal_id' => $sucursal->id,
+            'tutor_user_id' => $tutor->id,
+            'nombre' => 'Segundo',
+            'apellidos' => 'Menor',
+            'fecha_nacimiento' => '2018-06-20',
+        ]);
+
+        $this->post(route('registro'), [
+            'tutor_email' => 'FAMILIA@example.com',
+            'alumno_nombre' => $segundo->nombre,
+            'alumno_apellidos' => $segundo->apellidos,
+            'alumno_fecha_nacimiento' => '2018-06-20',
+            'password' => 'contrasena-nueva-123',
+            'password_confirmation' => 'contrasena-nueva-123',
+        ])->assertRedirect(route('portal.dashboard'));
+
+        $this->assertAuthenticatedAs($tutor->fresh());
+        $this->assertCount(2, $tutor->fresh()->alumnos);
+    }
+
+    public function test_registrar_otro_menor_no_desactiva_la_cuenta_del_tutor(): void
+    {
+        $sucursal = Sucursal::factory()->create();
+        $tutor = User::factory()->tutor()->create([
+            'email' => 'familia-activa@example.com',
+        ]);
+        $tutor->forceFill(['password_configurada' => true])->save();
+
+        Alumno::factory()->create([
+            'sucursal_id' => $sucursal->id,
+            'tutor_user_id' => $tutor->id,
+            'nombre' => 'Primera',
+            'apellidos' => 'Menor',
+            'fecha_nacimiento' => '2015-01-10',
+        ]);
+
+        $admin = User::factory()->admin($sucursal->id)->create();
+
+        $this->actingAs($admin)->post(route('alumnos.store'), [
+            'nombre' => 'Segundo',
+            'apellidos' => 'Menor',
+            'fecha_nacimiento' => '2018-06-20',
+            'tutor_nombre' => 'Tutor Activo',
+            'tutor_email' => $tutor->email,
+        ])->assertRedirect();
+
+        $this->assertTrue($tutor->fresh()->password_configurada);
+    }
+
+    public function test_no_se_puede_usar_un_correo_de_admin_para_crear_un_tutor(): void
+    {
+        $sucursal = Sucursal::factory()->create();
+        $admin = User::factory()->admin($sucursal->id)->create([
+            'email' => 'admin@example.com',
+        ]);
+
+        $this->actingAs($admin)
+            ->post(route('alumnos.store'), [
+                'nombre' => 'Alumno',
+                'apellidos' => 'Prueba',
+                'fecha_nacimiento' => '2016-01-01',
+                'tutor_nombre' => 'Administrador',
+                'tutor_email' => 'admin@example.com',
+            ])
+            ->assertSessionHasErrors('tutor_email');
+
+        $this->assertDatabaseMissing('alumnos', ['nombre' => 'Alumno', 'apellidos' => 'Prueba']);
+    }
 }

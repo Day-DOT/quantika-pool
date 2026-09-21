@@ -30,9 +30,6 @@ Route::middleware(['auth', 'role:alumno'])->group(function () {
     Route::get('/portal/cuenta', [CuentaController::class, 'index'])
         ->name('portal.cuenta');
 
-    Route::post('/portal/foto', [CuentaController::class, 'actualizarFoto'])
-        ->name('portal.foto.update');
-
     Route::get('/portal/qr', [CodigoQrController::class, 'index'])
         ->name('portal.qr');
 

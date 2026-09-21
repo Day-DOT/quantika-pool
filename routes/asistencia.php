@@ -16,5 +16,7 @@ Route::middleware(['auth', 'role:admin,super_admin'])->group(function () {
 
     Route::get('/asistencia/qr/{token}', [AsistenciaQrController::class, 'registrar'])
         ->name('asistencia.registrar');
+    Route::post('/asistencia/qr/{token}', [AsistenciaQrController::class, 'confirmar'])
+        ->name('asistencia.confirmar');
 
 });

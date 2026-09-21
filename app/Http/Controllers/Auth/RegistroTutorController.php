@@ -33,11 +33,11 @@ class RegistroTutorController extends Controller
             'Verifica que el correo y los datos del alumno coincidan exactamente con los que '.
             'la escuela registró, o contacta al administrador.';
 
-        $tutor = User::where('email', $datos['tutor_email'])
+        $tutor = User::whereRaw('LOWER(email) = ?', [mb_strtolower(trim($datos['tutor_email']))])
             ->where('role', Rol::Alumno->value)
             ->first();
 
-        if (! $tutor || $tutor->password_configurada) {
+        if (! $tutor || ! $tutor->activo || $tutor->password_configurada) {
             return back()->withInput($request->except(['password', 'password_confirmation']))
                 ->withErrors(['tutor_email' => $mensajeGenerico]);
         }

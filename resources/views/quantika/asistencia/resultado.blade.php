@@ -90,6 +90,9 @@
         <h1>{{ $alumno?->nombreCompleto() ?? 'Código QR' }}</h1>
         <p>{{ $mensaje }}</p>
         @if ($alumno)
+            @if ($alumno->foto_path)
+                <img src="{{ \Illuminate\Support\Facades\Storage::disk('public')->url($alumno->foto_path) }}" alt="Foto de {{ $alumno->nombreCompleto() }}" style="width:110px;height:110px;object-fit:cover;border-radius:20px;border:2px solid var(--cyan);margin-bottom:14px;">
+            @endif
             <div style="text-align:left;margin:18px 0;color:var(--muted);font-size:13px;line-height:1.7;">
                 <strong style="color:#eaf6fb;">Ficha rápida</strong><br>
                 Nivel: {{ $alumno->nombreNivelConSubNivel() ?? 'Sin nivel' }}<br>
@@ -100,6 +103,12 @@
                     {{ $horariosHoy->map(fn ($horario) => $horario->nombre_grupo.' ('.substr($horario->hora_inicio, 0, 5).')')->join(', ') }}
                 @endif
             </div>
+            @if (($puedeRegistrar ?? false) && $horariosHoy->isNotEmpty())
+                <form method="POST" action="{{ route('asistencia.confirmar', $alumno->qr_token) }}">
+                    @csrf
+                    <button type="submit" class="btn" style="border:0;cursor:pointer;">Registrar asistencia</button>
+                </form>
+            @endif
         @endif
         <a href="{{ route('asistencia.escanear') }}" class="btn">Escanear otro código</a>
     </div>

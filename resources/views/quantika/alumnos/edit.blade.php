@@ -169,6 +169,7 @@
                     <input type="file" class="form-input" name="foto" accept=".jpg,.jpeg,.png">
                     @if ($alumno->foto_path)
                         <span class="form-hint"><a href="{{ \Illuminate\Support\Facades\Storage::url($alumno->foto_path) }}" target="_blank">Ver archivo actual</a></span>
+                        <button type="submit" form="eliminar-foto-alumno" class="btn btn-outline" style="margin-top:8px;">Eliminar foto</button>
                     @endif
                 </div>
 
@@ -188,6 +189,13 @@
             </div>
 
         </form>
+
+        @if ($alumno->foto_path)
+            <form id="eliminar-foto-alumno" method="POST" action="{{ route('alumnos.foto.destroy', $alumno) }}" style="display:none;">
+                @csrf
+                @method('DELETE')
+            </form>
+        @endif
 
     </div>
 

@@ -33,16 +33,16 @@ class PagoController extends Controller
             'mes' => ['nullable', 'date_format:Y-m'],
         ])['mes'] ?? $hoy->format('Y-m');
         $calendarioMes = Carbon::createFromFormat('Y-m', $mesCalendario)->startOfMonth();
-        $periodoActual = $hoy->format('Y-m');
+        $periodoSeleccionado = $calendarioMes->format('Y-m');
 
         $cobradoMesQuery = Pago::query()
             ->where('estado', EstadoPago::Pagado->value)
-            ->whereYear('fecha_pago', $hoy->year)
-            ->whereMonth('fecha_pago', $hoy->month);
+            ->whereYear('fecha_pago', $calendarioMes->year)
+            ->whereMonth('fecha_pago', $calendarioMes->month);
         $this->aplicarSucursal($cobradoMesQuery);
         $cobradoMes = (float) $cobradoMesQuery->sum('monto');
 
-        $mesAnterior = $hoy->copy()->subMonthNoOverflow();
+        $mesAnterior = $calendarioMes->copy()->subMonthNoOverflow();
         $cobradoMesAnteriorQuery = Pago::query()
             ->where('estado', EstadoPago::Pagado->value)
             ->whereYear('fecha_pago', $mesAnterior->year)
@@ -54,17 +54,17 @@ class PagoController extends Controller
             ? round((($cobradoMes - $cobradoMesAnterior) / $cobradoMesAnterior) * 100, 1)
             : null;
 
-        $pendientesQuery = Pago::query()->where('periodo', $periodoActual)->where('estado', EstadoPago::Pendiente->value);
+        $pendientesQuery = Pago::query()->where('periodo', $periodoSeleccionado)->where('estado', EstadoPago::Pendiente->value);
         $this->aplicarSucursal($pendientesQuery);
         $pendientesMonto = (float) (clone $pendientesQuery)->sum('monto');
         $pendientesCount = (clone $pendientesQuery)->count();
 
-        $revisionQuery = Pago::query()->where('periodo', $periodoActual)->where('estado', EstadoPago::EnRevision->value);
+        $revisionQuery = Pago::query()->where('periodo', $periodoSeleccionado)->where('estado', EstadoPago::EnRevision->value);
         $this->aplicarSucursal($revisionQuery);
         $revisionMonto = (float) (clone $revisionQuery)->sum('monto');
         $revisionCount = (clone $revisionQuery)->count();
 
-        $pagadosQuery = Pago::query()->where('periodo', $periodoActual)->where('estado', EstadoPago::Pagado->value);
+        $pagadosQuery = Pago::query()->where('periodo', $periodoSeleccionado)->where('estado', EstadoPago::Pagado->value);
         $this->aplicarSucursal($pagadosQuery);
         $pagadosMonto = (float) (clone $pagadosQuery)->sum('monto');
         $pagadosCount = (clone $pagadosQuery)->count();
@@ -73,8 +73,8 @@ class PagoController extends Controller
         $this->aplicarSucursal($deudoresQuery);
         $deudoresCount = $deudoresQuery->pluck('alumno_id')->unique()->count();
 
-        $ingresosPorMes = collect(range(7, 0))->map(function (int $offset) use ($hoy) {
-            $mes = $hoy->copy()->subMonthsNoOverflow($offset);
+        $ingresosPorMes = collect(range(7, 0))->map(function (int $offset) use ($calendarioMes) {
+            $mes = $calendarioMes->copy()->subMonthsNoOverflow($offset);
             $query = Pago::query()
                 ->where('estado', EstadoPago::Pagado->value)
                 ->whereYear('fecha_pago', $mes->year)
