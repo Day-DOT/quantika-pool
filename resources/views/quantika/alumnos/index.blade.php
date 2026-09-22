@@ -504,7 +504,6 @@
             <div class="summary-card">
                 <div class="summary-label">{{ \App\Models\ConfiguracionSistema::categoriasEdad()[$categoria] ?? $categoria }}</div>
                 <div class="summary-value">{{ $total }}</div>
-                <div class="summary-extra">Calculado por sexo y edad (15+ adultos)</div>
             </div>
         @endforeach
 
