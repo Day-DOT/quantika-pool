@@ -11,8 +11,8 @@ class NivelSeeder extends Seeder
     {
         $niveles = [
             // Niños
-            ['orden' => 1, 'nombre' => 'Acuabebé 1', 'categoria' => null, 'categoria_edad' => 'Niños', 'color_hex' => '#ffd9a0', 'imagen' => 'images/Niveles/estrella.png', 'descripcion' => 'Ambientación acuática con acompañante, respiración y flotación asistida.'],
-            ['orden' => 2, 'nombre' => 'Acuabebé 2', 'categoria' => null, 'categoria_edad' => 'Niños', 'color_hex' => '#ffb877', 'imagen' => 'images/Niveles/caballito-mar.png', 'descripcion' => 'Desplazamientos cortos con apoyo y primeros ejercicios de autonomía.'],
+            ['orden' => 1, 'nombre' => 'Acuabebé 1', 'categoria' => '', 'categoria_edad' => 'Niños', 'color_hex' => '#ffd9a0', 'imagen' => 'images/Niveles/estrella.png', 'descripcion' => 'Ambientación acuática con acompañante, respiración y flotación asistida.'],
+            ['orden' => 2, 'nombre' => 'Acuabebé 2', 'categoria' => '', 'categoria_edad' => 'Niños', 'color_hex' => '#ffb877', 'imagen' => 'images/Niveles/caballito-mar.png', 'descripcion' => 'Desplazamientos cortos con apoyo y primeros ejercicios de autonomía.'],
 
             // Niños
             ['orden' => 1, 'nombre' => 'Estrella', 'categoria' => 'Principiante', 'categoria_edad' => 'Niños', 'color_hex' => '#ffc229', 'imagen' => 'images/Niveles/estrella.png', 'descripcion' => 'Confianza y adaptación al agua, respiración y ejercicios básicos.'],
@@ -50,7 +50,7 @@ class NivelSeeder extends Seeder
 
             foreach ($categorias as $categoria) {
                 $nivel['categoria_edad'] = $categoria;
-                $nivel['categoria'] = null;
+                $nivel['categoria'] = '';
 
                 Nivel::query()->firstOrCreate(
                     ['categoria_edad' => $categoria, 'orden' => $nivel['orden']],

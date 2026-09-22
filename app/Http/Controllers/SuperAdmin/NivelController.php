@@ -29,6 +29,7 @@ class NivelController extends Controller
         $this->authorize('create', Nivel::class);
 
         $data = $request->validated();
+        $data['categoria'] = $data['categoria'] ?? '';
 
         if ($request->hasFile('imagen')) {
             $data['imagen'] = $this->guardarImagen($request);
@@ -53,6 +54,7 @@ class NivelController extends Controller
         $this->authorize('update', $nivel);
 
         $data = $request->validated();
+        $data['categoria'] = $data['categoria'] ?? '';
 
         if ($request->hasFile('imagen')) {
             // Solo se borra la imagen anterior si fue subida en producción
