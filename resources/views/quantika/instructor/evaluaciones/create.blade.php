@@ -36,7 +36,7 @@
 
                 <div class="grupo-meta" style="margin-bottom:22px; font-size:13px;">
                     Nivel actual: <strong style="color:var(--text);">{{ $alumno->nombreNivelConSubNivel() }}</strong>
-                    · {{ $alumno->nivel->categoria }}
+                    · {{ \App\Models\ConfiguracionSistema::categoriasEdad()[$alumno->nivel->categoria_edad] ?? $alumno->nivel->categoria_edad }}
                 </div>
 
                 @include('quantika.instructor.evaluaciones._criterios', [

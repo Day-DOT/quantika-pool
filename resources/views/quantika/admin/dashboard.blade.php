@@ -818,7 +818,7 @@
                         <div>
                             <div class="level-number">NIVEL {{ str_pad((string) $nivel->orden, 2, '0', STR_PAD_LEFT) }}</div>
                             <div class="level-name">{{ $nivel->nombre }}</div>
-                            <div class="level-description">{{ $nivel->categoria }}</div>
+                            <div class="level-description">{{ \App\Models\ConfiguracionSistema::categoriasEdad()[$nivel->categoria_edad] ?? $nivel->categoria_edad }}</div>
                         </div>
 
                     </div>

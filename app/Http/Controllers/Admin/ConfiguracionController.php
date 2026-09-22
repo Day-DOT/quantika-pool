@@ -20,9 +20,10 @@ class ConfiguracionController extends Controller
     public function update(Request $request): RedirectResponse
     {
         $datos = $request->validate([
-            'categoria_bebes' => ['required', 'string', 'max:100'],
             'categoria_ninos' => ['required', 'string', 'max:100'],
-            'categoria_adultos' => ['required', 'string', 'max:100'],
+            'categoria_ninas' => ['required', 'string', 'max:100'],
+            'categoria_adultos_mujeres' => ['required', 'string', 'max:100'],
+            'categoria_adultos_hombres' => ['required', 'string', 'max:100'],
         ]);
 
         foreach ($datos as $clave => $valor) {

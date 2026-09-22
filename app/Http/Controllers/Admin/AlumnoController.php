@@ -55,8 +55,9 @@ class AlumnoController extends Controller
 
         $totalRegistrados = $alumnos->count();
         $totalActivos = $alumnos->filter(fn ($fila) => $fila['alumno']->estado === EstadoAlumno::Activo)->count();
-        $totalPrincipiantes = $alumnos->filter(fn ($fila) => $fila['alumno']->nivel?->categoria === 'Principiante')->count();
-        $totalAvanzados = $alumnos->filter(fn ($fila) => $fila['alumno']->nivel?->categoria === 'Avanzado')->count();
+        $alumnosPorCategoria = collect(Nivel::CATEGORIAS_EDAD)->mapWithKeys(
+            fn (string $categoria) => [$categoria => $alumnos->filter(fn ($fila) => $fila['alumno']->nivel?->categoria_edad === $categoria)->count()]
+        );
 
         return view('quantika.alumnos.index', [
             'alumnos' => $alumnos,
@@ -66,8 +67,7 @@ class AlumnoController extends Controller
             'esVistaGlobal' => $this->sucursalId() === null,
             'totalRegistrados' => $totalRegistrados,
             'totalActivos' => $totalActivos,
-            'totalPrincipiantes' => $totalPrincipiantes,
-            'totalAvanzados' => $totalAvanzados,
+            'alumnosPorCategoria' => $alumnosPorCategoria,
             'abrirModalCrear' => $request->boolean('crear'),
         ]);
     }

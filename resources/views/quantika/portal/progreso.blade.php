@@ -42,7 +42,7 @@
                         @endif
                     </div>
                     <div style="flex:1;">
-                        <div class="level-number">NIVEL {{ $nivelActual?->orden ?? '—' }} · {{ $nivelActual?->categoria ?? '' }}</div>
+                        <div class="level-number">NIVEL {{ $nivelActual?->orden ?? '—' }} · {{ \App\Models\ConfiguracionSistema::categoriasEdad()[$nivelActual?->categoria_edad] ?? $nivelActual?->categoria_edad ?? '' }}</div>
                         <div class="level-name">{{ $nivelActual?->nombre ?? 'Sin nivel asignado' }}</div>
                         <div class="level-description">
                             @if ($ultimaEvaluacion)

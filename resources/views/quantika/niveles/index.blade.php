@@ -352,7 +352,7 @@
                     <div class="level-footer">
 
                         <span class="level-tag">
-                            {{ mb_strtoupper($nivel->categoria) }}
+                            {{ mb_strtoupper(\App\Models\ConfiguracionSistema::categoriasEdad()[$nivel->categoria_edad] ?? $nivel->categoria_edad) }}
                         </span>
 
                         <a href="{{ route('alumnos.index', ['nivel' => $nivel->id]) }}" class="view-btn">

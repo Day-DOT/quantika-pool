@@ -10,9 +10,9 @@ class NivelSeeder extends Seeder
     public function run(): void
     {
         $niveles = [
-            // Bebés
-            ['orden' => 1, 'nombre' => 'Acuabebé 1', 'categoria' => 'Principiante', 'categoria_edad' => 'Bebés', 'color_hex' => '#ffd9a0', 'imagen' => 'images/Niveles/estrella.png', 'descripcion' => 'Ambientación acuática con acompañante, respiración y flotación asistida.'],
-            ['orden' => 2, 'nombre' => 'Acuabebé 2', 'categoria' => 'Intermedio', 'categoria_edad' => 'Bebés', 'color_hex' => '#ffb877', 'imagen' => 'images/Niveles/caballito-mar.png', 'descripcion' => 'Desplazamientos cortos con apoyo y primeros ejercicios de autonomía.'],
+            // Niños
+            ['orden' => 1, 'nombre' => 'Acuabebé 1', 'categoria' => null, 'categoria_edad' => 'Niños', 'color_hex' => '#ffd9a0', 'imagen' => 'images/Niveles/estrella.png', 'descripcion' => 'Ambientación acuática con acompañante, respiración y flotación asistida.'],
+            ['orden' => 2, 'nombre' => 'Acuabebé 2', 'categoria' => null, 'categoria_edad' => 'Niños', 'color_hex' => '#ffb877', 'imagen' => 'images/Niveles/caballito-mar.png', 'descripcion' => 'Desplazamientos cortos con apoyo y primeros ejercicios de autonomía.'],
 
             // Niños
             ['orden' => 1, 'nombre' => 'Estrella', 'categoria' => 'Principiante', 'categoria_edad' => 'Niños', 'color_hex' => '#ffc229', 'imagen' => 'images/Niveles/estrella.png', 'descripcion' => 'Confianza y adaptación al agua, respiración y ejercicios básicos.'],
@@ -39,10 +39,24 @@ class NivelSeeder extends Seeder
         // la imagen o el orden desde el panel, y el seeder NO debe revertir
         // esos cambios en cada despliegue.
         foreach ($niveles as $nivel) {
-            Nivel::query()->firstOrCreate(
-                ['categoria_edad' => $nivel['categoria_edad'], 'orden' => $nivel['orden']],
-                [...$nivel, 'activo' => true],
-            );
+            $categoriaEdad = match ($nivel['categoria_edad']) {
+                'Bebés' => 'Niños',
+                'Adultos' => 'Adultos mujeres',
+                default => $nivel['categoria_edad'],
+            };
+            $categorias = $categoriaEdad === 'Adultos mujeres'
+                ? ['Adultos mujeres', 'Adultos hombres']
+                : [$categoriaEdad];
+
+            foreach ($categorias as $categoria) {
+                $nivel['categoria_edad'] = $categoria;
+                $nivel['categoria'] = null;
+
+                Nivel::query()->firstOrCreate(
+                    ['categoria_edad' => $categoria, 'orden' => $nivel['orden']],
+                    [...$nivel, 'activo' => true],
+                );
+            }
         }
     }
 }

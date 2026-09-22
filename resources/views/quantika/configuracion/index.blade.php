@@ -133,7 +133,7 @@
                 @method('PUT')
                 @foreach ($categoriasEdad as $clave => $etiqueta)
                     <label style="display:block;margin-top:8px;color:#9fc0ca;font-size:12px;">{{ $clave }}</label>
-                    <input class="form-input" name="categoria_{{ match($clave) { 'Bebés' => 'bebes', 'Niños' => 'ninos', default => 'adultos' } }}" value="{{ $etiqueta }}" required>
+                    <input class="form-input" name="categoria_{{ match($clave) { 'Niños' => 'ninos', 'Niñas' => 'ninas', 'Adultos mujeres' => 'adultos_mujeres', 'Adultos hombres' => 'adultos_hombres' } }}" value="{{ $etiqueta }}" required>
                 @endforeach
                 <button class="setting-button" type="submit">Guardar <span>→</span></button>
             </form>

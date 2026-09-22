@@ -62,4 +62,20 @@ class PlanController extends Controller
             ->route('super-admin.planes.index')
             ->with('status', 'Plan actualizado correctamente.');
     }
+
+    public function destroy(Plan $plan): RedirectResponse
+    {
+        $this->authorize('delete', $plan);
+
+        if ($plan->alumnos()->exists()) {
+            return back()->with('error', 'No se puede eliminar este plan porque tiene alumnos asignados. Desactívalo en su lugar.');
+        }
+
+        $nombre = $plan->nombre;
+        $plan->delete();
+
+        return redirect()
+            ->route('super-admin.planes.index')
+            ->with('status', "Plan {$nombre} eliminado correctamente.");
+    }
 }

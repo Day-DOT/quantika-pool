@@ -45,7 +45,17 @@
                                     @endif
                                 </td>
                                 <td>
-                                    <a href="{{ route('super-admin.planes.edit', $plan) }}" class="section-link">Editar</a>
+                                    <div style="display:flex;gap:10px;align-items:center;">
+                                        <a href="{{ route('super-admin.planes.edit', $plan) }}" class="section-link">Editar</a>
+                                        <form method="POST" action="{{ route('super-admin.planes.destroy', $plan) }}"
+                                              onsubmit="return confirm('¿Eliminar este plan?');">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button type="submit" class="section-link" style="background:none;border:none;cursor:pointer;color:var(--red);">
+                                                Eliminar
+                                            </button>
+                                        </form>
+                                    </div>
                                 </td>
                             </tr>
                         @endforeach

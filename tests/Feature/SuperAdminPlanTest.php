@@ -76,6 +76,32 @@ class SuperAdminPlanTest extends TestCase
         $this->assertSame(3, $plan->clases_por_semana);
     }
 
+    public function test_super_admin_puede_eliminar_un_plan_sin_alumnos(): void
+    {
+        $superAdmin = User::factory()->superAdmin()->create();
+        $plan = Plan::factory()->create();
+
+        $this->actingAs($superAdmin)
+            ->delete(route('super-admin.planes.destroy', $plan))
+            ->assertRedirect(route('super-admin.planes.index'));
+
+        $this->assertDatabaseMissing('planes', ['id' => $plan->id]);
+    }
+
+    public function test_no_se_puede_eliminar_un_plan_con_alumnos_asignados(): void
+    {
+        $superAdmin = User::factory()->superAdmin()->create();
+        $plan = Plan::factory()->create();
+        $alumno = \App\Models\Alumno::factory()->create(['plan_id' => $plan->id]);
+
+        $this->actingAs($superAdmin)
+            ->delete(route('super-admin.planes.destroy', $plan))
+            ->assertRedirect();
+
+        $this->assertDatabaseHas('planes', ['id' => $plan->id]);
+        $this->assertDatabaseHas('alumnos', ['id' => $alumno->id, 'plan_id' => $plan->id]);
+    }
+
     public function test_un_admin_normal_no_puede_crear_planes(): void
     {
         $sucursal = Sucursal::factory()->create();

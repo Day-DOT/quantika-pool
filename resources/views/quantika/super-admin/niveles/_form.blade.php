@@ -37,12 +37,6 @@
     </div>
 
     <div class="form-group">
-        <label for="categoria">Categoría (nivel de habilidad)</label>
-        <input type="text" id="categoria" name="categoria" class="form-input" value="{{ old('categoria', $nivel->categoria ?? '') }}" placeholder="Principiante, Intermedio, Avanzado..." required>
-        @error('categoria') <span class="form-error">{{ $message }}</span> @enderror
-    </div>
-
-    <div class="form-group">
         <label for="total_sub_niveles">Sub-niveles</label>
         <input type="number" id="total_sub_niveles" name="total_sub_niveles" class="form-input" min="1" max="26" value="{{ old('total_sub_niveles', $nivel->total_sub_niveles ?? 1) }}">
         <small>P.ej. 3 divide este nivel en A, B y C antes de pasar al siguiente nivel. Deja 1 para no dividirlo.</small>

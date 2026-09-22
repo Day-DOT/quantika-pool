@@ -14,7 +14,7 @@
         <div class="stat-card">
             <div class="stat-top"><span class="stat-name">Nivel</span><div class="stat-icon">◉</div></div>
             <div class="stat-value" style="font-size:18px;">{{ $horario->nivel?->nombre ?? '—' }}</div>
-            <div class="stat-change">{{ $horario->nivel?->categoria }}</div>
+            <div class="stat-change">{{ \App\Models\ConfiguracionSistema::categoriasEdad()[$horario->nivel?->categoria_edad] ?? $horario->nivel?->categoria_edad }}</div>
         </div>
 
         <div class="stat-card">

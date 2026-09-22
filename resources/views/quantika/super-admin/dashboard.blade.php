@@ -396,7 +396,7 @@
                                     <strong>{{ $nivel->nombre }}</strong>
                                 </div>
                             </td>
-                            <td>{{ $nivel->categoria }}</td>
+                            <td>{{ \App\Models\ConfiguracionSistema::categoriasEdad()[$nivel->categoria_edad] ?? $nivel->categoria_edad }}</td>
                             <td>{{ $nivel->alumnos_count ?? $nivel->alumnos()->count() }}</td>
                             <td>
                                 @if($nivel->activo)

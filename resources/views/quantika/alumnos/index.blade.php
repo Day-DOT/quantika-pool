@@ -500,17 +500,13 @@
             <div class="summary-extra">{{ $totalRegistrados > 0 ? round(($totalActivos / $totalRegistrados) * 100, 1) : 0 }}% del total</div>
         </div>
 
-        <div class="summary-card">
-            <div class="summary-label">Principiantes</div>
-            <div class="summary-value">{{ $totalPrincipiantes }}</div>
-            <div class="summary-extra">Nivel inicial</div>
-        </div>
-
-        <div class="summary-card">
-            <div class="summary-label">Avanzados</div>
-            <div class="summary-value">{{ $totalAvanzados }}</div>
-            <div class="summary-extra">Dominio avanzado</div>
-        </div>
+        @foreach ($alumnosPorCategoria as $categoria => $total)
+            <div class="summary-card">
+                <div class="summary-label">{{ \App\Models\ConfiguracionSistema::categoriasEdad()[$categoria] ?? $categoria }}</div>
+                <div class="summary-value">{{ $total }}</div>
+                <div class="summary-extra">Con nivel asignado</div>
+            </div>
+        @endforeach
 
     </div>
 

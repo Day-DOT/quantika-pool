@@ -132,6 +132,8 @@ Route::middleware(['auth', 'role:super_admin'])->group(function () {
         ->name('super-admin.planes.edit');
     Route::put('/super-administrador/planes/{plan}', [PlanController::class, 'update'])
         ->name('super-admin.planes.update');
+    Route::delete('/super-administrador/planes/{plan}', [PlanController::class, 'destroy'])
+        ->name('super-admin.planes.destroy');
 
     /*
     |----------------------------------------------------------------------
