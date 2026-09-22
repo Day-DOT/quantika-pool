@@ -41,6 +41,16 @@
                 </div>
 
                 <div class="form-group">
+                    <label>Sexo</label>
+                    <select name="sexo" class="form-select" required>
+                        <option value="">Seleccionar</option>
+                        @foreach (\App\Models\Nivel::SEXOS as $sexo)
+                            <option value="{{ $sexo }}" @selected(old('sexo', $alumno->sexo) === $sexo)>{{ $sexo }}</option>
+                        @endforeach
+                    </select>
+                </div>
+
+                <div class="form-group">
                     <label>Teléfono</label>
                     <input type="text" class="form-input" name="telefono" value="{{ old('telefono', $alumno->telefono) }}">
                 </div>

@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Enums\EstadoAlumno;
 use App\Models\Alumno;
+use App\Models\Nivel;
 use App\Models\Sucursal;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -75,5 +76,39 @@ class SuperAdminAlumnoTest extends TestCase
         ])->assertRedirect(route('alumnos.show', $alumno));
 
         $this->assertDatabaseHas('alumnos', ['id' => $alumno->id, 'nombre' => 'Actualizado', 'estado' => 'inactivo']);
+    }
+
+    public function test_super_admin_puede_cambiar_el_sexo_de_un_alumno(): void
+    {
+        $superAdmin = User::factory()->superAdmin()->create();
+        $alumno = Alumno::factory()->create(['sexo' => 'Mujer']);
+
+        $this->actingAs($superAdmin)->put(route('alumnos.update', $alumno), [
+            'nombre' => $alumno->nombre,
+            'apellidos' => $alumno->apellidos,
+            'fecha_nacimiento' => $alumno->fecha_nacimiento->toDateString(),
+            'sexo' => 'Hombre',
+            'estado' => $alumno->estado->value,
+        ])->assertRedirect(route('alumnos.show', $alumno));
+
+        $this->assertDatabaseHas('alumnos', ['id' => $alumno->id, 'sexo' => 'Hombre']);
+    }
+
+    public function test_no_se_asigna_un_nivel_adulto_de_mujeres_a_un_alumno_hombre(): void
+    {
+        $superAdmin = User::factory()->superAdmin()->create();
+        $nivel = Nivel::factory()->create(['categoria_edad' => 'Adultos mujeres']);
+
+        $response = $this->actingAs($superAdmin)->post(route('alumnos.store'), [
+            'sucursal_id' => Sucursal::factory()->create()->id,
+            'nombre' => 'Alumno',
+            'apellidos' => 'Adulto',
+            'fecha_nacimiento' => now()->subYears(30)->toDateString(),
+            'sexo' => 'Hombre',
+            'nivel_id' => $nivel->id,
+        ]);
+
+        $response->assertSessionHasErrors('sexo');
+        $this->assertDatabaseMissing('alumnos', ['nombre' => 'Alumno', 'apellidos' => 'Adulto']);
     }
 }
