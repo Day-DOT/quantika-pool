@@ -22,12 +22,7 @@ class StoreAlumnoRequest extends FormRequest
             'nombre' => ['required', 'string', 'max:100'],
             'apellidos' => ['required', 'string', 'max:150'],
             'fecha_nacimiento' => ['required', 'date', 'before:today'],
-            'sexo' => ['nullable', Rule::in(Nivel::SEXOS), function (string $attribute, mixed $value, \Closure $fail) {
-                $nivel = $this->input('nivel_id') ? Nivel::find($this->input('nivel_id')) : null;
-                if ($nivel && ! Nivel::categoriaCompatibleConSexo($nivel->categoria_edad, $value)) {
-                    $fail('El sexo del alumno no coincide con la categoría del nivel adulto seleccionado.');
-                }
-            }],
+            'sexo' => ['nullable', Rule::in(Nivel::SEXOS)],
             'telefono' => ['nullable', 'string', 'max:20'],
             'email' => ['nullable', 'email', 'max:150'],
             'observaciones' => ['nullable', 'string', 'max:2000'],

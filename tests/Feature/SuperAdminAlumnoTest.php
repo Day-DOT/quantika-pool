@@ -94,7 +94,7 @@ class SuperAdminAlumnoTest extends TestCase
         $this->assertDatabaseHas('alumnos', ['id' => $alumno->id, 'sexo' => 'Hombre']);
     }
 
-    public function test_no_se_asigna_un_nivel_adulto_de_mujeres_a_un_alumno_hombre(): void
+    public function test_un_alumno_puede_asignarse_a_cualquier_nivel_sin_importar_su_sexo(): void
     {
         $superAdmin = User::factory()->superAdmin()->create();
         $nivel = Nivel::factory()->create(['categoria_edad' => 'Adultos mujeres']);
@@ -108,8 +108,13 @@ class SuperAdminAlumnoTest extends TestCase
             'nivel_id' => $nivel->id,
         ]);
 
-        $response->assertSessionHasErrors('sexo');
-        $this->assertDatabaseMissing('alumnos', ['nombre' => 'Alumno', 'apellidos' => 'Adulto']);
+        $response->assertRedirect();
+        $this->assertDatabaseHas('alumnos', [
+            'nombre' => 'Alumno',
+            'apellidos' => 'Adulto',
+            'sexo' => 'Hombre',
+            'nivel_id' => $nivel->id,
+        ]);
     }
 
     public function test_los_alumnos_se_clasifican_por_sexo_y_edad(): void
