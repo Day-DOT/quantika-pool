@@ -9,7 +9,9 @@ return new class extends Migration
     {
         DB::table('niveles')->where('categoria_edad', 'Bebés')->update(['categoria_edad' => 'Niños']);
         DB::table('niveles')->where('categoria_edad', 'Adultos')->update(['categoria_edad' => 'Adultos mujeres']);
-        DB::table('niveles')->update(['categoria' => null]);
+        // MySQL keeps this legacy column non-nullable. It is no longer shown
+        // or used for classification, so retain it as an empty string.
+        DB::table('niveles')->update(['categoria' => '']);
     }
 
     public function down(): void
