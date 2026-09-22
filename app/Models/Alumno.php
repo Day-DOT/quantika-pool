@@ -30,6 +30,7 @@ class Alumno extends Model
         'nombre',
         'apellidos',
         'fecha_nacimiento',
+        'sexo',
         'tipo_sangre',
         'contacto_emergencia_nombre',
         'contacto_emergencia_telefono',

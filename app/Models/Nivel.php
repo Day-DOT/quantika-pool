@@ -26,6 +26,14 @@ class Nivel extends Model
     ];
 
     public const CATEGORIAS_EDAD = ['Niños', 'Niñas', 'Adultos mujeres', 'Adultos hombres'];
+    public const SEXOS = ['Mujer', 'Hombre'];
+
+    public static function categoriaCompatibleConSexo(?string $categoria, ?string $sexo): bool
+    {
+        return ! in_array($categoria, ['Adultos mujeres', 'Adultos hombres'], true)
+            || ($sexo === 'Mujer' && $categoria === 'Adultos mujeres')
+            || ($sexo === 'Hombre' && $categoria === 'Adultos hombres');
+    }
 
     protected function casts(): array
     {

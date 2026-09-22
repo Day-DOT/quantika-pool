@@ -26,6 +26,7 @@ class AlumnoFactory extends Factory
             'nombre' => fake()->firstName(),
             'apellidos' => fake()->lastName() . ' ' . fake()->lastName(),
             'fecha_nacimiento' => fake()->dateTimeBetween('-14 years', '-4 years'),
+            'sexo' => fake()->randomElement(Nivel::SEXOS),
             'telefono' => fake()->phoneNumber(),
             'email' => fake()->optional()->safeEmail(),
             'observaciones' => fake()->optional()->sentence(),
