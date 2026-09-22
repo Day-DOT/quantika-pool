@@ -111,4 +111,19 @@ class SuperAdminAlumnoTest extends TestCase
         $response->assertSessionHasErrors('sexo');
         $this->assertDatabaseMissing('alumnos', ['nombre' => 'Alumno', 'apellidos' => 'Adulto']);
     }
+
+    public function test_los_alumnos_se_clasifican_por_sexo_y_edad(): void
+    {
+        $mujerAdulta = Alumno::factory()->create([
+            'sexo' => 'Mujer',
+            'fecha_nacimiento' => now()->subYears(15)->subDay(),
+        ]);
+        $hombreNino = Alumno::factory()->create([
+            'sexo' => 'Hombre',
+            'fecha_nacimiento' => now()->subYears(14),
+        ]);
+
+        $this->assertSame('Adultos mujeres', $mujerAdulta->grupoSexoEdad());
+        $this->assertSame('Niños', $hombreNino->grupoSexoEdad());
+    }
 }

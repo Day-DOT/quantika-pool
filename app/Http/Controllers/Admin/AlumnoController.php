@@ -56,7 +56,7 @@ class AlumnoController extends Controller
         $totalRegistrados = $alumnos->count();
         $totalActivos = $alumnos->filter(fn ($fila) => $fila['alumno']->estado === EstadoAlumno::Activo)->count();
         $alumnosPorCategoria = collect(Nivel::CATEGORIAS_EDAD)->mapWithKeys(
-            fn (string $categoria) => [$categoria => $alumnos->filter(fn ($fila) => $fila['alumno']->nivel?->categoria_edad === $categoria)->count()]
+            fn (string $categoria) => [$categoria => $alumnos->filter(fn ($fila) => $fila['alumno']->grupoSexoEdad() === $categoria)->count()]
         );
 
         return view('quantika.alumnos.index', [
