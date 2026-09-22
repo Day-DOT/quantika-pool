@@ -30,9 +30,11 @@ class Nivel extends Model
 
     public static function categoriaCompatibleConSexo(?string $categoria, ?string $sexo): bool
     {
-        return ! in_array($categoria, ['Adultos mujeres', 'Adultos hombres'], true)
-            || ($sexo === 'Mujer' && $categoria === 'Adultos mujeres')
-            || ($sexo === 'Hombre' && $categoria === 'Adultos hombres');
+        return match ($categoria) {
+            'Niñas', 'Adultos mujeres' => $sexo === 'Mujer',
+            'Niños', 'Adultos hombres' => $sexo === 'Hombre',
+            default => true,
+        };
     }
 
     protected function casts(): array

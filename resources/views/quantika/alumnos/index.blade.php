@@ -504,7 +504,7 @@
             <div class="summary-card">
                 <div class="summary-label">{{ \App\Models\ConfiguracionSistema::categoriasEdad()[$categoria] ?? $categoria }}</div>
                 <div class="summary-value">{{ $total }}</div>
-                <div class="summary-extra">Con nivel asignado</div>
+                <div class="summary-extra">Calculado por sexo y edad (15+ adultos)</div>
             </div>
         @endforeach
 
@@ -592,7 +592,11 @@
                                     @endif
                                     <div>
                                         <div class="student-name">{{ $alumno->nombreCompleto() }}</div>
-                                        <div class="student-email">{{ $alumno->matricula }} · {{ $alumno->email ?? ($alumno->tutorUser?->email ?? 'Sin correo') }}</div>
+                                        <div class="student-email">
+                                            {{ $alumno->matricula }} · {{ $alumno->edad() !== null ? $alumno->edad().' años' : 'Edad no disponible' }}
+                                            · {{ $alumno->sexo ?? 'Sexo no registrado' }}
+                                            · {{ $alumno->email ?? ($alumno->tutorUser?->email ?? 'Sin correo') }}
+                                        </div>
                                     </div>
                                 </div>
                             </td>
