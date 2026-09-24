@@ -20,13 +20,20 @@ class ConfiguracionController extends Controller
     public function update(Request $request): RedirectResponse
     {
         $datos = $request->validate([
-            'categoria_ninos' => ['required', 'string', 'max:100'],
-            'categoria_ninas' => ['required', 'string', 'max:100'],
-            'categoria_adultos_mujeres' => ['required', 'string', 'max:100'],
-            'categoria_adultos_hombres' => ['required', 'string', 'max:100'],
+            'categoria_bebes' => ['sometimes', 'string', 'max:100'],
+            'categoria_ninos' => ['sometimes', 'string', 'max:100'],
+            'categoria_adultos' => ['sometimes', 'string', 'max:100'],
+            'categoria_no_adultos' => ['sometimes', 'string', 'max:100'],
+            'categoria_mujeres' => ['sometimes', 'string', 'max:100'],
+            'categoria_adultos_mujeres' => ['sometimes', 'string', 'max:100'],
+            'categoria_adultos_hombres' => ['sometimes', 'string', 'max:100'],
         ]);
 
         foreach ($datos as $clave => $valor) {
+            if ($valor === null || $valor === '') {
+                continue;
+            }
+
             ConfiguracionSistema::updateOrCreate(['clave' => $clave], ['valor' => $valor]);
         }
 

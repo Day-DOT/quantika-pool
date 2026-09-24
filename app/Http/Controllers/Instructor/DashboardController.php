@@ -8,6 +8,7 @@ use App\Models\Alumno;
 use App\Models\Cita;
 use App\Models\Horario;
 use App\Models\Inscripcion;
+use App\Models\Nivel;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 
@@ -76,6 +77,27 @@ class DashboardController extends Controller
             })
             ->count();
 
+        $nivelesPreview = Alumno::whereIn('id', $alumnosIdsUnicos)
+            ->whereNotNull('nivel_id')
+            ->with('nivel')
+            ->get()
+            ->groupBy('nivel_id')
+            ->map(function ($alumnosDelNivel, $nivelId) {
+                $nivel = $alumnosDelNivel->first()->nivel;
+                $porcentajes = $alumnosDelNivel
+                    ->map(fn (Alumno $alumno) => $alumno->evaluaciones()->where('nivel_id', $nivelId)->orderByDesc('fecha')->orderByDesc('id')->first())
+                    ->filter()
+                    ->map(fn ($evaluacion) => $evaluacion->porcentajeAvance());
+
+                return [
+                    'nivel' => $nivel,
+                    'alumnos' => $alumnosDelNivel->count(),
+                    'progreso' => $porcentajes->isEmpty() ? 0.0 : round((float) $porcentajes->avg(), 1),
+                ];
+            })
+            ->sortBy(fn ($fila) => $fila['nivel']->orden ?? 999)
+            ->values();
+
         return view('quantika.instructor.dashboard', [
             'sinPerfil' => false,
             'instructor' => $instructor,
@@ -92,6 +114,7 @@ class DashboardController extends Controller
             'citasHoy' => $citasHoy,
             'alumnosPorHorario' => $alumnosPorHorario,
             'proximasClases' => $proximasClases,
+            'nivelesPreview' => $nivelesPreview,
         ]);
     }
 }
