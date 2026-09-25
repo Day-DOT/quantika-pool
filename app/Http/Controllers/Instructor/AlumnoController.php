@@ -70,6 +70,9 @@ class AlumnoController extends Controller
 
         $alumno->load('nivel');
 
+        $citasCompletadas = $alumno->citas()->whereNotNull('asistio')->count();
+        $citasAsistidas = $alumno->citas()->where('asistio', true)->count();
+
         $criterios = $alumno->nivel
             ? $alumno->nivel->criterios()->where('activo', true)->orderBy('orden')->get()
             : collect();
@@ -103,6 +106,11 @@ class AlumnoController extends Controller
             'evaluacionNivelActual' => $evaluacionNivelActual,
             'nombreProximoPaso' => $nombreProximoPaso,
             'puedePromover' => $puedePromover,
+            'asistenciaPct' => $citasCompletadas > 0
+                ? round(($citasAsistidas / $citasCompletadas) * 100)
+                : null,
+            'citasCompletadas' => $citasCompletadas,
+            'citasAsistidas' => $citasAsistidas,
         ]);
     }
 

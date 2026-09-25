@@ -92,15 +92,19 @@ class Alumno extends Model
         return $this->fecha_nacimiento?->age;
     }
 
-    public function grupoSexoEdad(): ?string
+    public function grupoEdad(): ?string
     {
         return match (true) {
-            $this->sexo === 'Mujer' && $this->edad() !== null && $this->edad() >= 15 => 'Adultos mujeres',
-            $this->sexo === 'Hombre' && $this->edad() !== null && $this->edad() >= 15 => 'Adultos hombres',
-            $this->sexo === 'Mujer' => 'Niñas',
-            $this->sexo === 'Hombre' => 'Niños',
-            default => null,
+            $this->edad() === null => null,
+            $this->edad() <= 3 => 'Bebés',
+            $this->edad() < 15 => 'Niños',
+            default => 'Adultos',
         };
+    }
+
+    public function grupoSexoEdad(): ?string
+    {
+        return $this->grupoEdad();
     }
 
     public function nombreNivelConSubNivel(): ?string

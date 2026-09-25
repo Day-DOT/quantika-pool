@@ -18,7 +18,12 @@
         <div class="stat-card">
             <div class="stat-top"><span class="stat-name">Nivel actual</span><div class="stat-icon">◉</div></div>
             <div class="stat-value" style="font-size:18px;">{{ $alumno->nombreNivelConSubNivel() ?? 'Sin nivel' }}</div>
-            <div class="stat-change">{{ $alumno->nivel?->categoria }}</div>
+            <div class="stat-change">
+                {{ $alumno->grupoEdad() ?? 'Edad no disponible' }}
+                @if ($alumno->nivel?->categoria)
+                    · {{ $alumno->nivel->categoria }}
+                @endif
+            </div>
         </div>
 
         <div class="card card-pad" style="margin-top:18px;">
@@ -54,6 +59,12 @@
             <div class="stat-top"><span class="stat-name">Estado</span><div class="stat-icon">♟</div></div>
             <div class="stat-value" style="font-size:18px;">{{ $alumno->estado?->label() }}</div>
             <div class="stat-change">{{ $alumno->telefono ?? 'Sin teléfono' }}</div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-top"><span class="stat-name">Asistencia</span><div class="stat-icon">✓</div></div>
+            <div class="stat-value">{{ $asistenciaPct !== null ? $asistenciaPct.'%' : 'N/D' }}</div>
+            <div class="stat-change">{{ $citasAsistidas }} de {{ $citasCompletadas }} clases</div>
         </div>
 
     </div>
