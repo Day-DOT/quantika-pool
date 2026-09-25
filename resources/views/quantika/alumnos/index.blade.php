@@ -777,8 +777,11 @@
 
                     <div class="form-group">
                         <label>INE del tutor (obligatorio)</label>
-                        <input type="file" class="form-input" name="ine_tutor[]" accept=".pdf,.jpg,.jpeg,.png" multiple>
-                        <small>Sube hasta 2 imágenes (frente y reverso) o un PDF.</small>
+                        <label for="ineTutorFrenteCrear">INE del tutor · Frente</label>
+                        <input id="ineTutorFrenteCrear" type="file" class="form-input" name="ine_tutor_frente" accept=".pdf,.jpg,.jpeg,.png">
+                        <label for="ineTutorReversoCrear" style="margin-top:8px;">INE del tutor · Reverso</label>
+                        <input id="ineTutorReversoCrear" type="file" class="form-input" name="ine_tutor_reverso" accept=".pdf,.jpg,.jpeg,.png">
+                        <small>Sube el frente y el reverso como archivos separados. También puedes cargar un solo PDF.</small>
                     </div>
                 </div>
 

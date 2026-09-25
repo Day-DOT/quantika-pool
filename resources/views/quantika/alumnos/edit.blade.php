@@ -126,8 +126,11 @@
 
                     <div class="form-group">
                         <label>INE del tutor {{ $alumno->ine_tutor_path ? '(reemplazar)' : '(obligatorio)' }}</label>
-                        <input type="file" class="form-input" name="ine_tutor[]" accept=".pdf,.jpg,.jpeg,.png" multiple>
-                        <small>Sube hasta 2 imágenes (frente y reverso) o un PDF.</small>
+                        <label for="ineTutorFrenteEditar">INE del tutor · Frente</label>
+                        <input id="ineTutorFrenteEditar" type="file" class="form-input" name="ine_tutor_frente" accept=".pdf,.jpg,.jpeg,.png">
+                        <label for="ineTutorReversoEditar" style="margin-top:8px;">INE del tutor · Reverso</label>
+                        <input id="ineTutorReversoEditar" type="file" class="form-input" name="ine_tutor_reverso" accept=".pdf,.jpg,.jpeg,.png">
+                        <small>Sube el frente y el reverso como archivos separados. Si solo seleccionas uno, se conserva el otro archivo actual.</small>
                         @if ($alumno->ine_tutor_path)
                             <span class="form-hint"><a href="{{ \Illuminate\Support\Facades\Storage::url($alumno->ine_tutor_path) }}" target="_blank">Ver archivo actual</a></span>
                         @endif

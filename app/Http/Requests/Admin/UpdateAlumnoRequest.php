@@ -34,8 +34,8 @@ class UpdateAlumnoRequest extends FormRequest
             // hermanos al mismo tutor, incluso editando después del alta).
             'tutor_email' => ['nullable', 'email', 'max:150'],
             'tutor_telefono' => ['nullable', 'string', 'max:20'],
-            'ine_tutor' => ['nullable', 'array', 'max:2'],
-            'ine_tutor.*' => ['file', 'mimes:pdf,jpg,jpeg,png', 'max:5120'],
+            'ine_tutor_frente' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:5120'],
+            'ine_tutor_reverso' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:5120'],
             'tipo_sangre' => ['nullable', 'string', 'max:5'],
             'contacto_emergencia_nombre' => ['nullable', 'string', 'max:150'],
             'contacto_emergencia_telefono' => ['nullable', 'string', 'max:20'],
