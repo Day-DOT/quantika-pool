@@ -2,9 +2,9 @@
 
 namespace App\Http\Controllers\Alumno;
 
-use App\Enums\EstadoCita;
 use App\Enums\EstadoPago;
 use App\Http\Controllers\Alumno\Concerns\ResuelveAlumnoActivo;
+use App\Http\Controllers\Alumno\Concerns\CargaProximasClases;
 use App\Http\Controllers\Controller;
 use App\Models\Alumno;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
@@ -14,6 +14,7 @@ use Illuminate\View\View;
 class PortalDashboardController extends Controller
 {
     use AuthorizesRequests;
+    use CargaProximasClases;
     use ResuelveAlumnoActivo;
 
     /**
@@ -62,18 +63,7 @@ class PortalDashboardController extends Controller
             ->latest('fecha')
             ->first();
 
-        $proximasClases = $alumno->citas()
-            ->with(['horario.nivel', 'horario.instructor.user', 'horario.carril'])
-            ->whereIn('estado', [
-                EstadoCita::Programada->value,
-                EstadoCita::Confirmada->value,
-                EstadoCita::Reagendada->value,
-            ])
-            ->whereDate('fecha', '>=', now()->toDateString())
-            ->orderBy('fecha')
-            ->orderBy('hora_inicio')
-            ->limit(3)
-            ->get();
+        $proximasClases = $this->proximasClases($alumno);
 
         $pago = $alumno->pagos()
             ->whereIn('estado', [

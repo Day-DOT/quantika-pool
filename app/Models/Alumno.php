@@ -44,6 +44,7 @@ class Alumno extends Model
         'certificado_medico_path',
         'identificacion_path',
         'ine_tutor_path',
+        'ine_tutor_path_2',
         'foto_path',
         'contrato_firmado_path',
     ];

@@ -88,10 +88,13 @@ class AlumnoController extends Controller
 
         $sucursalId = $this->sucursalId() ?? (int) $datos['sucursal_id'];
 
+        $ineFiles = $request->file('ine_tutor', []);
+        $ineFiles = is_array($ineFiles) ? array_values($ineFiles) : [$ineFiles];
         $rutasDocumentos = [
             'certificado_medico_path' => $request->file('certificado_medico')?->store('alumnos/documentos', 'public'),
             'identificacion_path' => $request->file('identificacion')?->store('alumnos/documentos', 'public'),
-            'ine_tutor_path' => $request->file('ine_tutor')?->store('alumnos/documentos', 'public'),
+            'ine_tutor_path' => ($ineFiles[0] ?? null)?->store('alumnos/documentos', 'public'),
+            'ine_tutor_path_2' => ($ineFiles[1] ?? null)?->store('alumnos/documentos', 'public'),
             'foto_path' => $request->file('foto')?->store('alumnos/documentos', 'public'),
             'contrato_firmado_path' => $request->file('contrato_firmado')?->store('alumnos/documentos', 'public'),
         ];
@@ -294,15 +297,20 @@ class AlumnoController extends Controller
         $datos = $request->validated();
         $tieneTutor = $request->boolean('tiene_tutor');
 
-        if (! $tieneTutor && $alumno->ine_tutor_path) {
-            Storage::disk('public')->delete($alumno->ine_tutor_path);
+        if (! $tieneTutor) {
+            foreach ([$alumno->ine_tutor_path, $alumno->ine_tutor_path_2] as $ruta) {
+                if ($ruta) {
+                    Storage::disk('public')->delete($ruta);
+                }
+            }
         }
 
         $rutasDocumentos = [];
+        $ineFiles = $request->file('ine_tutor', []);
+        $ineFiles = is_array($ineFiles) ? array_values($ineFiles) : [$ineFiles];
         foreach ([
             'certificado_medico' => 'certificado_medico_path',
             'identificacion' => 'identificacion_path',
-            'ine_tutor' => 'ine_tutor_path',
             'foto' => 'foto_path',
             'contrato_firmado' => 'contrato_firmado_path',
         ] as $campo => $columna) {
@@ -315,6 +323,17 @@ class AlumnoController extends Controller
             }
 
             $rutasDocumentos[$columna] = $request->file($campo)->store('alumnos/documentos', 'public');
+        }
+
+        if ($tieneTutor && $ineFiles) {
+            foreach ([$alumno->ine_tutor_path, $alumno->ine_tutor_path_2] as $ruta) {
+                if ($ruta) {
+                    Storage::disk('public')->delete($ruta);
+                }
+            }
+
+            $rutasDocumentos['ine_tutor_path'] = ($ineFiles[0] ?? null)?->store('alumnos/documentos', 'public');
+            $rutasDocumentos['ine_tutor_path_2'] = ($ineFiles[1] ?? null)?->store('alumnos/documentos', 'public');
         }
 
         DB::transaction(function () use ($datos, $alumno, $rutasDocumentos, $tieneTutor) {
@@ -337,6 +356,9 @@ class AlumnoController extends Controller
                 'plan_id' => $datos['plan_id'] ?? null,
                 'ine_tutor_path' => $tieneTutor
                     ? ($rutasDocumentos['ine_tutor_path'] ?? $alumno->ine_tutor_path)
+                    : null,
+                'ine_tutor_path_2' => $tieneTutor
+                    ? ($rutasDocumentos['ine_tutor_path_2'] ?? $alumno->ine_tutor_path_2)
                     : null,
                 ...$rutasDocumentos,
             ]);
@@ -499,6 +521,7 @@ class AlumnoController extends Controller
             $alumno->certificado_medico_path,
             $alumno->identificacion_path,
             $alumno->ine_tutor_path,
+            $alumno->ine_tutor_path_2,
             $alumno->foto_path,
             $alumno->contrato_firmado_path,
         ] as $ruta) {

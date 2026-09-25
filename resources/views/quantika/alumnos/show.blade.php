@@ -223,6 +223,25 @@
 
             <div class="stat-card">
                 <div class="stat-top">
+                    <span class="stat-name">INE DEL TUTOR</span>
+                    <div class="stat-icon">🪪</div>
+                </div>
+                @if ($alumno->ine_tutor_path || $alumno->ine_tutor_path_2)
+                    <div class="stat-value" style="font-size:14px;">
+                        @if ($alumno->ine_tutor_path)
+                            <a href="{{ \Illuminate\Support\Facades\Storage::disk('public')->url($alumno->ine_tutor_path) }}" target="_blank">Frente</a>
+                        @endif
+                        @if ($alumno->ine_tutor_path_2)
+                            · <a href="{{ \Illuminate\Support\Facades\Storage::disk('public')->url($alumno->ine_tutor_path_2) }}" target="_blank">Reverso</a>
+                        @endif
+                    </div>
+                @else
+                    <div class="stat-change">Sin archivo</div>
+                @endif
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-top">
                     <span class="stat-name">FOTO DEL ALUMNO</span>
                     <div class="stat-icon">🖼</div>
                 </div>

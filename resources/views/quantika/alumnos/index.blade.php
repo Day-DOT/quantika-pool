@@ -777,7 +777,8 @@
 
                     <div class="form-group">
                         <label>INE del tutor (obligatorio)</label>
-                        <input type="file" class="form-input" name="ine_tutor" accept=".pdf,.jpg,.jpeg,.png">
+                        <input type="file" class="form-input" name="ine_tutor[]" accept=".pdf,.jpg,.jpeg,.png" multiple>
+                        <small>Sube hasta 2 imágenes (frente y reverso) o un PDF.</small>
                     </div>
                 </div>
 
@@ -862,7 +863,8 @@
 
                 <div class="form-group">
                     <label>Foto del alumno (opcional)</label>
-                    <input type="file" class="form-input" name="foto" accept=".jpg,.jpeg,.png">
+                    <input type="file" class="form-input" name="foto" accept="image/*" capture="environment">
+                    <small>Selecciona una imagen o toma la foto directamente con la cámara.</small>
                 </div>
 
                 <div class="form-group">

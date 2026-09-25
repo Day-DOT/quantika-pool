@@ -126,7 +126,8 @@
 
                     <div class="form-group">
                         <label>INE del tutor {{ $alumno->ine_tutor_path ? '(reemplazar)' : '(obligatorio)' }}</label>
-                        <input type="file" class="form-input" name="ine_tutor" accept=".pdf,.jpg,.jpeg,.png">
+                        <input type="file" class="form-input" name="ine_tutor[]" accept=".pdf,.jpg,.jpeg,.png" multiple>
+                        <small>Sube hasta 2 imágenes (frente y reverso) o un PDF.</small>
                         @if ($alumno->ine_tutor_path)
                             <span class="form-hint"><a href="{{ \Illuminate\Support\Facades\Storage::url($alumno->ine_tutor_path) }}" target="_blank">Ver archivo actual</a></span>
                         @endif
@@ -176,7 +177,8 @@
 
                 <div class="form-group">
                     <label>Foto del alumno {{ $alumno->foto_path ? '(reemplazar)' : '(opcional)' }}</label>
-                    <input type="file" class="form-input" name="foto" accept=".jpg,.jpeg,.png">
+                    <input type="file" class="form-input" name="foto" accept="image/*" capture="environment">
+                    <small>Selecciona una imagen o toma la foto directamente con la cámara.</small>
                     @if ($alumno->foto_path)
                         <span class="form-hint"><a href="{{ \Illuminate\Support\Facades\Storage::url($alumno->foto_path) }}" target="_blank">Ver archivo actual</a></span>
                         <button type="submit" form="eliminar-foto-alumno" class="btn btn-outline" style="margin-top:8px;">Eliminar foto</button>

@@ -472,6 +472,27 @@ class PortalAlumnoTest extends TestCase
             ->assertSee('550.00');
     }
 
+    public function test_cuenta_muestra_clases_futuras_de_una_inscripcion_activa_aunque_aun_no_tenga_citas_generadas(): void
+    {
+        [$tutor, $alumno, $sucursal, $nivel] = $this->crearTutorConAlumno();
+        $diaSiguiente = now()->isoWeekday() === 7 ? 1 : now()->isoWeekday() + 1;
+        $horario = $this->crearHorario($sucursal, $nivel, diaSemana: $diaSiguiente);
+        $horario->update(['nombre_grupo' => 'Grupo Recurrente']);
+
+        Inscripcion::factory()->create([
+            'horario_id' => $horario->id,
+            'alumno_id' => $alumno->id,
+            'fecha_inicio' => today(),
+            'activa' => true,
+            'estado' => 'aprobada',
+        ]);
+
+        $this->actingAs($tutor)
+            ->get(route('portal.cuenta', ['alumno' => $alumno->id]))
+            ->assertOk()
+            ->assertSee('Grupo Recurrente');
+    }
+
     public function test_cuenta_no_muestra_boton_de_pago_en_linea(): void
     {
         [$tutor, $alumno] = $this->crearTutorConAlumno();
