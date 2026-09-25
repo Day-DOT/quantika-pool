@@ -55,7 +55,7 @@
         }
 
         .login-logo img {
-            width: 150px;
+            width: 220px;
             max-width: 100%;
             object-fit: contain;
         }
@@ -166,7 +166,7 @@
     <div class="login-card">
 
         <div class="login-logo">
-            <img src="{{ asset('images/aqualix-logo.png') }}" alt="Aqualix">
+            <img src="{{ asset('images/login-logo.png') }}" alt="Quantika Pool">
         </div>
 
         <h1>Bienvenido de nuevo</h1>
@@ -207,7 +207,7 @@
             ¿Eres tutor y tu cuenta está pendiente de activación? <a href="{{ route('registro') }}">Crear cuenta</a>
         </div>
 
-        <div class="login-footer">Aqualix © {{ date('Y') }}</div>
+        <div class="login-footer">Quantika Pool © {{ date('Y') }}</div>
 
     </div>
 
