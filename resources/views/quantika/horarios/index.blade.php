@@ -1827,6 +1827,8 @@ function cerrarModalHorario() {
 }
 
 const detallesClases = @json($detallesClases);
+const instructoresParaCambiar = @json($instructoresParaCambiar);
+const cambiarInstructorUrl = @json(route('horarios.cambiar-instructor', ['horario' => '__HORARIO_ID__']));
 
 function abrirDetalleClase(horarioId) {
     const clase = detallesClases[horarioId];
@@ -1859,6 +1861,23 @@ function abrirDetalleClase(horarioId) {
             <div class="class-students">${alumnosHtml}</div>
         </div>`;
     document.getElementById('detalleClaseContenido').insertAdjacentHTML('beforeend', `
+        <form method="POST" action="${cambiarInstructorUrl.replace('__HORARIO_ID__', horarioId)}" style="margin-top:16px;padding-top:16px;border-top:1px solid rgba(83,214,238,.2);">
+            <input type="hidden" name="_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="_method" value="PATCH">
+            <label for="nuevoInstructorClase" style="display:block;margin-bottom:6px;">Cambiar instructor</label>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                <select id="nuevoInstructorClase" name="instructor_id" required style="flex:1;min-width:200px;${@json($campoEstilo)}">
+                    <option value="">Seleccionar instructor</option>
+                    ${instructoresParaCambiar
+                        .filter(function (instructor) { return instructor.sucursal_id === clase.sucursal_id; })
+                        .map(function (instructor) {
+                            const seleccionado = instructor.id === clase.instructor_id ? ' selected' : '';
+                            return `<option value="${instructor.id}"${seleccionado}>${escapeHtml(instructor.nombre)}</option>`;
+                        }).join('')}
+                </select>
+                <button type="submit" class="btn-modal-submit">Guardar instructor</button>
+            </div>
+        </form>
         <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:16px;">
             <button type="button" class="btn-modal-submit" onclick="asignarDesdeCalendario(${horarioId})">Asignar alumno a esta clase</button>
             <button type="button" class="btn-modal-submit" style="background:#7b3541;" onclick="eliminarClase(${horarioId})">Eliminar clase</button>

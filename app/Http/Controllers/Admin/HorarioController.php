@@ -94,6 +94,7 @@ class HorarioController extends Controller
 
         $instructoresQuery = Instructor::query()->where('estado', 'activo')->with('user', 'sucursal');
         $this->aplicarSucursal($instructoresQuery);
+        $instructoresDisponibles = $instructoresQuery->get();
 
         $carrilesSelectQuery = Carril::query()->where('activo', true)->with('sucursal');
         $this->aplicarSucursal($carrilesSelectQuery);
@@ -121,7 +122,7 @@ class HorarioController extends Controller
             'statCarrilesTotal' => $totalCarriles,
             'horariosHoy' => $horariosHoy,
             'niveles' => Nivel::ordenados()->get(),
-            'instructoresDisponibles' => $instructoresQuery->get(),
+            'instructoresDisponibles' => $instructoresDisponibles,
             'carrilesDisponibles' => $carrilesSelectQuery->get(),
             'diasSemana' => DiaSemana::cases(),
             'horariosExistentes' => $horarios,
@@ -132,6 +133,8 @@ class HorarioController extends Controller
                     'hora' => substr($horario->hora_inicio, 0, 5).' - '.substr($horario->hora_fin, 0, 5),
                     'carril' => $horario->carril?->nombre ?? 'Sin carril',
                     'instructor' => $horario->instructor?->user?->name ?? 'Sin instructor',
+                    'instructor_id' => $horario->instructor_id,
+                    'sucursal_id' => $horario->sucursal_id,
                     'capacidad' => $horario->capacidad_maxima,
                     'alumnos' => $horario->inscripciones->map(fn (Inscripcion $inscripcion) => [
                         'inscripcion_id' => $inscripcion->id,
@@ -148,6 +151,11 @@ class HorarioController extends Controller
             // tienen ninguna inscripción activa; el backend evita duplicarlo en
             // el mismo grupo.
             'alumnosParaAsignar' => $alumnosTodos,
+            'instructoresParaCambiar' => $instructoresDisponibles->map(fn (Instructor $instructor) => [
+                'id' => $instructor->id,
+                'sucursal_id' => $instructor->sucursal_id,
+                'nombre' => $instructor->user?->name ?? 'Instructor sin usuario',
+            ])->values(),
             'esVistaGlobal' => $this->sucursalId() === null,
             'sucursalesTodas' => Sucursal::orderBy('nombre')->get(),
             'citasProximas' => $citasProximas,
@@ -220,9 +228,9 @@ class HorarioController extends Controller
 
         $instructor = Instructor::findOrFail($datos['instructor_id']);
 
-        if ($instructor->sucursal_id !== $horario->sucursal_id) {
+        if ($instructor->sucursal_id !== $horario->sucursal_id || $instructor->estado !== 'activo') {
             throw ValidationException::withMessages([
-                'instructor_id' => 'Este instructor no pertenece a la sucursal de esta clase.',
+                'instructor_id' => 'Selecciona un instructor activo de la sucursal de esta clase.',
             ]);
         }
 
