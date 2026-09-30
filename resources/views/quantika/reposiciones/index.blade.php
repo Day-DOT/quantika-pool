@@ -40,13 +40,29 @@
                                     </div>
                                 </td>
                                 <td>
+                                    @php
+                                        $categoriaEdadAlumno = $falta->alumno?->nivel?->categoria_edad;
+                                        $horariosCompatibles = $horariosDisponibles->filter(
+                                            fn ($horario) => $horario->sucursal_id === $falta->sucursal_id
+                                                && $categoriaEdadAlumno !== 'Bebés'
+                                                && (! $categoriaEdadAlumno || $horario->nivel?->categoria_edad === $categoriaEdadAlumno)
+                                        );
+                                    @endphp
                                     <form method="POST" action="{{ route('citas.reponer', $falta) }}" style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
                                         @csrf
                                         <select name="horario_id" class="form-select" style="font-size:12px;" required>
-                                            <option value="">Seleccionar horario</option>
-                                            @foreach ($horariosDisponibles as $horarioOpcion)
+                                            <option value="">
+                                                @if ($categoriaEdadAlumno === 'Bebés')
+                                                    Las clases de bebés no tienen reposición
+                                                @elseif ($horariosCompatibles->isEmpty())
+                                                    No hay horarios disponibles{{ $categoriaEdadAlumno ? ' para '.$categoriaEdadAlumno : '' }}
+                                                @else
+                                                    Seleccionar horario{{ $categoriaEdadAlumno ? ' · '.$categoriaEdadAlumno : '' }}
+                                                @endif
+                                            </option>
+                                            @foreach ($horariosCompatibles as $horarioOpcion)
                                                 <option value="{{ $horarioOpcion->id }}">
-                                                    {{ $horarioOpcion->nombre_grupo }} · {{ $horarioOpcion->dia_semana->label() }} {{ substr($horarioOpcion->hora_inicio, 0, 5) }}
+                                                    {{ $horarioOpcion->nombre_grupo }} · {{ $horarioOpcion->nivel?->categoria_edad ?? 'Sin categoría' }} · {{ $horarioOpcion->dia_semana->label() }} {{ substr($horarioOpcion->hora_inicio, 0, 5) }} · {{ $horarioOpcion->carril?->nombre ?? 'Sin carril' }} · {{ $horarioOpcion->instructor?->user?->name ?? 'Sin instructor' }}
                                                 </option>
                                             @endforeach
                                         </select>

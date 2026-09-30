@@ -129,7 +129,7 @@
                     </div>
                 @endif
 
-                @if ($historial->count() > 1)
+                @if ($historial->total() > 1)
                     <div class="section-header"><h3>Historial de evaluaciones</h3></div>
                     <div class="data-card">
                         <table class="data-table">
@@ -150,13 +150,25 @@
                                 @endforeach
                             </tbody>
                         </table>
+                        <div style="display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap;margin-top:16px;">
+                            <div>
+                                @if ($historial->hasMorePages())
+                                    <a class="btn btn-outline" href="{{ $historial->nextPageUrl() }}">Ver evaluaciones anteriores</a>
+                                @endif
+                            </div>
+                            <span style="color:var(--muted);font-size:12px;">
+                                Página {{ $historial->currentPage() }} de {{ $historial->lastPage() }}
+                            </span>
+                            <div>
+                                @if (! $historial->onFirstPage())
+                                    <a class="btn btn-outline" href="{{ $historial->previousPageUrl() }}">Ver evaluaciones siguientes</a>
+                                @endif
+                            </div>
+                        </div>
                     </div>
                 @endif
 
-                @if ($historial->count() > 1)
-                    @php
-                        $evaluacionActualComparativa = $historial->first();
-                    @endphp
+                @if ($evaluacionAnterior && $ultimaEvaluacionComparativa)
                     <div class="section-header"><h3>Comparativa de progreso</h3></div>
                     <div class="data-card" style="padding:20px; display:flex; gap:24px; flex-wrap:wrap;">
                         <div style="flex:1; min-width:200px;">
@@ -169,14 +181,14 @@
                         </div>
                         <div style="flex:1; min-width:200px;">
                             <div style="color:var(--muted); font-size:12px; margin-bottom:6px;">
-                                Progreso actual · {{ $evaluacionActualComparativa->fecha->translatedFormat('d M Y') }}
-                                ({{ $evaluacionActualComparativa->nivel?->nombre ?? '—' }})
+                                Progreso actual · {{ $ultimaEvaluacionComparativa->fecha->translatedFormat('d M Y') }}
+                                ({{ $ultimaEvaluacionComparativa->nivel?->nombre ?? '—' }})
                             </div>
-                            <div style="font-size:26px; font-weight:800;">{{ round($evaluacionActualComparativa->porcentajeAvance()) }}%</div>
-                            <div class="progress"><span style="width:{{ round($evaluacionActualComparativa->porcentajeAvance()) }}%"></span></div>
+                            <div style="font-size:26px; font-weight:800;">{{ round($ultimaEvaluacionComparativa->porcentajeAvance()) }}%</div>
+                            <div class="progress"><span style="width:{{ round($ultimaEvaluacionComparativa->porcentajeAvance()) }}%"></span></div>
                         </div>
                         @php
-                            $delta = round($evaluacionActualComparativa->porcentajeAvance() - $evaluacionAnterior->porcentajeAvance());
+                            $delta = round($ultimaEvaluacionComparativa->porcentajeAvance() - $evaluacionAnterior->porcentajeAvance());
                         @endphp
                         <div style="flex:0 0 140px; text-align:center; align-self:center;">
                             <div style="color:var(--muted); font-size:12px; margin-bottom:6px;">Variación</div>

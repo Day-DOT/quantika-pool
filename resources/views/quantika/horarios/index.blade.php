@@ -1603,7 +1603,7 @@
                 <option value="">Seleccionar grupo</option>
                 @foreach ($horariosExistentes as $horarioOpcion)
                     <option value="{{ $horarioOpcion->id }}">
-                        {{ $horarioOpcion->nombre_grupo }} · {{ $horarioOpcion->dia_semana->label() }} {{ substr($horarioOpcion->hora_inicio, 0, 5) }}
+                        {{ $horarioOpcion->nombre_grupo }} · {{ $horarioOpcion->dia_semana->label() }} {{ substr($horarioOpcion->hora_inicio, 0, 5) }} · {{ $horarioOpcion->carril?->nombre ?? 'Sin carril' }} · {{ $horarioOpcion->instructor?->user?->name ?? 'Sin instructor' }}
                     </option>
                 @endforeach
             </select>
@@ -1622,11 +1622,18 @@
             @method('PATCH')
 
             <label>Grupo a editar</label>
-            <select name="_horario_id" required style="{{ $campoEstilo }}" onchange="this.form.action = '/horarios/' + this.value + '/reagendar';">
+            <select name="_horario_id" required style="{{ $campoEstilo }}">
                 <option value="">Seleccionar clase</option>
                 @foreach ($horariosExistentes as $horarioOpcion)
-                    <option value="{{ $horarioOpcion->id }}">
-                        {{ $horarioOpcion->nombre_grupo }} · {{ $horarioOpcion->dia_semana->label() }} {{ substr($horarioOpcion->hora_inicio, 0, 5) }}
+                    <option
+                        value="{{ $horarioOpcion->id }}"
+                        data-nombre-grupo="{{ $horarioOpcion->nombre_grupo }}"
+                        data-dia-semana="{{ $horarioOpcion->dia_semana->value }}"
+                        data-hora-inicio="{{ substr($horarioOpcion->hora_inicio, 0, 5) }}"
+                        data-hora-fin="{{ substr($horarioOpcion->hora_fin, 0, 5) }}"
+                        data-carril-id="{{ $horarioOpcion->carril_id }}"
+                        data-capacidad-maxima="{{ $horarioOpcion->capacidad_maxima }}">
+                        {{ $horarioOpcion->nombre_grupo }} · {{ $horarioOpcion->dia_semana->label() }} {{ substr($horarioOpcion->hora_inicio, 0, 5) }} · {{ $horarioOpcion->carril?->nombre ?? 'Sin carril' }} · {{ $horarioOpcion->instructor?->user?->name ?? 'Sin instructor' }}
                     </option>
                 @endforeach
             </select>
@@ -1827,6 +1834,22 @@ function cerrarModalHorario() {
 }
 
 const detallesClases = @json($detallesClases);
+
+document.querySelector('#formEditarHorario select[name="_horario_id"]').addEventListener('change', function () {
+    const opcion = this.selectedOptions[0];
+    if (!this.value || !opcion) {
+        return;
+    }
+
+    const formulario = document.getElementById('formEditarHorario');
+    formulario.action = '/horarios/' + this.value + '/reagendar';
+    formulario.elements.namedItem('nombre_grupo').value = opcion.dataset.nombreGrupo;
+    formulario.elements.namedItem('dia_semana').value = opcion.dataset.diaSemana;
+    formulario.elements.namedItem('hora_inicio').value = opcion.dataset.horaInicio;
+    formulario.elements.namedItem('hora_fin').value = opcion.dataset.horaFin;
+    formulario.elements.namedItem('carril_id').value = opcion.dataset.carrilId;
+    formulario.elements.namedItem('capacidad_maxima').value = opcion.dataset.capacidadMaxima;
+});
 
 function abrirDetalleClase(horarioId) {
     const clase = detallesClases[horarioId];

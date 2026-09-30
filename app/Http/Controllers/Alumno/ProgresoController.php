@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Alumno;
 
 use App\Http\Controllers\Alumno\Concerns\ResuelveAlumnoActivo;
 use App\Http\Controllers\Controller;
+use App\Models\EvaluacionDetalle;
 use App\Models\Nivel;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\Request;
@@ -37,6 +38,7 @@ class ProgresoController extends Controller
                 'historial' => collect(),
                 'historialNiveles' => collect(),
                 'evaluacionAnterior' => null,
+                'ultimaEvaluacionComparativa' => null,
                 'mapaNiveles' => collect(),
                 'evaluacionPendiente' => false,
             ]);
@@ -54,7 +56,7 @@ class ProgresoController extends Controller
             ? $nivelActual->criterios()->where('activo', true)->orderBy('orden')->get()
             : collect();
 
-        /** @var Collection<int, \App\Models\EvaluacionDetalle> $detallesPorCriterio */
+        /** @var Collection<int, EvaluacionDetalle> $detallesPorCriterio */
         $detallesPorCriterio = $ultimaEvaluacion
             ? $ultimaEvaluacion->detalles->keyBy('criterio_evaluacion_id')
             : collect();
@@ -62,8 +64,9 @@ class ProgresoController extends Controller
         $historial = $alumno->evaluaciones()
             ->with('nivel')
             ->orderByDesc('fecha')
-            ->limit(6)
-            ->get();
+            ->orderByDesc('id')
+            ->paginate(6)
+            ->withQueryString();
 
         // Historial de progreso por nivel: cada nivel por el que ya pasó el
         // alumno, con la última evaluación registrada en ese nivel.
@@ -95,7 +98,13 @@ class ProgresoController extends Controller
 
         // Comparativa: última evaluación registrada vs. la anterior a esa,
         // sin importar el nivel (puede ser el mismo nivel u otro).
-        $evaluacionAnterior = $historial->skip(1)->first();
+        $ultimasEvaluaciones = $alumno->evaluaciones()
+            ->with('nivel')
+            ->orderByDesc('fecha')
+            ->orderByDesc('id')
+            ->limit(2)
+            ->get();
+        $evaluacionAnterior = $ultimasEvaluaciones->skip(1)->first();
 
         return view('quantika.portal.progreso', [
             'alumnos' => $alumnos,
@@ -106,6 +115,7 @@ class ProgresoController extends Controller
             'detallesPorCriterio' => $detallesPorCriterio,
             'porcentaje' => $ultimaEvaluacion?->porcentajeAvance() ?? 0.0,
             'historial' => $historial,
+            'ultimaEvaluacionComparativa' => $ultimasEvaluaciones->first(),
             'historialNiveles' => $historialNiveles,
             'evaluacionAnterior' => $evaluacionAnterior,
             'mapaNiveles' => $nivelesMapa->map(function (Nivel $nivel) use ($nivelActual, $nivelesAprobados) {

@@ -69,6 +69,10 @@ class HorarioController extends Controller
             foreach ($dias as $fila) {
                 $grid[$hora][$fila['dia']->value] = $horarios->filter(function (Horario $h) use ($hora, $fila) {
                     return substr($h->hora_inicio, 0, 5) === $hora && $h->dia_semana === $fila['dia'];
+                })->sort(function (Horario $a, Horario $b) {
+                    $comparacion = strnatcasecmp($a->carril?->nombre ?? '', $b->carril?->nombre ?? '');
+
+                    return $comparacion !== 0 ? $comparacion : $a->id <=> $b->id;
                 })->values();
             }
         }

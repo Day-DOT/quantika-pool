@@ -4,20 +4,23 @@ namespace Tests\Feature;
 
 use App\Enums\EstadoCita;
 use App\Models\Alumno;
+use App\Models\Carril;
 use App\Models\Cita;
 use App\Models\Horario;
 use App\Models\Inscripcion;
+use App\Models\Instructor;
 use App\Models\Nivel;
 use App\Models\Sucursal;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Carbon;
 use Tests\TestCase;
 
 class ReposicionesTest extends TestCase
 {
     use RefreshDatabase;
 
-    private function crearFalta(Sucursal $sucursal, ?Nivel $nivel = null, ?\Illuminate\Support\Carbon $fecha = null): array
+    private function crearFalta(Sucursal $sucursal, ?Nivel $nivel = null, ?Carbon $fecha = null): array
     {
         $nivel ??= Nivel::factory()->create();
         $horarioOriginal = Horario::factory()->create(['sucursal_id' => $sucursal->id, 'nivel_id' => $nivel->id]);
@@ -45,6 +48,39 @@ class ReposicionesTest extends TestCase
 
         $response->assertOk();
         $response->assertSee($alumno->nombreCompleto());
+    }
+
+    public function test_los_horarios_de_reposicion_se_filtran_por_categoria_de_edad(): void
+    {
+        $sucursal = Sucursal::factory()->create();
+        $admin = User::factory()->admin($sucursal->id)->create();
+        $nivelNinos = Nivel::factory()->create(['categoria_edad' => 'Niños']);
+        $nivelAdultos = Nivel::factory()->create(['categoria_edad' => 'Adultos hombres']);
+        $instructor = Instructor::factory()->create(['sucursal_id' => $sucursal->id]);
+        $carril = Carril::factory()->create(['sucursal_id' => $sucursal->id, 'nombre' => 'Carril 2']);
+        [$alumno, $cita] = $this->crearFalta($sucursal, $nivelNinos);
+        $horarioNinos = Horario::factory()->create([
+            'sucursal_id' => $sucursal->id,
+            'nivel_id' => $nivelNinos->id,
+            'instructor_id' => $instructor->id,
+            'carril_id' => $carril->id,
+            'nombre_grupo' => 'Grupo infantil disponible',
+        ]);
+        Horario::factory()->create([
+            'sucursal_id' => $sucursal->id,
+            'nivel_id' => $nivelAdultos->id,
+            'instructor_id' => $instructor->id,
+            'carril_id' => $carril->id,
+            'nombre_grupo' => 'Grupo adulto no compatible',
+        ]);
+
+        $response = $this->actingAs($admin)->get(route('reposiciones.index'));
+
+        $response->assertOk();
+        $response->assertSee('Grupo infantil disponible');
+        $response->assertSee('Carril 2');
+        $response->assertSee($instructor->user->name);
+        $response->assertDontSee('Grupo adulto no compatible');
     }
 
     public function test_admin_programa_una_reposicion_correctamente(): void

@@ -50,6 +50,42 @@ class AdminHorariosTest extends TestCase
         $response->assertSee('Grupo de prueba');
     }
 
+    public function test_el_tablero_ordena_las_clases_por_carril_en_cada_horario(): void
+    {
+        $e = $this->crearEscenario();
+        $e['carril']->update(['nombre' => 'Carril 1']);
+        $e['otroCarril']->update(['nombre' => 'Carril 2']);
+        $carrilTres = Carril::factory()->create([
+            'sucursal_id' => $e['sucursal']->id,
+            'nombre' => 'Carril 3',
+        ]);
+
+        foreach ([
+            [$e['otroCarril'], 'Grupo carril 2'],
+            [$e['carril'], 'Grupo carril 1'],
+            [$carrilTres, 'Grupo carril 3'],
+        ] as [$carril, $nombreGrupo]) {
+            Horario::factory()->create([
+                'sucursal_id' => $e['sucursal']->id,
+                'instructor_id' => $e['instructor']->id,
+                'nivel_id' => $e['nivel']->id,
+                'carril_id' => $carril->id,
+                'nombre_grupo' => $nombreGrupo,
+                'dia_semana' => 1,
+                'hora_inicio' => '09:00',
+            ]);
+        }
+
+        $response = $this->actingAs($e['admin'])->get(route('horarios.index'));
+        preg_match_all('/<div class="class-name">\s*(.*?)\s*<\/div>/s', $response->getContent(), $grupos);
+
+        $this->assertSame([
+            'Grupo carril 1',
+            'Grupo carril 2',
+            'Grupo carril 3',
+        ], $grupos[1]);
+    }
+
     public function test_admin_crea_una_nueva_clase(): void
     {
         $e = $this->crearEscenario();
@@ -265,6 +301,35 @@ class AdminHorariosTest extends TestCase
         $this->assertEquals('Delfines Renombrados', $horario->nombre_grupo);
         $this->assertEquals(3, $horario->dia_semana->value);
         $this->assertEquals($e['otroCarril']->id, $horario->carril_id);
+    }
+
+    public function test_el_selector_de_edicion_muestra_el_carril_y_carga_los_datos_actuales(): void
+    {
+        $e = $this->crearEscenario();
+        $e['carril']->update(['nombre' => 'Carril 1']);
+        $horario = Horario::factory()->create([
+            'sucursal_id' => $e['sucursal']->id,
+            'instructor_id' => $e['instructor']->id,
+            'nivel_id' => $e['nivel']->id,
+            'carril_id' => $e['carril']->id,
+            'nombre_grupo' => 'Delfines de prueba',
+            'dia_semana' => 2,
+            'hora_inicio' => '09:15',
+            'hora_fin' => '10:00',
+            'capacidad_maxima' => 9,
+        ]);
+        $nombreInstructor = $e['instructor']->user->name;
+
+        $response = $this->actingAs($e['admin'])->get(route('horarios.index'));
+
+        $response->assertOk();
+        $response->assertSee('data-nombre-grupo="Delfines de prueba"', false);
+        $response->assertSee('data-dia-semana="2"', false);
+        $response->assertSee('data-hora-inicio="09:15"', false);
+        $response->assertSee('data-hora-fin="10:00"', false);
+        $response->assertSee('data-carril-id="'.$e['carril']->id.'"', false);
+        $response->assertSee('data-capacidad-maxima="9"', false);
+        $response->assertSee('Carril 1 · '.$nombreInstructor);
     }
 
     public function test_admin_asigna_un_alumno_sin_inscripcion_a_una_clase(): void

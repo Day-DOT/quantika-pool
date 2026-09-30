@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Enums\EstadoEvaluacionDetalle;
 use App\Enums\EstadoPago;
 use App\Models\Alumno;
+use App\Models\AlumnoNivelHistorial;
 use App\Models\Carril;
 use App\Models\Cita;
 use App\Models\CriterioEvaluacion;
@@ -392,14 +393,14 @@ class PortalAlumnoTest extends TestCase
 
         $instructor = Instructor::factory()->create();
 
-        \App\Models\AlumnoNivelHistorial::create([
+        AlumnoNivelHistorial::create([
             'alumno_id' => $alumno->id,
             'nivel_id' => $nivelAnterior->id,
             'fecha_inicio' => now()->subMonths(2)->toDateString(),
             'fecha_fin' => now()->subMonth()->toDateString(),
         ]);
 
-        \App\Models\AlumnoNivelHistorial::create([
+        AlumnoNivelHistorial::create([
             'alumno_id' => $alumno->id,
             'nivel_id' => $nivelActual->id,
             'fecha_inicio' => now()->subMonth()->toDateString(),
@@ -437,6 +438,41 @@ class PortalAlumnoTest extends TestCase
             ->assertSee('Comparativa de progreso')
             ->assertSee('Progreso anterior')
             ->assertSee('Progreso actual');
+    }
+
+    public function test_historial_de_evaluaciones_permite_navegar_por_todas_las_paginas(): void
+    {
+        [$tutor, $alumno] = $this->crearTutorConAlumno();
+        $instructor = Instructor::factory()->create();
+
+        for ($i = 1; $i <= 8; $i++) {
+            $nivel = Nivel::factory()->create([
+                'nombre' => "Nivel histórico {$i}",
+                'categoria_edad' => 'Adultos mujeres',
+            ]);
+            Evaluacion::factory()->create([
+                'alumno_id' => $alumno->id,
+                'instructor_id' => $instructor->id,
+                'nivel_id' => $nivel->id,
+                'fecha' => now()->subDays($i)->toDateString(),
+            ]);
+        }
+
+        $primeraPagina = $this->actingAs($tutor)
+            ->get(route('portal.progreso', ['alumno' => $alumno->id]))
+            ->assertOk()
+            ->assertSeeInOrder(['Nivel histórico 1', 'Nivel histórico 6'])
+            ->assertDontSee('Nivel histórico 7')
+            ->assertSee('Ver evaluaciones anteriores')
+            ->assertSee('alumno='.$alumno->id.'&amp;page=2', false)
+            ->assertDontSee('Ver evaluaciones siguientes');
+
+        $this->get(route('portal.progreso', ['alumno' => $alumno->id, 'page' => 2]))
+            ->assertOk()
+            ->assertSeeInOrder(['Nivel histórico 7', 'Nivel histórico 8'])
+            ->assertSee('Ver evaluaciones siguientes')
+            ->assertDontSee('Ver evaluaciones anteriores')
+            ->assertSee('alumno='.$alumno->id.'&amp;page=1', false);
     }
 
     // ------------------------------------------------------------------
