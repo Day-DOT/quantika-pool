@@ -34,29 +34,32 @@ class NivelSeeder extends Seeder
             ['orden' => 3, 'nombre' => 'Adulto Avanzado', 'categoria' => 'Avanzado', 'categoria_edad' => 'Adultos', 'color_hex' => '#1c5fb0', 'imagen' => 'images/Niveles/orca.png', 'descripcion' => 'Los cuatro estilos y acondicionamiento físico en el agua.'],
         ];
 
-        // firstOrCreate (no updateOrCreate): estos son solo los niveles de
-        // arranque. Una vez que existen, la escuela los renombra, les cambia
-        // la imagen o el orden desde el panel, y el seeder NO debe revertir
-        // esos cambios en cada despliegue.
+        // Estos son los niveles de arranque. Una vez que existen, la escuela
+        // puede renombrarlos desde el panel y el seeder no debe revertirlo.
+        $nivelesExistentesActualizados = [];
+
         foreach ($niveles as $nivel) {
-            $categoriaEdad = match ($nivel['categoria_edad']) {
-                'Bebés' => 'Niños',
-                'Adultos' => 'Adultos mujeres',
-                default => $nivel['categoria_edad'],
-            };
-            $categorias = $categoriaEdad === 'Adultos mujeres'
-                ? ['Adultos mujeres', 'Adultos hombres']
-                : [$categoriaEdad];
+            $nivel['categoria'] = '';
 
-            foreach ($categorias as $categoria) {
-                $nivel['categoria_edad'] = $categoria;
-                $nivel['categoria'] = '';
+            $consulta = Nivel::query()
+                ->where('categoria_edad', $nivel['categoria_edad'])
+                ->where('orden', $nivel['orden']);
+            $existente = (clone $consulta)->where('nombre', $nivel['nombre'])->first();
 
-                Nivel::query()->firstOrCreate(
-                    ['categoria_edad' => $categoria, 'orden' => $nivel['orden']],
-                    [...$nivel, 'activo' => true],
-                );
+            if (! $existente) {
+                $existente = $consulta
+                    ->whereNotIn('id', $nivelesExistentesActualizados)
+                    ->orderBy('id')
+                    ->first();
             }
+
+            if ($existente) {
+                $nivelesExistentesActualizados[] = $existente->id;
+
+                continue;
+            }
+
+            Nivel::query()->create([...$nivel, 'activo' => true]);
         }
     }
 }

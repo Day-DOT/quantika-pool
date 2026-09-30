@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Carril;
+use App\Models\ConfiguracionSistema;
 use App\Models\Sucursal;
 use App\Models\User;
 use App\Support\SucursalContext;
@@ -17,8 +18,17 @@ class AdminConfiguracionTest extends TestCase
     {
         $sucursal = Sucursal::factory()->create();
         $admin = User::factory()->admin($sucursal->id)->create();
+        ConfiguracionSistema::create(['clave' => 'categoria_adultos_mujeres', 'valor' => 'Adultos mujeres']);
+        ConfiguracionSistema::create(['clave' => 'categoria_adultos_hombres', 'valor' => 'Adultos hombres']);
 
-        $this->actingAs($admin)->get(route('configuracion.index'))->assertOk();
+        $this->actingAs($admin)
+            ->get(route('configuracion.index'))
+            ->assertOk()
+            ->assertSee('Niños')
+            ->assertSee('Adultos')
+            ->assertDontSee('Niñas')
+            ->assertDontSee('Adultos mujeres')
+            ->assertDontSee('Adultos hombres');
     }
 
     public function test_admin_ve_y_crea_carriles_de_su_sucursal(): void

@@ -31,6 +31,32 @@ class SuperAdminNivelYCriterioTest extends TestCase
         $this->assertDatabaseHas('niveles', ['nombre' => 'Kraken', 'orden' => 13]);
     }
 
+    public function test_niveles_solo_se_separan_entre_ninos_y_adultos(): void
+    {
+        $superAdmin = User::factory()->superAdmin()->create();
+
+        $this->actingAs($superAdmin)
+            ->get(route('super-admin.niveles.create'))
+            ->assertOk()
+            ->assertSee('Niños')
+            ->assertSee('Adultos')
+            ->assertDontSee('Niñas')
+            ->assertDontSee('Adultos mujeres')
+            ->assertDontSee('Adultos hombres');
+
+        foreach (['Niñas', 'Adultos mujeres', 'Adultos hombres'] as $categoriaEdad) {
+            $this->actingAs($superAdmin)->post(route('super-admin.niveles.store'), [
+                'orden' => 20,
+                'nombre' => 'Nivel no permitido',
+                'categoria' => '',
+                'categoria_edad' => $categoriaEdad,
+                'activo' => '1',
+            ])->assertSessionHasErrors('categoria_edad');
+        }
+
+        $this->assertSame(['Niños', 'Adultos'], Nivel::CATEGORIAS_EDAD);
+    }
+
     public function test_la_imagen_de_un_nivel_nuevo_se_guarda_en_el_disco_persistente(): void
     {
         Storage::fake('public');

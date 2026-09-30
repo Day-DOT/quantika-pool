@@ -50,12 +50,12 @@ class ReposicionesTest extends TestCase
         $response->assertSee($alumno->nombreCompleto());
     }
 
-    public function test_los_horarios_de_reposicion_se_filtran_por_categoria_de_edad(): void
+    public function test_los_horarios_de_reposicion_se_filtran_por_edad_sin_separar_sexo(): void
     {
         $sucursal = Sucursal::factory()->create();
         $admin = User::factory()->admin($sucursal->id)->create();
         $nivelNinos = Nivel::factory()->create(['categoria_edad' => 'Niños']);
-        $nivelAdultos = Nivel::factory()->create(['categoria_edad' => 'Adultos hombres']);
+        $nivelAdultos = Nivel::factory()->create(['categoria_edad' => 'Adultos']);
         $instructor = Instructor::factory()->create(['sucursal_id' => $sucursal->id]);
         $carril = Carril::factory()->create(['sucursal_id' => $sucursal->id, 'nombre' => 'Carril 2']);
         [$alumno, $cita] = $this->crearFalta($sucursal, $nivelNinos);

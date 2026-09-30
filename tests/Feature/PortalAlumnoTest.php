@@ -448,7 +448,7 @@ class PortalAlumnoTest extends TestCase
         for ($i = 1; $i <= 8; $i++) {
             $nivel = Nivel::factory()->create([
                 'nombre' => "Nivel histórico {$i}",
-                'categoria_edad' => 'Adultos mujeres',
+                'categoria_edad' => 'Adultos',
             ]);
             Evaluacion::factory()->create([
                 'alumno_id' => $alumno->id,

@@ -18,11 +18,8 @@ class ConfiguracionSistema extends Model
     public static function categoriasEdad(): array
     {
         return [
-            'Bebés' => static::valor('categoria_bebes', static::valor('categoria_ninos', 'Bebés')),
-            'Niños' => static::valor('categoria_niños', static::valor('categoria_ninos', 'Niños')),
-            'Adultos' => static::valor('categoria_adultos', static::valor('categoria_adultos_mujeres', 'Adultos')),
-            'No adultos' => static::valor('categoria_no_adultos', static::valor('categoria_adultos_hombres', 'No adultos')),
-            'Mujeres' => static::valor('categoria_mujeres', static::valor('categoria_adultos_mujeres', 'Mujeres')),
+            'Niños' => static::valor('categoria_ninos', 'Niños'),
+            'Adultos' => static::valor('categoria_adultos', 'Adultos'),
         ];
     }
 }

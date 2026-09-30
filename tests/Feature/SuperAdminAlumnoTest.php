@@ -97,7 +97,7 @@ class SuperAdminAlumnoTest extends TestCase
     public function test_un_alumno_puede_asignarse_a_cualquier_nivel_sin_importar_su_sexo(): void
     {
         $superAdmin = User::factory()->superAdmin()->create();
-        $nivel = Nivel::factory()->create(['categoria_edad' => 'Adultos mujeres']);
+        $nivel = Nivel::factory()->create(['categoria_edad' => 'Adultos']);
 
         $response = $this->actingAs($superAdmin)->post(route('alumnos.store'), [
             'sucursal_id' => Sucursal::factory()->create()->id,
@@ -117,18 +117,28 @@ class SuperAdminAlumnoTest extends TestCase
         ]);
     }
 
-    public function test_los_alumnos_se_clasifican_por_sexo_y_edad(): void
+    public function test_los_alumnos_usan_las_mismas_categorias_de_nivel_segun_su_edad(): void
     {
         $mujerAdulta = Alumno::factory()->create([
             'sexo' => 'Mujer',
             'fecha_nacimiento' => now()->subYears(15)->subDay(),
+        ]);
+        $hombreAdulto = Alumno::factory()->create([
+            'sexo' => 'Hombre',
+            'fecha_nacimiento' => now()->subYears(30),
+        ]);
+        $mujerNina = Alumno::factory()->create([
+            'sexo' => 'Mujer',
+            'fecha_nacimiento' => now()->subYears(10),
         ]);
         $hombreNino = Alumno::factory()->create([
             'sexo' => 'Hombre',
             'fecha_nacimiento' => now()->subYears(14),
         ]);
 
-        $this->assertSame('Adultos mujeres', $mujerAdulta->grupoSexoEdad());
-        $this->assertSame('Niños', $hombreNino->grupoSexoEdad());
+        $this->assertSame('Adultos', $mujerAdulta->categoriaNivelPorEdad());
+        $this->assertSame('Adultos', $hombreAdulto->categoriaNivelPorEdad());
+        $this->assertSame('Niños', $mujerNina->categoriaNivelPorEdad());
+        $this->assertSame('Niños', $hombreNino->categoriaNivelPorEdad());
     }
 }
