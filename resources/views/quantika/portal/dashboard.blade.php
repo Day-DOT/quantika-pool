@@ -89,7 +89,7 @@
                         @if ($nivelActivo?->subtitulo)
                             <div class="level-description">{{ $nivelActivo->subtitulo }}</div>
                         @endif
-                        <div class="level-description">{{ $nivelActivo?->descripcion ?? 'Este alumno aún no tiene un nivel asignado.' }}</div>
+                        <div class="level-description" style="white-space:pre-line;">{{ $nivelActivo?->descripcion ?? 'Este alumno aún no tiene un nivel asignado.' }}</div>
 
                         <div class="progress-row">
                             <span>Avance en el nivel</span>

@@ -367,6 +367,24 @@ class PortalAlumnoTest extends TestCase
             ->assertSee('50%');
     }
 
+    public function test_progreso_muestra_la_descripcion_del_nivel_actual_y_de_la_trayectoria(): void
+    {
+        $nivel = Nivel::factory()->create(['orden' => 1, 'descripcion' => 'Se familiariza con el agua y flota con apoyo.']);
+        $siguiente = Nivel::factory()->create([
+            'orden' => 2,
+            'categoria_edad' => $nivel->categoria_edad,
+            'descripcion' => 'Nada de crol sin apoyo durante 10 metros.',
+        ]);
+
+        [$tutor, $alumno] = $this->crearTutorConAlumno(nivel: $nivel);
+
+        $this->actingAs($tutor)
+            ->get(route('portal.progreso', ['alumno' => $alumno->id]))
+            ->assertOk()
+            ->assertSee('Se familiariza con el agua y flota con apoyo.')
+            ->assertSee('Nada de crol sin apoyo durante 10 metros.');
+    }
+
     public function test_progreso_sin_evaluaciones_muestra_todos_los_criterios_como_no_iniciado(): void
     {
         [$tutor, $alumno, , $nivel] = $this->crearTutorConAlumno();

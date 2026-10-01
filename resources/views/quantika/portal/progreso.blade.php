@@ -44,6 +44,12 @@
                     <div style="flex:1;">
                         <div class="level-number">NIVEL {{ $nivelActual?->orden ?? '—' }} · {{ \App\Models\ConfiguracionSistema::categoriasEdad()[$nivelActual?->categoria_edad] ?? $nivelActual?->categoria_edad ?? '' }}</div>
                         <div class="level-name">{{ $nivelActual?->nombre ?? 'Sin nivel asignado' }}</div>
+                        @if ($nivelActual?->subtitulo)
+                            <div class="level-description">{{ $nivelActual->subtitulo }}</div>
+                        @endif
+                        @if ($nivelActual?->descripcion)
+                            <div class="level-description" style="white-space:pre-line;">{{ $nivelActual->descripcion }}</div>
+                        @endif
                         <div class="level-description">
                             @if ($ultimaEvaluacion)
                                 Última evaluación: {{ $ultimaEvaluacion->fecha->translatedFormat('d M Y') }}
@@ -84,6 +90,9 @@
                                 @endif
                                 <strong style="display:block;margin-top:6px;">{{ $nivelMapa['nivel']->nombre }}</strong>
                                 <span class="badge {{ $claseTrayectoria }}" style="margin-top:8px;">{{ $nivelMapa['estado'] }}</span>
+                                @if ($nivelMapa['nivel']->descripcion)
+                                    <p style="margin-top:10px;font-size:13px;line-height:1.45;color:var(--muted);white-space:pre-line;">{{ $nivelMapa['nivel']->descripcion }}</p>
+                                @endif
                             </div>
                         @empty
                             <div class="empty-row">No hay niveles configurados para mostrar la trayectoria.</div>
