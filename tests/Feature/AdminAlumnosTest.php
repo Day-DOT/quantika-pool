@@ -11,6 +11,7 @@ use App\Models\Nivel;
 use App\Models\Pago;
 use App\Models\Sucursal;
 use App\Models\User;
+use Illuminate\Filesystem\FilesystemAdapter;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
@@ -279,6 +280,41 @@ class AdminAlumnosTest extends TestCase
         $this->assertNotEquals('alumnos/documentos/foto-anterior.png', $alumno->foto_path);
         Storage::disk('public')->assertExists($alumno->foto_path);
         Storage::disk('public')->assertMissing('alumnos/documentos/foto-anterior.png');
+    }
+
+    public function test_si_no_se_puede_escribir_el_documento_se_avisa_y_se_conserva_el_anterior(): void
+    {
+        $fake = Storage::fake('public');
+
+        // Simula un volumen lleno: el disco no lanza excepciones, solo
+        // devuelve false al intentar escribir el archivo.
+        Storage::set('public', new class($fake->getDriver(), $fake->getAdapter(), $fake->getConfig()) extends FilesystemAdapter
+        {
+            public function putFileAs($path, $file, $name = null, $options = [])
+            {
+                return false;
+            }
+        });
+
+        $sucursal = Sucursal::factory()->create();
+        $admin = User::factory()->admin($sucursal->id)->create();
+        $alumno = Alumno::factory()->create([
+            'sucursal_id' => $sucursal->id,
+            'identificacion_path' => 'alumnos/documentos/curp-anterior.pdf',
+        ]);
+        Storage::disk('public')->put('alumnos/documentos/curp-anterior.pdf', 'contenido-anterior');
+
+        $response = $this->actingAs($admin)->put(route('alumnos.update', $alumno), [
+            'nombre' => $alumno->nombre,
+            'apellidos' => $alumno->apellidos,
+            'fecha_nacimiento' => $alumno->fecha_nacimiento->format('Y-m-d'),
+            'estado' => 'activo',
+            'identificacion' => UploadedFile::fake()->create('curp-nueva.pdf', 120, 'application/pdf'),
+        ]);
+
+        $response->assertSessionHasErrors('identificacion');
+        $this->assertSame('alumnos/documentos/curp-anterior.pdf', $alumno->fresh()->identificacion_path);
+        Storage::disk('public')->assertExists('alumnos/documentos/curp-anterior.pdf');
     }
 
     public function test_admin_puede_eliminar_la_foto_de_un_alumno(): void

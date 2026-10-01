@@ -31,6 +31,15 @@ class AlumnoController extends Controller
     use AuthorizesRequests;
     use ScopesSucursal;
 
+    /** Campo del formulario => columna donde se guarda la ruta del archivo. */
+    private const DOCUMENTOS = [
+        'certificado_medico' => 'certificado_medico_path',
+        'identificacion' => 'identificacion_path',
+        'ine_tutor' => 'ine_tutor_path',
+        'foto' => 'foto_path',
+        'contrato_firmado' => 'contrato_firmado_path',
+    ];
+
     public function index(Request $request): View
     {
         $this->authorize('viewAny', Alumno::class);
@@ -88,13 +97,7 @@ class AlumnoController extends Controller
 
         $sucursalId = $this->sucursalId() ?? (int) $datos['sucursal_id'];
 
-        $rutasDocumentos = [
-            'certificado_medico_path' => $request->file('certificado_medico')?->store('alumnos/documentos', 'public'),
-            'identificacion_path' => $request->file('identificacion')?->store('alumnos/documentos', 'public'),
-            'ine_tutor_path' => $request->file('ine_tutor')?->store('alumnos/documentos', 'public'),
-            'foto_path' => $request->file('foto')?->store('alumnos/documentos', 'public'),
-            'contrato_firmado_path' => $request->file('contrato_firmado')?->store('alumnos/documentos', 'public'),
-        ];
+        $rutasDocumentos = $this->guardarDocumentos($request);
 
         $resultado = DB::transaction(function () use ($datos, $sucursalId, $rutasDocumentos) {
             $tutor = null;
@@ -294,29 +297,32 @@ class AlumnoController extends Controller
         $datos = $request->validated();
         $tieneTutor = $request->boolean('tiene_tutor');
 
-        if (! $tieneTutor && $alumno->ine_tutor_path) {
-            Storage::disk('public')->delete($alumno->ine_tutor_path);
+        // Los archivos nuevos se guardan primero y los anteriores solo se
+        // borran cuando el alumno ya quedó actualizado; así un fallo al
+        // escribir no deja al alumno sin el documento que ya tenía.
+        $rutasDocumentos = $this->guardarDocumentos($request);
+
+        $rutasReemplazadas = array_map(fn (string $columna) => $alumno->{$columna}, array_keys($rutasDocumentos));
+
+        if (! $tieneTutor) {
+            $rutasReemplazadas[] = $alumno->ine_tutor_path;
         }
 
-        $rutasDocumentos = [];
-        foreach ([
-            'certificado_medico' => 'certificado_medico_path',
-            'identificacion' => 'identificacion_path',
-            'ine_tutor' => 'ine_tutor_path',
-            'foto' => 'foto_path',
-            'contrato_firmado' => 'contrato_firmado_path',
-        ] as $campo => $columna) {
-            if (! $request->hasFile($campo)) {
-                continue;
-            }
+        try {
+            $this->actualizarAlumno($datos, $alumno, $rutasDocumentos, $tieneTutor);
+        } catch (\Throwable $e) {
+            $this->eliminarDocumentos($rutasDocumentos);
 
-            if ($alumno->{$columna} && str_starts_with($alumno->{$columna}, 'alumnos/documentos/')) {
-                Storage::disk('public')->delete($alumno->{$columna});
-            }
-
-            $rutasDocumentos[$columna] = $request->file($campo)->store('alumnos/documentos', 'public');
+            throw $e;
         }
 
+        $this->eliminarDocumentos(array_diff(array_filter($rutasReemplazadas), $rutasDocumentos));
+
+        return redirect()->route('alumnos.show', $alumno)->with('status', 'Alumno actualizado correctamente.');
+    }
+
+    private function actualizarAlumno(array $datos, Alumno $alumno, array $rutasDocumentos, bool $tieneTutor): void
+    {
         DB::transaction(function () use ($datos, $alumno, $rutasDocumentos, $tieneTutor) {
             $nivelAnterior = $alumno->nivel_id;
 
@@ -450,8 +456,6 @@ class AlumnoController extends Controller
                 }
             }
         });
-
-        return redirect()->route('alumnos.show', $alumno)->with('status', 'Alumno actualizado correctamente.');
     }
 
     public function destroyFoto(Alumno $alumno): RedirectResponse
@@ -495,17 +499,7 @@ class AlumnoController extends Controller
 
         $nombre = $alumno->nombreCompleto();
 
-        foreach ([
-            $alumno->certificado_medico_path,
-            $alumno->identificacion_path,
-            $alumno->ine_tutor_path,
-            $alumno->foto_path,
-            $alumno->contrato_firmado_path,
-        ] as $ruta) {
-            if ($ruta && str_starts_with($ruta, 'alumnos/documentos/')) {
-                Storage::disk('public')->delete($ruta);
-            }
-        }
+        $this->eliminarDocumentos(array_map(fn (string $columna) => $alumno->{$columna}, self::DOCUMENTOS));
 
         // Las citas, pagos, inscripciones, evaluaciones e historial de nivel
         // del alumno se eliminan en cascada a nivel de base de datos.
@@ -513,6 +507,49 @@ class AlumnoController extends Controller
 
         return redirect()->route('alumnos.index')
             ->with('status', "Alumno {$nombre} eliminado permanentemente, junto con su historial de citas, pagos y evaluaciones.");
+    }
+
+    /**
+     * Guarda en el disco público los documentos que vienen en la petición.
+     * El disco está configurado para no lanzar excepciones, así que una
+     * escritura fallida (p.ej. volumen lleno) solo devuelve false: se revisa
+     * cada archivo y, si alguno falla, se descartan los ya guardados y se
+     * avisa en el formulario en lugar de dejar la columna vacía.
+     *
+     * @return array<string, string> columna => ruta guardada
+     */
+    private function guardarDocumentos(Request $request): array
+    {
+        $rutas = [];
+
+        foreach (self::DOCUMENTOS as $campo => $columna) {
+            if (! $request->hasFile($campo)) {
+                continue;
+            }
+
+            $ruta = $request->file($campo)->store('alumnos/documentos', 'public');
+
+            if ($ruta === false) {
+                $this->eliminarDocumentos($rutas);
+
+                throw ValidationException::withMessages([
+                    $campo => 'No se pudo guardar el archivo en el servidor. Es posible que el almacenamiento esté lleno; avisa al administrador del sistema.',
+                ]);
+            }
+
+            $rutas[$columna] = $ruta;
+        }
+
+        return $rutas;
+    }
+
+    private function eliminarDocumentos(iterable $rutas): void
+    {
+        foreach ($rutas as $ruta) {
+            if ($ruta && str_starts_with($ruta, 'alumnos/documentos/')) {
+                Storage::disk('public')->delete($ruta);
+            }
+        }
     }
 
     private function iniciales(string $nombre, string $apellidos): string
