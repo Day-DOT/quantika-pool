@@ -181,7 +181,9 @@
             @else
                 <div class="levels-grid">
                     @foreach ($nivelesPreview as $fila)
-                        @php($nivel = $fila['nivel'])
+                        @php
+                            $nivel = $fila['nivel'];
+                        @endphp
                         <article class="level-card" style="--level-color:{{ $nivel->color_hex }}; --progress:{{ $fila['progreso'] }}%;">
                             <div class="level-head">
                                 <div class="animal-circle">
