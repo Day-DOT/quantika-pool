@@ -18,7 +18,8 @@ class ConfiguracionSistema extends Model
     public static function categoriasEdad(): array
     {
         return [
-            'Niños' => static::valor('categoria_ninos', 'Niños'),
+            'Bebés' => static::valor('categoria_bebes', 'Bebés'),
+            'Niños' => static::valor('categoria_ninos', static::valor('categoria_niños', 'Niños')),
             'Adultos' => static::valor('categoria_adultos', 'Adultos'),
         ];
     }

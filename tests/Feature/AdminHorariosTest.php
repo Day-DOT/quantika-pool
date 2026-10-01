@@ -332,6 +332,65 @@ class AdminHorariosTest extends TestCase
         $response->assertSee('Carril 1 · '.$nombreInstructor);
     }
 
+    public function test_admin_puede_cambiar_el_instructor_de_una_clase(): void
+    {
+        $e = $this->crearEscenario();
+        $nuevoInstructor = Instructor::factory()->create(['sucursal_id' => $e['sucursal']->id]);
+        $horario = Horario::factory()->create([
+            'sucursal_id' => $e['sucursal']->id,
+            'instructor_id' => $e['instructor']->id,
+            'nivel_id' => $e['nivel']->id,
+            'carril_id' => $e['carril']->id,
+        ]);
+
+        $this->actingAs($e['admin'])
+            ->patch(route('horarios.cambiar-instructor', $horario), [
+                'instructor_id' => $nuevoInstructor->id,
+            ])
+            ->assertRedirect(route('horarios.index'));
+
+        $this->assertSame($nuevoInstructor->id, $horario->fresh()->instructor_id);
+    }
+
+    public function test_admin_no_puede_cambiar_a_un_instructor_de_otra_sucursal(): void
+    {
+        $e = $this->crearEscenario();
+        $otraSucursal = Sucursal::factory()->create();
+        $instructorAjeno = Instructor::factory()->create(['sucursal_id' => $otraSucursal->id]);
+        $horario = Horario::factory()->create([
+            'sucursal_id' => $e['sucursal']->id,
+            'instructor_id' => $e['instructor']->id,
+            'nivel_id' => $e['nivel']->id,
+            'carril_id' => $e['carril']->id,
+        ]);
+
+        $this->actingAs($e['admin'])
+            ->patch(route('horarios.cambiar-instructor', $horario), [
+                'instructor_id' => $instructorAjeno->id,
+            ])
+            ->assertSessionHasErrors('instructor_id');
+
+        $this->assertSame($e['instructor']->id, $horario->fresh()->instructor_id);
+    }
+
+    public function test_el_detalle_de_clase_ofrece_cambiar_instructor(): void
+    {
+        $e = $this->crearEscenario();
+        $horario = Horario::factory()->create([
+            'sucursal_id' => $e['sucursal']->id,
+            'instructor_id' => $e['instructor']->id,
+            'nivel_id' => $e['nivel']->id,
+            'carril_id' => $e['carril']->id,
+        ]);
+
+        $this->actingAs($e['admin'])
+            ->get(route('horarios.index'))
+            ->assertOk()
+            ->assertSee('Guardar instructor')
+            ->assertSee('HORARIO_ID')
+            ->assertSee('instructor');
+    }
+
     public function test_admin_asigna_un_alumno_sin_inscripcion_a_una_clase(): void
     {
         $e = $this->crearEscenario();

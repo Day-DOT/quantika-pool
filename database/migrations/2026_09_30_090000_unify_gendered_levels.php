@@ -12,7 +12,7 @@ return new class extends Migration
 
         foreach ($niveles as $nivel) {
             $categoriaEdad = match ($nivel->categoria_edad) {
-                'Bebés', 'Niños', 'Niñas' => 'Niños',
+                'Niños', 'Niñas' => 'Niños',
                 'Adultos', 'Adultos mujeres', 'Adultos hombres' => 'Adultos',
                 default => $nivel->categoria_edad,
             };

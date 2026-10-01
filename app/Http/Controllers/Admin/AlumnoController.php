@@ -35,7 +35,8 @@ class AlumnoController extends Controller
     private const DOCUMENTOS = [
         'certificado_medico' => 'certificado_medico_path',
         'identificacion' => 'identificacion_path',
-        'ine_tutor' => 'ine_tutor_path',
+        'ine_tutor_frente' => 'ine_tutor_path',
+        'ine_tutor_reverso' => 'ine_tutor_path_2',
         'foto' => 'foto_path',
         'contrato_firmado' => 'contrato_firmado_path',
     ];
@@ -65,7 +66,7 @@ class AlumnoController extends Controller
         $totalRegistrados = $alumnos->count();
         $totalActivos = $alumnos->filter(fn ($fila) => $fila['alumno']->estado === EstadoAlumno::Activo)->count();
         $alumnosPorCategoria = collect(Nivel::CATEGORIAS_EDAD)->mapWithKeys(
-            fn (string $categoria) => [$categoria => $alumnos->filter(fn ($fila) => $fila['alumno']->categoriaNivelPorEdad() === $categoria)->count()]
+            fn (string $categoria) => [$categoria => $alumnos->filter(fn ($fila) => $fila['alumno']->grupoEdad() === $categoria)->count()]
         );
 
         return view('quantika.alumnos.index', [
@@ -299,13 +300,18 @@ class AlumnoController extends Controller
 
         // Los archivos nuevos se guardan primero y los anteriores solo se
         // borran cuando el alumno ya quedó actualizado; así un fallo al
-        // escribir no deja al alumno sin el documento que ya tenía.
-        $rutasDocumentos = $this->guardarDocumentos($request);
+        // escribir no deja al alumno sin el documento que ya tenía. Las
+        // INE del tutor solo se guardan si el alumno tiene tutor.
+        $rutasDocumentos = $this->guardarDocumentos(
+            $request,
+            excluir: $tieneTutor ? [] : ['ine_tutor_frente', 'ine_tutor_reverso'],
+        );
 
         $rutasReemplazadas = array_map(fn (string $columna) => $alumno->{$columna}, array_keys($rutasDocumentos));
 
         if (! $tieneTutor) {
             $rutasReemplazadas[] = $alumno->ine_tutor_path;
+            $rutasReemplazadas[] = $alumno->ine_tutor_path_2;
         }
 
         try {
@@ -343,6 +349,9 @@ class AlumnoController extends Controller
                 'plan_id' => $datos['plan_id'] ?? null,
                 'ine_tutor_path' => $tieneTutor
                     ? ($rutasDocumentos['ine_tutor_path'] ?? $alumno->ine_tutor_path)
+                    : null,
+                'ine_tutor_path_2' => $tieneTutor
+                    ? ($rutasDocumentos['ine_tutor_path_2'] ?? $alumno->ine_tutor_path_2)
                     : null,
                 ...$rutasDocumentos,
             ]);
@@ -516,14 +525,15 @@ class AlumnoController extends Controller
      * cada archivo y, si alguno falla, se descartan los ya guardados y se
      * avisa en el formulario en lugar de dejar la columna vacía.
      *
+     * @param  list<string>  $excluir  campos del formulario que no se deben guardar
      * @return array<string, string> columna => ruta guardada
      */
-    private function guardarDocumentos(Request $request): array
+    private function guardarDocumentos(Request $request, array $excluir = []): array
     {
         $rutas = [];
 
         foreach (self::DOCUMENTOS as $campo => $columna) {
-            if (! $request->hasFile($campo)) {
+            if (in_array($campo, $excluir, true) || ! $request->hasFile($campo)) {
                 continue;
             }
 

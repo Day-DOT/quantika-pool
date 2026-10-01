@@ -25,7 +25,7 @@ class Nivel extends Model
         'activo',
     ];
 
-    public const CATEGORIAS_EDAD = ['Niños', 'Adultos'];
+    public const CATEGORIAS_EDAD = ['Bebés', 'Niños', 'Adultos'];
 
     public const SEXOS = ['Mujer', 'Hombre'];
 
@@ -90,7 +90,7 @@ class Nivel extends Model
         // orden ya no es único, así que se usa "id" como desempate estable
         // entre niveles con el mismo número (p.ej. distintas etapas).
         return $query
-            ->orderByRaw("CASE categoria_edad WHEN 'Niños' THEN 1 WHEN 'Adultos' THEN 2 ELSE 3 END")
+            ->orderByRaw("CASE categoria_edad WHEN 'Bebés' THEN 1 WHEN 'Niños' THEN 2 WHEN 'Adultos' THEN 3 ELSE 4 END")
             ->orderBy('orden')
             ->orderBy('id');
     }

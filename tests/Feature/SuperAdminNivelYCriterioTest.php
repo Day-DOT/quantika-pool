@@ -31,13 +31,14 @@ class SuperAdminNivelYCriterioTest extends TestCase
         $this->assertDatabaseHas('niveles', ['nombre' => 'Kraken', 'orden' => 13]);
     }
 
-    public function test_niveles_solo_se_separan_entre_ninos_y_adultos(): void
+    public function test_niveles_solo_se_separan_por_edad_bebes_ninos_y_adultos(): void
     {
         $superAdmin = User::factory()->superAdmin()->create();
 
         $this->actingAs($superAdmin)
             ->get(route('super-admin.niveles.create'))
             ->assertOk()
+            ->assertSee('Bebés')
             ->assertSee('Niños')
             ->assertSee('Adultos')
             ->assertDontSee('Niñas')
@@ -54,7 +55,7 @@ class SuperAdminNivelYCriterioTest extends TestCase
             ])->assertSessionHasErrors('categoria_edad');
         }
 
-        $this->assertSame(['Niños', 'Adultos'], Nivel::CATEGORIAS_EDAD);
+        $this->assertSame(['Bebés', 'Niños', 'Adultos'], Nivel::CATEGORIAS_EDAD);
     }
 
     public function test_la_imagen_de_un_nivel_nuevo_se_guarda_en_el_disco_persistente(): void

@@ -117,7 +117,7 @@ class SuperAdminAlumnoTest extends TestCase
         ]);
     }
 
-    public function test_los_alumnos_usan_las_mismas_categorias_de_nivel_segun_su_edad(): void
+    public function test_los_alumnos_se_clasifican_por_rango_de_edad_sin_separar_por_sexo(): void
     {
         $mujerAdulta = Alumno::factory()->create([
             'sexo' => 'Mujer',
@@ -135,10 +135,15 @@ class SuperAdminAlumnoTest extends TestCase
             'sexo' => 'Hombre',
             'fecha_nacimiento' => now()->subYears(14),
         ]);
+        $bebe = Alumno::factory()->create([
+            'sexo' => 'Mujer',
+            'fecha_nacimiento' => now()->subYears(2),
+        ]);
 
-        $this->assertSame('Adultos', $mujerAdulta->categoriaNivelPorEdad());
-        $this->assertSame('Adultos', $hombreAdulto->categoriaNivelPorEdad());
-        $this->assertSame('Niños', $mujerNina->categoriaNivelPorEdad());
-        $this->assertSame('Niños', $hombreNino->categoriaNivelPorEdad());
+        $this->assertSame('Adultos', $mujerAdulta->grupoEdad());
+        $this->assertSame('Adultos', $hombreAdulto->grupoEdad());
+        $this->assertSame('Niños', $mujerNina->grupoEdad());
+        $this->assertSame('Niños', $hombreNino->grupoEdad());
+        $this->assertSame('Bebés', $bebe->grupoEdad());
     }
 }

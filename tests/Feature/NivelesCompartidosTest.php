@@ -19,7 +19,7 @@ class NivelesCompartidosTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_el_seeder_crea_una_sola_lista_compartida_para_ninos_y_adultos(): void
+    public function test_el_seeder_crea_una_sola_lista_compartida_para_bebes_ninos_y_adultos(): void
     {
         $nivelPersonalizado = Nivel::factory()->create([
             'nombre' => 'Adulto Iniciación personalizado',
@@ -33,8 +33,9 @@ class NivelesCompartidosTest extends TestCase
 
         $this->assertSame('Adulto Iniciación personalizado', $nivelPersonalizado->fresh()->nombre);
         $this->assertSame(17, Nivel::count());
-        $this->assertSame(['Adultos', 'Niños'], Nivel::query()->distinct()->orderBy('categoria_edad')->pluck('categoria_edad')->all());
-        $this->assertSame(14, Nivel::where('categoria_edad', 'Niños')->count());
+        $this->assertEqualsCanonicalizing(['Bebés', 'Niños', 'Adultos'], Nivel::query()->distinct()->pluck('categoria_edad')->all());
+        $this->assertSame(2, Nivel::where('categoria_edad', 'Bebés')->count());
+        $this->assertSame(12, Nivel::where('categoria_edad', 'Niños')->count());
         $this->assertSame(3, Nivel::where('categoria_edad', 'Adultos')->count());
     }
 
@@ -113,5 +114,20 @@ class NivelesCompartidosTest extends TestCase
         $this->assertSame(EstadoEvaluacionDetalle::Logrado, $detalle->estado);
         $this->assertSame("Observación original\nObservación complementaria", $detalle->observaciones);
         $this->assertSame(1, DB::table('criterios_evaluacion')->where('nivel_id', $nivelNinos->id)->count());
+    }
+
+    public function test_migracion_regresa_los_niveles_de_bebes_a_su_categoria(): void
+    {
+        $pececito = Nivel::factory()->create(['nombre' => 'PECECITO', 'orden' => 1, 'categoria_edad' => 'Niños']);
+        $ranita = Nivel::factory()->create(['nombre' => 'Ranita', 'orden' => 3, 'categoria_edad' => 'Niños']);
+        $estrella = Nivel::factory()->create(['nombre' => 'Estrella (Etapa A)', 'orden' => 1, 'categoria_edad' => 'Niños']);
+        $alumno = Alumno::factory()->create(['nivel_id' => $pececito->id]);
+
+        (require database_path('migrations/2026_09_30_120000_restore_bebes_levels.php'))->up();
+
+        $this->assertSame('Bebés', $pececito->fresh()->categoria_edad);
+        $this->assertSame('Bebés', $ranita->fresh()->categoria_edad);
+        $this->assertSame('Niños', $estrella->fresh()->categoria_edad);
+        $this->assertSame($pececito->id, $alumno->fresh()->nivel_id);
     }
 }

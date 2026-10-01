@@ -23,10 +23,6 @@ class ConfiguracionController extends Controller
             'categoria_bebes' => ['sometimes', 'string', 'max:100'],
             'categoria_ninos' => ['sometimes', 'string', 'max:100'],
             'categoria_adultos' => ['sometimes', 'string', 'max:100'],
-            'categoria_no_adultos' => ['sometimes', 'string', 'max:100'],
-            'categoria_mujeres' => ['sometimes', 'string', 'max:100'],
-            'categoria_adultos_mujeres' => ['sometimes', 'string', 'max:100'],
-            'categoria_adultos_hombres' => ['sometimes', 'string', 'max:100'],
         ]);
 
         foreach ($datos as $clave => $valor) {

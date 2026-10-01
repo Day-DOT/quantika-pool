@@ -2,9 +2,9 @@
 
 namespace App\Http\Controllers\Alumno;
 
-use App\Enums\EstadoCita;
 use App\Enums\EstadoPago;
 use App\Http\Controllers\Alumno\Concerns\ResuelveAlumnoActivo;
+use App\Http\Controllers\Alumno\Concerns\CargaProximasClases;
 use App\Http\Controllers\Controller;
 use App\Models\Pago;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
@@ -14,6 +14,7 @@ use Illuminate\View\View;
 class CuentaController extends Controller
 {
     use AuthorizesRequests;
+    use CargaProximasClases;
     use ResuelveAlumnoActivo;
 
     /**
@@ -37,17 +38,7 @@ class CuentaController extends Controller
 
         $this->authorize('viewAny', Pago::class);
 
-        $proximasClases = $alumno->citas()
-            ->with(['horario.nivel', 'horario.instructor.user', 'horario.carril'])
-            ->whereIn('estado', [
-                EstadoCita::Programada->value,
-                EstadoCita::Confirmada->value,
-                EstadoCita::Reagendada->value,
-            ])
-            ->whereDate('fecha', '>=', now()->toDateString())
-            ->orderBy('fecha')
-            ->orderBy('hora_inicio')
-            ->get();
+        $proximasClases = $this->proximasClases($alumno, 100);
 
         $pagos = $alumno->pagos()
             ->orderByDesc('fecha_vencimiento')

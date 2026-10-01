@@ -126,7 +126,11 @@
 
                     <div class="form-group">
                         <label>INE del tutor {{ $alumno->ine_tutor_path ? '(reemplazar)' : '(obligatorio)' }}</label>
-                        <input type="file" class="form-input" name="ine_tutor" accept=".pdf,.jpg,.jpeg,.png">
+                        <label for="ineTutorFrenteEditar">INE del tutor · Frente</label>
+                        <input id="ineTutorFrenteEditar" type="file" class="form-input" name="ine_tutor_frente" accept=".pdf,.jpg,.jpeg,.png">
+                        <label for="ineTutorReversoEditar" style="margin-top:8px;">INE del tutor · Reverso</label>
+                        <input id="ineTutorReversoEditar" type="file" class="form-input" name="ine_tutor_reverso" accept=".pdf,.jpg,.jpeg,.png">
+                        <small>Sube el frente y el reverso como archivos separados. Si solo seleccionas uno, se conserva el otro archivo actual.</small>
                         @if ($alumno->ine_tutor_path)
                             <span class="form-hint"><a href="{{ \Illuminate\Support\Facades\Storage::url($alumno->ine_tutor_path) }}" target="_blank">Ver archivo actual</a></span>
                         @endif
@@ -176,7 +180,8 @@
 
                 <div class="form-group">
                     <label>Foto del alumno {{ $alumno->foto_path ? '(reemplazar)' : '(opcional)' }}</label>
-                    <input type="file" class="form-input" name="foto" accept=".jpg,.jpeg,.png">
+                    <input type="file" class="form-input" name="foto" accept="image/*" capture="environment">
+                    <small>Selecciona una imagen o toma la foto directamente con la cámara.</small>
                     @if ($alumno->foto_path)
                         <span class="form-hint"><a href="{{ \Illuminate\Support\Facades\Storage::url($alumno->foto_path) }}" target="_blank">Ver archivo actual</a></span>
                         <button type="submit" form="eliminar-foto-alumno" class="btn btn-outline" style="margin-top:8px;">Eliminar foto</button>

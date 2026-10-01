@@ -540,6 +540,13 @@
             @endforeach
         </select>
 
+        <select class="filter" id="filtroEdad" onchange="filtrarAlumnos()">
+            <option value="">Todas las edades</option>
+            @foreach (\App\Models\Nivel::CATEGORIAS_EDAD as $categoriaEdad)
+                <option value="{{ $categoriaEdad }}">{{ \App\Models\ConfiguracionSistema::categoriasEdad()[$categoriaEdad] ?? $categoriaEdad }}</option>
+            @endforeach
+        </select>
+
         <button type="button" class="btn btn-primary" style="padding:0 22px;" onclick="limpiarFiltrosAlumnos()">Limpiar filtros</button>
 
     </div>
@@ -575,7 +582,8 @@
                             data-search="{{ mb_strtolower($alumno->nombreCompleto().' '.($alumno->matricula ?? '').' '.($alumno->email ?? '').' '.($alumno->nombreTutor() ?? '')) }}"
                             data-nivel="{{ $alumno->nivel_id }}"
                             data-sucursal="{{ $alumno->sucursal_id }}"
-                            data-estado="{{ $alumno->estado->value }}">
+                            data-estado="{{ $alumno->estado->value }}"
+                            data-edad="{{ $alumno->grupoEdad() }}">
 
                             <td>
                                 <div class="student">
@@ -769,7 +777,11 @@
 
                     <div class="form-group">
                         <label>INE del tutor (obligatorio)</label>
-                        <input type="file" class="form-input" name="ine_tutor" accept=".pdf,.jpg,.jpeg,.png">
+                        <label for="ineTutorFrenteCrear">INE del tutor · Frente</label>
+                        <input id="ineTutorFrenteCrear" type="file" class="form-input" name="ine_tutor_frente" accept=".pdf,.jpg,.jpeg,.png">
+                        <label for="ineTutorReversoCrear" style="margin-top:8px;">INE del tutor · Reverso</label>
+                        <input id="ineTutorReversoCrear" type="file" class="form-input" name="ine_tutor_reverso" accept=".pdf,.jpg,.jpeg,.png">
+                        <small>Sube el frente y el reverso como archivos separados. También puedes cargar un solo PDF.</small>
                     </div>
                 </div>
 
@@ -854,7 +866,8 @@
 
                 <div class="form-group">
                     <label>Foto del alumno (opcional)</label>
-                    <input type="file" class="form-input" name="foto" accept=".jpg,.jpeg,.png">
+                    <input type="file" class="form-input" name="foto" accept="image/*" capture="environment">
+                    <small>Selecciona una imagen o toma la foto directamente con la cámara.</small>
                 </div>
 
                 <div class="form-group">
@@ -891,6 +904,7 @@
         const texto = document.getElementById('buscar').value.toLowerCase();
         const nivel = document.getElementById('filtroNivel').value;
         const estado = document.getElementById('filtroEstado').value;
+        const edad = document.getElementById('filtroEdad').value;
 
         let visibles = 0;
 
@@ -898,8 +912,9 @@
             const coincideTexto = !texto || fila.dataset.search.includes(texto);
             const coincideNivel = !nivel || fila.dataset.nivel === nivel;
             const coincideEstado = !estado || fila.dataset.estado === estado;
+            const coincideEdad = !edad || fila.dataset.edad === edad;
 
-            const visible = coincideTexto && coincideNivel && coincideEstado;
+            const visible = coincideTexto && coincideNivel && coincideEstado && coincideEdad;
             fila.style.display = visible ? '' : 'none';
 
             if (visible) {
@@ -915,6 +930,7 @@
         document.getElementById('buscar').value = '';
         document.getElementById('filtroNivel').value = '';
         document.getElementById('filtroEstado').value = '';
+        document.getElementById('filtroEdad').value = '';
         filtrarAlumnos();
     }
 

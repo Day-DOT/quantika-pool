@@ -44,6 +44,7 @@ class Alumno extends Model
         'certificado_medico_path',
         'identificacion_path',
         'ine_tutor_path',
+        'ine_tutor_path_2',
         'foto_path',
         'contrato_firmado_path',
     ];
@@ -92,9 +93,19 @@ class Alumno extends Model
         return $this->fecha_nacimiento?->age;
     }
 
-    public function categoriaNivelPorEdad(): ?string
+    public function grupoEdad(): ?string
     {
-        return $this->edad() === null ? null : ($this->edad() >= 15 ? 'Adultos' : 'Niños');
+        return match (true) {
+            $this->edad() === null => null,
+            $this->edad() <= 3 => 'Bebés',
+            $this->edad() < 15 => 'Niños',
+            default => 'Adultos',
+        };
+    }
+
+    public function grupoSexoEdad(): ?string
+    {
+        return $this->grupoEdad();
     }
 
     public function nombreNivelConSubNivel(): ?string
