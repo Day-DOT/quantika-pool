@@ -148,17 +148,36 @@ class PortalAlumnoTest extends TestCase
         ]);
     }
 
-    public function test_reservar_index_solo_muestra_horarios_de_la_sucursal_y_niveles_cercanos(): void
+    /**
+     * Reservar en el portal es recuperar una clase: el alumno necesita una
+     * falta sin reposición en el mes en curso.
+     */
+    private function registrarFaltaSinReposicion(Alumno $alumno, Horario $horario): Cita
     {
-        [$tutor, $alumno, $sucursal, $nivel] = $this->crearTutorConAlumno();
+        return Cita::factory()->create([
+            'alumno_id' => $alumno->id,
+            'horario_id' => $horario->id,
+            'fecha' => today(),
+            'asistio' => false,
+        ]);
+    }
+
+    public function test_reservar_index_muestra_los_horarios_de_la_misma_categoria_de_edad_y_sucursal(): void
+    {
+        $nivel = Nivel::factory()->create(['orden' => 1, 'categoria_edad' => 'Niños']);
+        [$tutor, $alumno, $sucursal] = $this->crearTutorConAlumno(nivel: $nivel);
         $alumno->update(['plan_id' => Plan::factory()->create(['clases_por_semana' => 2])->id]);
 
-        $horarioCercano = $this->crearHorario($sucursal, $nivel);
-        $horarioCercano->update(['nombre_grupo' => 'Grupo Cercano']);
+        $horarioMismoNivel = $this->crearHorario($sucursal, $nivel);
+        $horarioMismoNivel->update(['nombre_grupo' => 'Grupo Mismo Nivel']);
 
-        $nivelLejano = Nivel::factory()->create(['orden' => $nivel->orden + 5]);
-        $horarioLejano = $this->crearHorario($sucursal, $nivelLejano);
-        $horarioLejano->update(['nombre_grupo' => 'Grupo Lejano']);
+        $nivelAvanzado = Nivel::factory()->create(['orden' => 6, 'categoria_edad' => 'Niños']);
+        $horarioAvanzado = $this->crearHorario($sucursal, $nivelAvanzado);
+        $horarioAvanzado->update(['nombre_grupo' => 'Grupo Mismo Rango']);
+
+        $nivelAdultos = Nivel::factory()->create(['orden' => 1, 'categoria_edad' => 'Adultos']);
+        $horarioAdultos = $this->crearHorario($sucursal, $nivelAdultos);
+        $horarioAdultos->update(['nombre_grupo' => 'Grupo Otra Edad']);
 
         $otraSucursal = Sucursal::factory()->create();
         $horarioOtraSucursal = $this->crearHorario($otraSucursal, $nivel);
@@ -167,8 +186,9 @@ class PortalAlumnoTest extends TestCase
         $this->actingAs($tutor)
             ->get(route('portal.reservar.index', ['alumno' => $alumno->id, 'sucursal' => $sucursal->id]))
             ->assertOk()
-            ->assertSee('Grupo Cercano')
-            ->assertDontSee('Grupo Lejano')
+            ->assertSee('Grupo Mismo Nivel')
+            ->assertSee('Grupo Mismo Rango')
+            ->assertDontSee('Grupo Otra Edad')
             ->assertDontSee('Grupo Otra Sucursal');
     }
 
@@ -177,6 +197,7 @@ class PortalAlumnoTest extends TestCase
         [$tutor, $alumno, $sucursal, $nivel] = $this->crearTutorConAlumno();
         $alumno->update(['plan_id' => Plan::factory()->create(['clases_por_semana' => 2])->id]);
         $horario = $this->crearHorario($sucursal, $nivel, capacidad: 4);
+        $this->registrarFaltaSinReposicion($alumno, $this->crearHorario($sucursal, $nivel));
 
         $this->actingAs($tutor)
             ->post(route('portal.reservar.store'), [
@@ -206,6 +227,7 @@ class PortalAlumnoTest extends TestCase
         $horarioA = $this->crearHorario($sucursal, $nivel, capacidad: 4, diaSemana: 1);
         $horarioB = $this->crearHorario($sucursal, $nivel, capacidad: 4, diaSemana: 3);
         $horarioC = $this->crearHorario($sucursal, $nivel, capacidad: 4, diaSemana: 5);
+        $this->registrarFaltaSinReposicion($alumno, $this->crearHorario($sucursal, $nivel));
 
         $this->actingAs($tutor)
             ->post(route('portal.reservar.store'), [
@@ -228,18 +250,42 @@ class PortalAlumnoTest extends TestCase
         $horarioA = $this->crearHorario($sucursal, $nivel, capacidad: 4, diaSemana: 1);
         $horarioB = $this->crearHorario($sucursal, $nivel, capacidad: 4, diaSemana: 3);
         $horarioC = $this->crearHorario($sucursal, $nivel, capacidad: 4, diaSemana: 5);
+        $this->registrarFaltaSinReposicion($alumno, $this->crearHorario($sucursal, $nivel));
 
         $this->actingAs($tutor)
             ->post(route('portal.reservar.store'), [
                 'alumno_id' => $alumno->id,
                 'horario_ids' => [$horarioA->id, $horarioB->id, $horarioC->id],
             ])
-            ->assertSessionHasErrors('horario_ids');
+            ->assertSessionHasErrors(['horario_ids' => 'Solo puedes recuperar 2 clase(s) más según tu plan (2 clases/semana).']);
 
         $this->assertSame(0, Inscripcion::where('alumno_id', $alumno->id)->count());
     }
 
-    public function test_no_se_puede_reservar_sin_un_plan_asignado(): void
+    public function test_no_se_puede_reservar_sin_una_falta_sin_reposicion_en_el_mes(): void
+    {
+        [$tutor, $alumno, $sucursal, $nivel] = $this->crearTutorConAlumno();
+        $alumno->update(['plan_id' => Plan::factory()->create(['clases_por_semana' => 2])->id]);
+        $horario = $this->crearHorario($sucursal, $nivel, capacidad: 4);
+
+        Cita::factory()->create([
+            'alumno_id' => $alumno->id,
+            'horario_id' => $horario->id,
+            'fecha' => today(),
+            'asistio' => true,
+        ]);
+
+        $this->actingAs($tutor)
+            ->post(route('portal.reservar.store'), [
+                'alumno_id' => $alumno->id,
+                'horario_ids' => [$horario->id],
+            ])
+            ->assertSessionHasErrors(['horario_ids' => 'Solo puedes recuperar una clase después de tener una falta registrada sin reposición.']);
+
+        $this->assertSame(0, Inscripcion::where('alumno_id', $alumno->id)->count());
+    }
+
+        public function test_no_se_puede_reservar_sin_un_plan_asignado(): void
     {
         [$tutor, $alumno, $sucursal, $nivel] = $this->crearTutorConAlumno();
         $horario = $this->crearHorario($sucursal, $nivel, capacidad: 4);
@@ -267,13 +313,14 @@ class PortalAlumnoTest extends TestCase
             'alumno_id' => $otroAlumno->id,
             'activa' => true,
         ]);
+        $this->registrarFaltaSinReposicion($alumno, $this->crearHorario($sucursal, $nivel));
 
         $this->actingAs($tutor)
             ->post(route('portal.reservar.store'), [
                 'alumno_id' => $alumno->id,
                 'horario_ids' => [$horario->id],
             ])
-            ->assertSessionHasErrors('horario_ids');
+            ->assertSessionHasErrors(['horario_ids' => "Justo se acabó el cupo de \"{$horario->nombre_grupo}\". Elige otro horario disponible."]);
 
         $this->assertDatabaseMissing('inscripciones', [
             'horario_id' => $horario->id,
@@ -292,13 +339,14 @@ class PortalAlumnoTest extends TestCase
             'alumno_id' => $alumno->id,
             'activa' => true,
         ]);
+        $this->registrarFaltaSinReposicion($alumno, $horario);
 
         $this->actingAs($tutor)
             ->post(route('portal.reservar.store'), [
                 'alumno_id' => $alumno->id,
                 'horario_ids' => [$horario->id],
             ])
-            ->assertSessionHasErrors('horario_ids');
+            ->assertSessionHasErrors(['horario_ids' => "Este alumno ya está inscrito (o tiene una reserva pendiente) en \"{$horario->nombre_grupo}\"."]);
 
         $this->assertSame(
             1,
