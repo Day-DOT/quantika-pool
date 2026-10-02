@@ -93,19 +93,13 @@ class EvaluacionController extends Controller
         abort_if($alumno->nivel_id === null, 422, 'Este alumno no tiene un nivel asignado todavía.');
 
         // Por si el instructor abrió el formulario dos veces: evitamos
-        // duplicar evaluaciones para el mismo alumno/nivel.
+        // duplicar evaluaciones del mismo alumno/nivel en el mismo día.
         $evaluacion = $this->evaluacionEnCurso($alumno, $instructor);
 
         $datos = $request->validated();
 
-        if (! $evaluacion) {
-            $evaluacion = Evaluacion::create([
-                'alumno_id' => $alumno->id,
-                'instructor_id' => $instructor->id,
-                'nivel_id' => $alumno->nivel_id,
-                'fecha' => today(),
-                'observaciones' => $datos['observaciones'] ?? null,
-            ]);
+        if (! $evaluacion || ! $evaluacion->fecha->isToday()) {
+            $evaluacion = $this->registrarEvaluacion($alumno, $instructor, $datos['observaciones'] ?? null);
         } else {
             $evaluacion->update(['observaciones' => $datos['observaciones'] ?? null]);
         }
@@ -150,12 +144,20 @@ class EvaluacionController extends Controller
      */
     public function update(ActualizarEvaluacionRequest $request, Evaluacion $evaluacion): RedirectResponse
     {
-        $this->instructorActivo($request);
+        $instructor = $this->instructorActivo($request);
         $this->authorize('update', $evaluacion);
 
         $datos = $request->validated();
 
-        $evaluacion->update(['observaciones' => $datos['observaciones'] ?? null]);
+        // Volver a evaluar en otro día (p.ej. un alumno que no fue
+        // promovido) queda como una evaluación nueva con la fecha de hoy y
+        // el instructor que evalúa. Así deja de figurar como pendiente y el
+        // historial conserva cada intento con su propio porcentaje.
+        if ($this->esReevaluacion($evaluacion)) {
+            $evaluacion = $this->registrarEvaluacion($evaluacion->alumno, $instructor, $datos['observaciones'] ?? null);
+        } else {
+            $evaluacion->update(['observaciones' => $datos['observaciones'] ?? null]);
+        }
 
         $this->guardarDetalles($evaluacion, $datos['detalles']);
 
@@ -164,7 +166,32 @@ class EvaluacionController extends Controller
             ->with('status', 'Evaluación actualizada. Avance: '.$evaluacion->porcentajeAvance().'%.');
     }
 
-    private function evaluacionEnCurso(Alumno $alumno, Instructor $instructor): ?Evaluacion
+    private function registrarEvaluacion(Alumno $alumno, Instructor $instructor, ?string $observaciones): Evaluacion
+    {
+        return Evaluacion::create([
+            'alumno_id' => $alumno->id,
+            'instructor_id' => $instructor->id,
+            'nivel_id' => $alumno->nivel_id,
+            'fecha' => today(),
+            'observaciones' => $observaciones,
+        ]);
+    }
+
+    /**
+     * Es reevaluación cuando se guarda la evaluación más reciente del nivel
+     * actual del alumno y es de un día anterior. Corregir evaluaciones de
+     * niveles pasados o del mismo día edita el registro existente.
+     */
+    private function esReevaluacion(Evaluacion $evaluacion): bool
+    {
+        $alumno = $evaluacion->alumno;
+
+        return ! $evaluacion->fecha->isToday()
+            && $alumno->nivel_id === $evaluacion->nivel_id
+            && $this->evaluacionEnCurso($alumno)?->is($evaluacion);
+    }
+
+    private function evaluacionEnCurso(Alumno $alumno, ?Instructor $instructor = null): ?Evaluacion
     {
         return Evaluacion::where('alumno_id', $alumno->id)
             ->where('nivel_id', $alumno->nivel_id)

@@ -50,6 +50,7 @@ class ProgresoController extends Controller
             ->with(['detalles.criterio', 'instructor.user'])
             ->when($nivelActual, fn ($q) => $q->where('nivel_id', $nivelActual->id))
             ->latest('fecha')
+            ->latest('id')
             ->first();
 
         $criterios = $nivelActual

@@ -49,7 +49,7 @@
             </div>
             <div class="stat-value">{{ $progresoNivel }}%</div>
             <div class="stat-change">
-                {{ $alumno->evaluaciones->first()?->fecha?->format('d/m/Y') ? 'Última evaluación: '.$alumno->evaluaciones->first()->fecha->format('d/m/Y') : 'Sin evaluaciones aún' }}
+                {{ $ultimaEvaluacion ? 'Última evaluación: '.$ultimaEvaluacion->fecha->format('d/m/Y') : 'Sin evaluaciones aún' }}
             </div>
         </div>
 

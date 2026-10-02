@@ -63,7 +63,7 @@ class EvaluacionMonitorController extends Controller
                 });
             })
             ->with(['nivel', 'evaluaciones' => function ($q) use ($instructor) {
-                $q->where('instructor_id', $instructor->id)->orderByDesc('fecha');
+                $q->where('instructor_id', $instructor->id)->orderByDesc('fecha')->orderByDesc('id');
             }])
             ->orderBy('nombre')
             ->get()
@@ -96,6 +96,7 @@ class EvaluacionMonitorController extends Controller
             ->where('alumno_id', $alumno->id)
             ->with(['instructor.user', 'nivel', 'detalles.criterio'])
             ->orderByDesc('fecha')
+            ->orderByDesc('id')
             ->get()
             ->map(fn (Evaluacion $evaluacion) => [
                 'evaluacion' => $evaluacion,

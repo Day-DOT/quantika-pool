@@ -103,6 +103,7 @@ class InstructorEvaluacionTest extends TestCase
             'alumno_id' => $alumno->id,
             'instructor_id' => $instructor->id,
             'nivel_id' => $nivel->id,
+            'fecha' => today(),
         ]);
 
         $response = $this->actingAs($instructor->user)->put(route('instructor.evaluaciones.update', $evaluacion), [
@@ -144,5 +145,76 @@ class InstructorEvaluacionTest extends TestCase
         $miInstructor = Instructor::factory()->create();
 
         $this->actingAs($miInstructor->user)->get(route('instructor.evaluaciones.edit', $evaluacion))->assertForbidden();
+    }
+
+    public function test_reevaluar_otro_dia_sin_promover_registra_una_evaluacion_nueva_con_fecha_de_hoy(): void
+    {
+        $nivel = Nivel::factory()->create();
+        $criterio1 = CriterioEvaluacion::factory()->create(['nivel_id' => $nivel->id, 'orden' => 1]);
+        $criterio2 = CriterioEvaluacion::factory()->create(['nivel_id' => $nivel->id, 'orden' => 2]);
+
+        $instructor = Instructor::factory()->create();
+        $alumno = $this->crearAlumnoDelInstructor($instructor, $nivel);
+
+        $anterior = Evaluacion::factory()->create([
+            'alumno_id' => $alumno->id,
+            'instructor_id' => $instructor->id,
+            'nivel_id' => $nivel->id,
+            'fecha' => today()->subDays(10),
+        ]);
+
+        $this->actingAs($instructor->user)->put(route('instructor.evaluaciones.update', $anterior), [
+            'detalles' => [
+                ['criterio_evaluacion_id' => $criterio1->id, 'estado' => 'logrado'],
+                ['criterio_evaluacion_id' => $criterio2->id, 'estado' => 'en_proceso'],
+            ],
+        ])->assertRedirect();
+
+        $nueva = Evaluacion::where('alumno_id', $alumno->id)->latest('id')->first();
+
+        $this->assertNotSame($anterior->id, $nueva->id);
+        $this->assertTrue($nueva->fecha->isToday());
+        $this->assertSame($nivel->id, $nueva->nivel_id);
+        $this->assertEquals(50.0, $nueva->porcentajeAvance());
+        $this->assertTrue($anterior->fresh()->fecha->isSameDay(today()->subDays(10)));
+
+        $this->actingAs($instructor->user)
+            ->get(route('instructor.evaluaciones.edit', $nueva))
+            ->assertOk()
+            ->assertDontSee('Evaluación pendiente');
+
+        $this->actingAs($instructor->user)
+            ->get(route('instructor.alumnos.show', $alumno))
+            ->assertOk()
+            ->assertSee('Última evaluación: '.today()->format('d/m/Y'));
+    }
+
+    public function test_otro_instructor_que_reevalua_queda_como_autor_de_la_nueva_evaluacion(): void
+    {
+        $nivel = Nivel::factory()->create();
+        $criterio = CriterioEvaluacion::factory()->create(['nivel_id' => $nivel->id]);
+
+        $instructorAnterior = Instructor::factory()->create();
+        $instructor = Instructor::factory()->create();
+        $alumno = $this->crearAlumnoDelInstructor($instructor, $nivel);
+
+        Evaluacion::factory()->create([
+            'alumno_id' => $alumno->id,
+            'instructor_id' => $instructorAnterior->id,
+            'nivel_id' => $nivel->id,
+            'fecha' => today()->subDays(8),
+        ]);
+
+        $this->actingAs($instructor->user)->post(route('instructor.evaluaciones.store', $alumno), [
+            'detalles' => [
+                ['criterio_evaluacion_id' => $criterio->id, 'estado' => 'en_proceso'],
+            ],
+        ])->assertRedirect();
+
+        $this->assertTrue(Evaluacion::where('alumno_id', $alumno->id)
+            ->where('instructor_id', $instructor->id)
+            ->whereDate('fecha', today())
+            ->exists());
+        $this->assertSame(2, Evaluacion::where('alumno_id', $alumno->id)->count());
     }
 }

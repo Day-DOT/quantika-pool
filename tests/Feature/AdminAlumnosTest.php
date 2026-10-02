@@ -2,9 +2,14 @@
 
 namespace Tests\Feature;
 
+use App\Enums\ConceptoPago;
 use App\Enums\EstadoAlumno;
+use App\Enums\EstadoCita;
+use App\Enums\EstadoInscripcion;
+use App\Enums\EstadoPago;
 use App\Enums\Rol;
 use App\Models\Alumno;
+use App\Models\Cita;
 use App\Models\Horario;
 use App\Models\Inscripcion;
 use App\Models\Nivel;
@@ -493,6 +498,135 @@ class AdminAlumnosTest extends TestCase
 
         $alumno->refresh();
         $this->assertEquals(EstadoAlumno::BajaTemporal, $alumno->estado);
+    }
+
+    /**
+     * @return array{admin: User, alumno: Alumno, inscripcion: Inscripcion, reserva: Inscripcion, citaFutura: Cita, pagoPasado: Pago, pagoFuturo: Pago, pagoPagado: Pago}
+     */
+    private function crearAlumnoConClasesYPagos(): array
+    {
+        $sucursal = Sucursal::factory()->create();
+        $admin = User::factory()->admin($sucursal->id)->create();
+        $alumno = Alumno::factory()->create(['sucursal_id' => $sucursal->id, 'estado' => EstadoAlumno::Activo->value]);
+
+        $horario = Horario::factory()->create(['sucursal_id' => $sucursal->id]);
+        $inscripcion = Inscripcion::factory()->create([
+            'alumno_id' => $alumno->id,
+            'horario_id' => $horario->id,
+            'activa' => true,
+            'estado' => EstadoInscripcion::Aprobada->value,
+        ]);
+        $reserva = Inscripcion::factory()->create([
+            'alumno_id' => $alumno->id,
+            'horario_id' => Horario::factory()->create(['sucursal_id' => $sucursal->id])->id,
+            'activa' => false,
+            'estado' => EstadoInscripcion::Pendiente->value,
+        ]);
+        $citaFutura = Cita::factory()->create([
+            'alumno_id' => $alumno->id,
+            'horario_id' => $horario->id,
+            'fecha' => today()->addDays(3),
+            'estado' => EstadoCita::Programada->value,
+        ]);
+
+        $mensualidad = fn (string $estado, $vencimiento) => Pago::factory()->create([
+            'alumno_id' => $alumno->id,
+            'sucursal_id' => $sucursal->id,
+            'concepto' => ConceptoPago::Mensualidad->value,
+            'estado' => $estado,
+            'fecha_vencimiento' => $vencimiento->toDateString(),
+        ]);
+
+        return [
+            'admin' => $admin,
+            'alumno' => $alumno,
+            'inscripcion' => $inscripcion,
+            'reserva' => $reserva,
+            'citaFutura' => $citaFutura,
+            'pagoPasado' => $mensualidad(EstadoPago::Vencido->value, today()->subMonth()),
+            'pagoFuturo' => $mensualidad(EstadoPago::Pendiente->value, today()->addMonth()),
+            'pagoPagado' => $mensualidad(EstadoPago::Pagado->value, today()->addDays(5)),
+        ];
+    }
+
+    private function assertBajaTemporalLiberoClasesYMensualidades(array $e): void
+    {
+        $this->assertEquals(EstadoAlumno::BajaTemporal, $e['alumno']->fresh()->estado);
+
+        $inscripcion = $e['inscripcion']->fresh();
+        $this->assertFalse($inscripcion->activa);
+        $this->assertTrue($inscripcion->fecha_fin->isToday());
+        $this->assertSame(EstadoInscripcion::Rechazada, $e['reserva']->fresh()->estado);
+        $this->assertSame(EstadoCita::Cancelada, $e['citaFutura']->fresh()->estado);
+
+        $this->assertModelMissing($e['pagoFuturo']);
+        $this->assertModelExists($e['pagoPasado']);
+        $this->assertModelExists($e['pagoPagado']);
+    }
+
+    public function test_baja_temporal_retira_al_alumno_de_sus_clases_y_cancela_mensualidades_futuras(): void
+    {
+        $e = $this->crearAlumnoConClasesYPagos();
+
+        $this->actingAs($e['admin'])->patch(route('alumnos.baja', $e['alumno']))->assertRedirect();
+
+        $this->assertBajaTemporalLiberoClasesYMensualidades($e);
+    }
+
+    public function test_cambiar_el_estado_a_baja_temporal_desde_la_edicion_tambien_libera_clases_y_mensualidades(): void
+    {
+        $e = $this->crearAlumnoConClasesYPagos();
+        $alumno = $e['alumno'];
+
+        $this->actingAs($e['admin'])->put(route('alumnos.update', $alumno), [
+            'nombre' => $alumno->nombre,
+            'apellidos' => $alumno->apellidos,
+            'fecha_nacimiento' => $alumno->fecha_nacimiento->format('Y-m-d'),
+            'estado' => EstadoAlumno::BajaTemporal->value,
+        ])->assertRedirect();
+
+        $this->assertBajaTemporalLiberoClasesYMensualidades($e);
+    }
+
+    public function test_baja_definitiva_no_elimina_mensualidades(): void
+    {
+        $e = $this->crearAlumnoConClasesYPagos();
+
+        $this->actingAs($e['admin'])->patch(route('alumnos.baja', $e['alumno']), ['tipo' => 'definitiva'])->assertRedirect();
+
+        $this->assertModelExists($e['pagoFuturo']);
+    }
+
+    public function test_ver_alumnos_desde_un_nivel_preselecciona_el_filtro_de_ese_nivel(): void
+    {
+        $sucursal = Sucursal::factory()->create();
+        $admin = User::factory()->admin($sucursal->id)->create();
+        $nivel = Nivel::factory()->create(['nombre' => 'Nivel Filtrado']);
+        $otroNivel = Nivel::factory()->create(['nombre' => 'Otro Nivel']);
+
+        $this->actingAs($admin)
+            ->get(route('alumnos.index', ['nivel' => $nivel->id]))
+            ->assertOk()
+            ->assertSee('<option value="'.$nivel->id.'" selected>', false)
+            ->assertDontSee('<option value="'.$otroNivel->id.'" selected>', false);
+    }
+
+    public function test_las_divisiones_por_edad_solo_cuentan_alumnos_activos(): void
+    {
+        $sucursal = Sucursal::factory()->create();
+        $admin = User::factory()->admin($sucursal->id)->create();
+
+        foreach ([EstadoAlumno::Activo, EstadoAlumno::Activo, EstadoAlumno::Inactivo, EstadoAlumno::BajaTemporal, EstadoAlumno::BajaDefinitiva] as $estado) {
+            Alumno::factory()->create([
+                'sucursal_id' => $sucursal->id,
+                'estado' => $estado->value,
+                'fecha_nacimiento' => now()->subYears(30),
+            ]);
+        }
+
+        $response = $this->actingAs($admin)->get(route('alumnos.index'))->assertOk();
+
+        $this->assertSame(2, $response->viewData('alumnosPorCategoria')['Adultos']);
     }
 
     public function test_admin_reactiva_un_alumno(): void

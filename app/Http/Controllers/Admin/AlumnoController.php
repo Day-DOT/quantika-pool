@@ -65,8 +65,12 @@ class AlumnoController extends Controller
 
         $totalRegistrados = $alumnos->count();
         $totalActivos = $alumnos->filter(fn ($fila) => $fila['alumno']->estado === EstadoAlumno::Activo)->count();
+        // Las divisiones por edad solo cuentan alumnos activos: los inactivos
+        // y las bajas no forman parte de ningún grupo de clases.
         $alumnosPorCategoria = collect(Nivel::CATEGORIAS_EDAD)->mapWithKeys(
-            fn (string $categoria) => [$categoria => $alumnos->filter(fn ($fila) => $fila['alumno']->grupoEdad() === $categoria)->count()]
+            fn (string $categoria) => [$categoria => $alumnos->filter(
+                fn ($fila) => $fila['alumno']->estado === EstadoAlumno::Activo && $fila['alumno']->grupoEdad() === $categoria
+            )->count()]
         );
 
         return view('quantika.alumnos.index', [
@@ -79,6 +83,7 @@ class AlumnoController extends Controller
             'totalActivos' => $totalActivos,
             'alumnosPorCategoria' => $alumnosPorCategoria,
             'abrirModalCrear' => $request->boolean('crear'),
+            'nivelSeleccionado' => $request->integer('nivel') ?: null,
         ]);
     }
 
@@ -228,7 +233,7 @@ class AlumnoController extends Controller
             'tutorUser',
             'historialNiveles' => fn ($q) => $q->with('nivel')->orderByDesc('fecha_inicio'),
             'inscripciones' => fn ($q) => $q->where('activa', true)->with('horario.instructor.user', 'horario.carril'),
-            'evaluaciones' => fn ($q) => $q->with('instructor.user', 'nivel')->orderByDesc('fecha'),
+            'evaluaciones' => fn ($q) => $q->with('instructor.user', 'nivel')->orderByDesc('fecha')->orderByDesc('id'),
             'pagos' => fn ($q) => $q->orderByDesc('fecha_vencimiento'),
         ]);
 
@@ -265,6 +270,7 @@ class AlumnoController extends Controller
             'citasCompletadas' => $citasCompletadas,
             'citasAsistidas' => $citasAsistidas,
             'progresoNivel' => $ultimaEvaluacion?->porcentajeAvance() ?? 0,
+            'ultimaEvaluacion' => $ultimaEvaluacion ?? $alumno->evaluaciones->first(),
             'documentosPendientes' => collect([
                 'Certificado médico' => $alumno->certificado_medico_path,
                 'Identificación del alumno' => $alumno->identificacion_path,
@@ -331,6 +337,7 @@ class AlumnoController extends Controller
     {
         DB::transaction(function () use ($datos, $alumno, $rutasDocumentos, $tieneTutor) {
             $nivelAnterior = $alumno->nivel_id;
+            $estadoAnterior = $alumno->estado;
 
             $alumno->update([
                 'nombre' => $datos['nombre'],
@@ -448,6 +455,10 @@ class AlumnoController extends Controller
                 ]);
             }
 
+            if ($estadoAnterior !== EstadoAlumno::BajaTemporal && $alumno->estado === EstadoAlumno::BajaTemporal) {
+                $alumno->aplicarBajaTemporal();
+            }
+
             if ($nivelAnterior !== $alumno->nivel_id) {
                 AlumnoNivelHistorial::where('alumno_id', $alumno->id)
                     ->whereNull('fecha_fin')
@@ -488,9 +499,21 @@ class AlumnoController extends Controller
             ? EstadoAlumno::BajaDefinitiva
             : EstadoAlumno::BajaTemporal;
 
-        $alumno->update(['estado' => $tipo->value]);
+        DB::transaction(function () use ($alumno, $tipo) {
+            $estadoAnterior = $alumno->estado;
 
-        return back()->with('status', "Alumno {$alumno->nombreCompleto()} dado de baja ({$tipo->label()}).");
+            $alumno->update(['estado' => $tipo->value]);
+
+            if ($tipo === EstadoAlumno::BajaTemporal && $estadoAnterior !== EstadoAlumno::BajaTemporal) {
+                $alumno->aplicarBajaTemporal();
+            }
+        });
+
+        $detalle = $tipo === EstadoAlumno::BajaTemporal
+            ? ' Se retiró de sus clases y se cancelaron sus mensualidades futuras.'
+            : '';
+
+        return back()->with('status', "Alumno {$alumno->nombreCompleto()} dado de baja ({$tipo->label()}).{$detalle}");
     }
 
     public function reactivar(Alumno $alumno): RedirectResponse

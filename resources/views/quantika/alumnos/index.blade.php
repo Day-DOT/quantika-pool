@@ -525,7 +525,7 @@
         <select class="filter" id="filtroNivel" onchange="filtrarAlumnos()">
             <option value="">Todos los niveles</option>
             @foreach ($niveles as $nivelOpcion)
-                <option value="{{ $nivelOpcion->id }}">
+                <option value="{{ $nivelOpcion->id }}" @selected($nivelSeleccionado === $nivelOpcion->id)>
                     {{ $nivelOpcion->nombre }}
                 </option>
             @endforeach
@@ -899,6 +899,14 @@
 
     document.addEventListener('DOMContentLoaded', toggleTutorCrear);
 
+    // Al llegar desde "Ver alumnos" de un nivel, el filtro ya viene
+    // preseleccionado: se aplica en cuanto carga la página.
+    document.addEventListener('DOMContentLoaded', function () {
+        if (document.getElementById('filtroNivel').value) {
+            filtrarAlumnos();
+        }
+    });
+
     function filtrarAlumnos() {
 
         const texto = document.getElementById('buscar').value.toLowerCase();
@@ -912,7 +920,8 @@
             const coincideTexto = !texto || fila.dataset.search.includes(texto);
             const coincideNivel = !nivel || fila.dataset.nivel === nivel;
             const coincideEstado = !estado || fila.dataset.estado === estado;
-            const coincideEdad = !edad || fila.dataset.edad === edad;
+            // Las divisiones por edad solo agrupan alumnos activos.
+            const coincideEdad = !edad || (fila.dataset.edad === edad && fila.dataset.estado === 'activo');
 
             const visible = coincideTexto && coincideNivel && coincideEstado && coincideEdad;
             fila.style.display = visible ? '' : 'none';

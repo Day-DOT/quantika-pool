@@ -6,6 +6,7 @@ use App\Enums\ConceptoPago;
 use App\Enums\EstadoAlumno;
 use App\Enums\EstadoCita;
 use App\Enums\EstadoInscripcion;
+use App\Enums\EstadoPago;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -280,5 +281,36 @@ class Alumno extends Model
         $referencia = $this->ultimoPagoMensualidad?->fecha_vencimiento ?? $this->fecha_inscripcion;
 
         return $referencia?->copy()->addMonthNoOverflow();
+    }
+
+    /**
+     * Al pasar a baja temporal el alumno libera sus lugares: se cierra su
+     * inscripción en cada clase (y se rechazan las reservas por aprobar),
+     * se cancelan sus citas futuras y se eliminan las mensualidades aún
+     * pendientes que vencen después de hoy. Lo ya pagado, en revisión o
+     * vencido se conserva como historial.
+     */
+    public function aplicarBajaTemporal(): void
+    {
+        $hoy = today()->toDateString();
+
+        $this->inscripciones()
+            ->where('activa', true)
+            ->update(['activa' => false, 'fecha_fin' => $hoy]);
+
+        $this->inscripciones()
+            ->where('estado', EstadoInscripcion::Pendiente->value)
+            ->update(['estado' => EstadoInscripcion::Rechazada->value, 'activa' => false]);
+
+        $this->citas()
+            ->whereDate('fecha', '>=', $hoy)
+            ->whereNotIn('estado', [EstadoCita::Cancelada->value, EstadoCita::Completada->value])
+            ->update(['estado' => EstadoCita::Cancelada->value]);
+
+        $this->pagos()
+            ->where('concepto', ConceptoPago::Mensualidad->value)
+            ->where('estado', EstadoPago::Pendiente->value)
+            ->whereDate('fecha_vencimiento', '>', $hoy)
+            ->delete();
     }
 }
