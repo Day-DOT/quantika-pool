@@ -77,8 +77,12 @@
 
                 <div class="section-header"><h3>Trayectoria de niveles</h3></div>
                 <div class="data-card" style="padding:20px;">
+                    @forelse ($mapaNiveles->groupBy(fn ($fila) => $fila['nivel']->categoria_edad) as $categoriaEdad => $nivelesCategoria)
+                    <h4 style="margin:{{ $loop->first ? '0' : '22px' }} 0 12px;font-size:13px;letter-spacing:.06em;color:var(--muted);text-transform:uppercase;">
+                        {{ \App\Models\ConfiguracionSistema::categoriasEdad()[$categoriaEdad] ?? $categoriaEdad }}
+                    </h4>
                     <div style="display:flex;gap:12px;flex-wrap:wrap;">
-                        @forelse ($mapaNiveles as $nivelMapa)
+                        @foreach ($nivelesCategoria as $nivelMapa)
                             @php
                                 $claseTrayectoria = $nivelMapa['estado'] === 'Aprobado'
                                     ? 'badge-green'
@@ -94,10 +98,11 @@
                                     <p style="margin-top:10px;font-size:13px;line-height:1.45;color:var(--muted);white-space:pre-line;">{{ $nivelMapa['nivel']->descripcion }}</p>
                                 @endif
                             </div>
-                        @empty
-                            <div class="empty-row">No hay niveles configurados para mostrar la trayectoria.</div>
-                        @endforelse
+                        @endforeach
                     </div>
+                    @empty
+                        <div class="empty-row">No hay niveles configurados para mostrar la trayectoria.</div>
+                    @endforelse
                 </div>
 
                 <div class="section-header">

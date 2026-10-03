@@ -84,16 +84,20 @@ class ProgresoController extends Controller
                 return $registro;
             });
 
-        $nivelesMapa = $nivelActual
-            ? Nivel::query()
-                ->where('categoria_edad', $nivelActual->categoria_edad)
-                ->ordenados()
-                ->get()
-            : collect();
         $nivelesAprobados = $alumno->historialNiveles()
             ->whereNotNull('fecha_fin')
             ->pluck('nivel_id')
             ->all();
+
+        // La trayectoria muestra todos los niveles de la escuela (Bebés,
+        // Niños y Adultos), no solo los de la categoría del alumno. Los
+        // niveles desactivados solo aparecen si el alumno ya pasó por ellos.
+        $nivelesMapa = Nivel::query()
+            ->where(fn ($query) => $query
+                ->where('activo', true)
+                ->orWhereIn('id', array_filter([...$nivelesAprobados, $nivelActual?->id])))
+            ->ordenados()
+            ->get();
         $evaluacionPendiente = $ultimaEvaluacion !== null
             && $ultimaEvaluacion->fecha->lt(now()->subDays(7));
 

@@ -433,7 +433,23 @@ class PortalAlumnoTest extends TestCase
             ->assertSee('Nada de crol sin apoyo durante 10 metros.');
     }
 
-    public function test_progreso_sin_evaluaciones_muestra_todos_los_criterios_como_no_iniciado(): void
+    public function test_la_trayectoria_muestra_los_niveles_de_todas_las_categorias(): void
+    {
+        $nivelNinos = Nivel::factory()->create(['nombre' => 'Estrella Trayectoria', 'orden' => 1, 'categoria_edad' => 'Niños']);
+        Nivel::factory()->create(['nombre' => 'Pececito Trayectoria', 'orden' => 1, 'categoria_edad' => 'Bebés']);
+        Nivel::factory()->create(['nombre' => 'Perla Trayectoria', 'orden' => 1, 'categoria_edad' => 'Adultos']);
+        Nivel::factory()->create(['nombre' => 'Nivel Desactivado', 'orden' => 2, 'categoria_edad' => 'Adultos', 'activo' => false]);
+
+        [$tutor, $alumno] = $this->crearTutorConAlumno(nivel: $nivelNinos);
+
+        $this->actingAs($tutor)
+            ->get(route('portal.progreso', ['alumno' => $alumno->id]))
+            ->assertOk()
+            ->assertSeeInOrder(['Trayectoria de niveles', 'Pececito Trayectoria', 'Estrella Trayectoria', 'Perla Trayectoria'])
+            ->assertDontSee('Nivel Desactivado');
+    }
+
+        public function test_progreso_sin_evaluaciones_muestra_todos_los_criterios_como_no_iniciado(): void
     {
         [$tutor, $alumno, , $nivel] = $this->crearTutorConAlumno();
 
@@ -511,10 +527,13 @@ class PortalAlumnoTest extends TestCase
         [$tutor, $alumno] = $this->crearTutorConAlumno();
         $instructor = Instructor::factory()->create();
 
+        // Niveles desactivados: no salen en la trayectoria (que lista todos
+        // los niveles activos), solo en el historial paginado que se prueba.
         for ($i = 1; $i <= 8; $i++) {
             $nivel = Nivel::factory()->create([
                 'nombre' => "Nivel histórico {$i}",
                 'categoria_edad' => 'Adultos',
+                'activo' => false,
             ]);
             Evaluacion::factory()->create([
                 'alumno_id' => $alumno->id,
