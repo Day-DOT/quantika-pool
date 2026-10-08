@@ -3,6 +3,7 @@
 use App\Http\Controllers\Admin\AlumnoController;
 use App\Http\Controllers\Admin\CarrilController;
 use App\Http\Controllers\Admin\CitaController;
+use App\Http\Controllers\Admin\ClaseExtraController;
 use App\Http\Controllers\Admin\ConfiguracionController;
 use App\Http\Controllers\Admin\ContratoController;
 use App\Http\Controllers\Admin\DashboardController;
@@ -77,6 +78,10 @@ Route::middleware(['auth', 'role:admin,super_admin'])->group(function () {
     // --- Reposiciones de clases (por faltas) ---
     Route::get('/reposiciones', [ReposicionController::class, 'index'])->name('reposiciones.index');
     Route::post('/citas/{cita}/reponer', [ReposicionController::class, 'store'])->name('citas.reponer');
+
+    // --- Clases extra (una sola fecha, fuera del plan) ---
+    Route::post('/alumnos/{alumno}/clase-extra', [ClaseExtraController::class, 'store'])->name('alumnos.clase-extra.store');
+    Route::delete('/citas/{cita}/clase-extra', [ClaseExtraController::class, 'destroy'])->name('citas.clase-extra.destroy');
 
     // --- Reservas (aprobación de reservas hechas por alumnos/tutores) ---
     Route::get('/reservas', [ReservaController::class, 'index'])->name('reservas.index');

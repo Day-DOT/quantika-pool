@@ -81,7 +81,7 @@ class Alumno extends Model
      */
     public function qrUrl(): string
     {
-        return route('asistencia.registrar', $this->qr_token);
+        return route('asistencia.qr', $this->qr_token);
     }
 
     public function nombreCompleto(): string

@@ -82,13 +82,18 @@
                                         <div class="avatar">{{ $iniciales ?: '—' }}</div>
                                         <div>
                                             <div class="person-name">{{ $alumno->nombreCompleto() }}</div>
+                                            @if ($cita?->es_extra)
+                                                <span class="badge badge-cyan">Clase extra · solo hoy</span>
+                                            @elseif ($cita?->reposicion_de_id)
+                                                <span class="badge badge-cyan">Reposición · solo hoy</span>
+                                            @endif
                                             <div class="person-sub">{{ $alumno->telefono ?? 'Sin teléfono' }}</div>
                                         </div>
                                     </div>
                                 </td>
                                 <td>{{ $alumno->nivel?->nombre ?? 'Sin nivel' }}</td>
                                 <td>
-                                    @if ($cita === null)
+                                    @if ($cita?->asistio === null)
                                         <span class="badge badge-muted">Sin registrar</span>
                                     @elseif ($cita->asistio)
                                         <span class="badge badge-green">● Asistió</span>
@@ -97,7 +102,7 @@
                                     @endif
                                 </td>
                                 <td>
-                                    @if ($cita !== null && ! $cita->asistio)
+                                    @if ($cita?->asistio === false)
                                         <span class="badge badge-red">Marcada como falta</span>
                                     @else
                                         <form method="POST" action="{{ route('instructor.grupos.asistencia', [$horario, $alumno]) }}">

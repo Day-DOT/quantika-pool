@@ -117,14 +117,29 @@ class AsistenciaQrController extends Controller
         ]);
     }
 
+    /**
+     * Grupos en los que el alumno tiene clase hoy: los de su inscripción
+     * que caen en este día de la semana y los de una sola fecha (clase
+     * extra o reposición) agendados para hoy.
+     */
     private function horariosDeHoy(Alumno $alumno)
     {
-        return $alumno->inscripciones()
+        $deSuPlan = $alumno->inscripciones()
             ->activas()
             ->with('horario')
             ->get()
             ->pluck('horario')
-            ->filter(fn (?Horario $horario) => $horario && $horario->activo && $horario->dia_semana->value === today()->dayOfWeekIso)
-            ->unique('id');
+            ->filter(fn (?Horario $horario) => $horario && $horario->activo && $horario->dia_semana->value === today()->dayOfWeekIso);
+
+        $deUnaSolaFecha = $alumno->citas()
+            ->whereDate('fecha', today())
+            ->where('estado', '!=', EstadoCita::Cancelada->value)
+            ->where(fn ($query) => $query->where('es_extra', true)->orWhereNotNull('reposicion_de_id'))
+            ->with('horario')
+            ->get()
+            ->pluck('horario')
+            ->filter();
+
+        return $deSuPlan->concat($deUnaSolaFecha)->unique('id')->values();
     }
 }

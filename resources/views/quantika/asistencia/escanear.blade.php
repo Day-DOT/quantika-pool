@@ -90,15 +90,49 @@
         if (typeof Html5Qrcode === 'undefined') {
             estado.textContent = 'No se pudo cargar el lector de códigos QR. Verifica tu conexión a internet y recarga la página.';
         } else {
-            const html5QrCode = new Html5Qrcode('reader');
+            // Solo se buscan códigos QR y, si el navegador lo trae, se usa su
+            // detector nativo: ambos ajustes aceleran bastante la lectura.
+            const html5QrCode = new Html5Qrcode('reader', {
+                formatsToSupport: [Html5QrcodeSupportedFormats.QR_CODE],
+                experimentalFeatures: { useBarCodeDetectorIfSupported: true },
+            });
+
+            const rutaRegistro = @json(url('/q'));
+            let procesando = false;
 
             html5QrCode.start(
                 { facingMode: 'environment' },
-                { fps: 10, qrbox: 250 },
+                {
+                    fps: 20,
+                    qrbox: function (ancho, alto) {
+                        const lado = Math.floor(Math.min(ancho, alto) * 0.8);
+
+                        return { width: lado, height: lado };
+                    },
+                    videoConstraints: {
+                        facingMode: 'environment',
+                        width: { ideal: 1920 },
+                        height: { ideal: 1080 },
+                    },
+                },
                 function (decodedText) {
+                    if (procesando) return;
+
+                    // Solo se aceptan códigos de asistencia de la escuela: se
+                    // toma el identificador del alumno y se abre siempre en
+                    // este mismo sitio, sin seguir direcciones ajenas.
+                    const coincidencia = decodedText.trim().match(/\/(?:asistencia\/qr|q)\/([A-Za-z0-9]{20,64})\/?$/);
+
+                    if (! coincidencia) {
+                        estado.textContent = 'Ese código no es un QR de asistencia de la escuela. Intenta con el del alumno.';
+
+                        return;
+                    }
+
+                    procesando = true;
                     estado.textContent = 'Código detectado, registrando...';
                     html5QrCode.stop().finally(function () {
-                        window.location.href = decodedText;
+                        window.location.href = rutaRegistro + '/' + coincidencia[1];
                     });
                 },
                 function () {

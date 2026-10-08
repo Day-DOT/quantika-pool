@@ -280,6 +280,13 @@ class AlumnoController extends Controller
             ])->filter(fn ($ruta) => ! $ruta)->keys()->values(),
             'pagosVencidos' => $alumno->pagos()->vencidos()->orderBy('fecha_vencimiento')->get(),
             'proximasCitas' => $proximasCitas,
+            'historialAsistencia' => $alumno->citas()
+                ->whereNotNull('asistio')
+                ->with('horario', 'reposicion')
+                ->orderByDesc('fecha')
+                ->orderByDesc('id')
+                ->limit(30)
+                ->get(),
             'horariosDisponibles' => $horariosDisponibles,
             'instructoresDisponibles' => $instructoresDisponibles,
         ]);

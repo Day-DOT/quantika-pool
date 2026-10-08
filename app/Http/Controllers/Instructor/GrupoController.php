@@ -30,17 +30,21 @@ class GrupoController extends Controller
 
         $hoy = today();
 
-        $alumnos = Alumno::query()
-            ->whereIn('id', $horario->inscripciones()->activas()->pluck('alumno_id'))
-            ->with('nivel')
-            ->orderBy('nombre')
-            ->orderBy('apellidos')
-            ->get();
-
         $citasHoy = Cita::where('horario_id', $horario->id)
             ->whereDate('fecha', $hoy)
             ->get()
             ->keyBy('alumno_id');
+
+        // Además de los inscritos, hoy toman la clase quienes tienen una
+        // clase extra o una reposición agendada en este grupo.
+        $visitantesHoy = Cita::visitantesDelDia($horario->id, $hoy)->pluck('alumno_id');
+
+        $alumnos = Alumno::query()
+            ->whereIn('id', $horario->inscripciones()->activas()->pluck('alumno_id')->merge($visitantesHoy))
+            ->with('nivel')
+            ->orderBy('nombre')
+            ->orderBy('apellidos')
+            ->get();
 
         $horario->load(['nivel', 'carril', 'sucursal']);
 
@@ -62,11 +66,12 @@ class GrupoController extends Controller
         $this->instructorActivo($request);
         $this->authorize('view', $horario);
 
-        $inscrito = $horario->inscripciones()->activas()->where('alumno_id', $alumno->id)->exists();
+        $hoy = today();
+
+        $inscrito = $horario->inscripciones()->activas()->where('alumno_id', $alumno->id)->exists()
+            || Cita::visitantesDelDia($horario->id, $hoy)->where('alumno_id', $alumno->id)->exists();
 
         abort_unless($inscrito, 404, 'El alumno no está inscrito en este grupo.');
-
-        $hoy = today();
 
         // Buscamos por whereDate en lugar de una igualdad exacta de cadena:
         // el cast a "date" de Eloquent puede persistir la fecha con hora

@@ -42,7 +42,7 @@
                 </p>
 
                 <div class="data-card" style="padding:30px; display:flex; flex-direction:column; align-items:center; gap:16px; max-width:340px;">
-                    <div id="qrCode"></div>
+                    <div id="qrCode" style="width:100%; max-width:300px; padding:18px; background:#ffffff; border-radius:16px; line-height:0;"></div>
                     <p id="qrCodeError" style="display:none; color:var(--red,#ff6b6b); font-size:12px; text-align:center;">
                         No se pudo cargar el generador de códigos QR. Verifica tu conexión a internet y vuelve a intentar.
                     </p>
@@ -53,12 +53,20 @@
                     if (typeof QRCode === 'undefined') {
                         document.getElementById('qrCodeError').style.display = 'block';
                     } else {
+                        // Alta resolución, negro puro y margen blanco: así el
+                        // lector lo reconoce rápido desde la pantalla del celular.
                         new QRCode(document.getElementById('qrCode'), {
                             text: @json($alumno->qrUrl()),
-                            width: 220,
-                            height: 220,
-                            colorDark: '#022536',
+                            width: 640,
+                            height: 640,
+                            colorDark: '#000000',
                             colorLight: '#ffffff',
+                            correctLevel: QRCode.CorrectLevel.M,
+                        });
+
+                        document.querySelectorAll('#qrCode img, #qrCode canvas').forEach(function (el) {
+                            el.style.width = '100%';
+                            el.style.height = 'auto';
                         });
                     }
                 </script>

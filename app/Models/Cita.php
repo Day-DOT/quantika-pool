@@ -24,6 +24,7 @@ class Cita extends Model
         'notas',
         'registrado_por',
         'reposicion_de_id',
+        'es_extra',
     ];
 
     protected function casts(): array
@@ -32,6 +33,7 @@ class Cita extends Model
             'fecha' => 'date',
             'estado' => EstadoCita::class,
             'asistio' => 'boolean',
+            'es_extra' => 'boolean',
         ];
     }
 
@@ -73,5 +75,17 @@ class Cita extends Model
     public function scopeDelDia($query, $fecha)
     {
         return $query->whereDate('fecha', $fecha);
+    }
+
+    /**
+     * Clases de una sola fecha que ocupan lugar en un grupo sin que el
+     * alumno esté inscrito en él: clases extra y reposiciones de faltas.
+     */
+    public function scopeVisitantesDelDia($query, int $horarioId, $fecha)
+    {
+        return $query->where('horario_id', $horarioId)
+            ->whereDate('fecha', $fecha)
+            ->where('estado', '!=', EstadoCita::Cancelada->value)
+            ->where(fn ($q) => $q->where('es_extra', true)->orWhereNotNull('reposicion_de_id'));
     }
 }
