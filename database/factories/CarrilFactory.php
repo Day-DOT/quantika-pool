@@ -17,7 +17,7 @@ class CarrilFactory extends Factory
     {
         return [
             'sucursal_id' => Sucursal::factory(),
-            'nombre' => 'Carril ' . fake()->unique()->numberBetween(1, 8),
+            'nombre' => 'Carril ' . fake()->unique()->numberBetween(100, 9999),
             'capacidad_maxima' => fake()->numberBetween(6, 10),
             'activo' => true,
         ];

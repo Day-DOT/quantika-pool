@@ -2,24 +2,25 @@
 
 namespace App\Http\Controllers\Admin;
 
-use App\Enums\EstadoCita;
+use App\Enums\EstadoInscripcion;
 use App\Http\Controllers\Admin\Concerns\ScopesSucursal;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\ReponerCitaRequest;
 use App\Models\Cita;
 use App\Models\Horario;
-use App\Models\Inscripcion;
+use App\Models\SolicitudReposicion;
+use App\Support\Reposiciones;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
 
 class ReposicionController extends Controller
 {
     use AuthorizesRequests;
     use ScopesSucursal;
-
-    private const MAXIMO_POR_MES = 2;
 
     public function index(): View
     {
@@ -57,86 +58,72 @@ class ReposicionController extends Controller
             'faltas' => $faltas,
             'reposiciones' => $reposiciones,
             'horariosDisponibles' => $horariosDisponibles,
-            'maximoPorMes' => self::MAXIMO_POR_MES,
+            'maximoPorMes' => Reposiciones::MAXIMO_POR_MES,
+            'solicitudesPendientes' => Reposiciones::solicitudesPendientes($sucursalId)->count(),
         ]);
     }
 
     public function store(ReponerCitaRequest $request, Cita $cita): RedirectResponse
     {
         $datos = $request->validated();
-        $alumno = $cita->alumno;
+        $horario = Horario::findOrFail($datos['horario_id']);
+        $fecha = Carbon::parse($datos['fecha'])->startOfDay();
 
-        if ($cita->asistio !== false) {
-            return back()->withErrors(['fecha' => 'Esa clase no está marcada como falta.']);
+        if ($motivo = Reposiciones::motivoDeRechazo($cita, $horario, $fecha)) {
+            return back()->withErrors([$motivo[0] => $motivo[1]]);
         }
 
-        if ($cita->reposicion()->exists()) {
-            return back()->withErrors(['fecha' => 'Esta falta ya tiene una reposición programada.']);
-        }
-
-        if ($alumno->nivel?->categoria_edad === 'Bebés') {
-            return back()->withErrors(['fecha' => 'Las clases de bebés no tienen reposición.']);
-        }
-
-        $nuevaFecha = Carbon::parse($datos['fecha']);
-
-        if (! $nuevaFecha->isSameMonth($cita->fecha)) {
-            return back()->withErrors([
-                'fecha' => 'La reposición debe realizarse dentro del mismo mes calendario en que se produjo la falta.',
-            ]);
-        }
-
-        $usadasEsteMes = Cita::where('alumno_id', $alumno->id)
-            ->whereNotNull('reposicion_de_id')
-            ->whereMonth('fecha', $cita->fecha->month)
-            ->whereYear('fecha', $cita->fecha->year)
-            ->count();
-
-        if ($usadasEsteMes >= self::MAXIMO_POR_MES) {
-            return back()->withErrors([
-                'fecha' => "{$alumno->nombreCompleto()} ya alcanzó el máximo de ".self::MAXIMO_POR_MES.' reposiciones este mes.',
-            ]);
-        }
-
-        $nuevoHorario = Horario::findOrFail($datos['horario_id']);
-
-        if ($nuevoHorario->sucursal_id !== $cita->sucursal_id) {
-            return back()->withErrors(['horario_id' => 'El horario debe pertenecer a la misma sucursal.']);
-        }
-
-        if ($alumno->nivel && $nuevoHorario->nivel?->categoria_edad !== $alumno->nivel->categoria_edad) {
-            return back()->withErrors(['horario_id' => 'El horario debe pertenecer a la misma categoría de edad del alumno.']);
-        }
-
-        if ($nuevaFecha->isoWeekday() !== $nuevoHorario->dia_semana->value) {
-            return back()->withErrors([
-                'fecha' => "La fecha elegida no coincide con el día ({$nuevoHorario->dia_semana->label()}) del horario seleccionado.",
-            ]);
-        }
-
-        $inscritos = Inscripcion::where('horario_id', $nuevoHorario->id)->where('activa', true)->count();
-        $reposicionesEseDia = Cita::where('horario_id', $nuevoHorario->id)
-            ->whereDate('fecha', $nuevaFecha->toDateString())
-            ->whereNotNull('reposicion_de_id')
-            ->count();
-
-        if (($inscritos + $reposicionesEseDia) >= $nuevoHorario->capacidad_maxima) {
-            return back()->withErrors(['horario_id' => 'Ese horario ya no tiene cupo disponible para esa fecha.']);
-        }
-
-        Cita::create([
-            'horario_id' => $nuevoHorario->id,
-            'alumno_id' => $alumno->id,
-            'sucursal_id' => $cita->sucursal_id,
-            'fecha' => $nuevaFecha->toDateString(),
-            'hora_inicio' => $nuevoHorario->hora_inicio,
-            'hora_fin' => $nuevoHorario->hora_fin,
-            'estado' => EstadoCita::Programada->value,
-            'reposicion_de_id' => $cita->id,
-        ]);
+        Reposiciones::programar($cita, $horario, $fecha, $request->user()->id);
 
         return redirect()
             ->route('reposiciones.index')
-            ->with('status', "Reposición programada para {$alumno->nombreCompleto()}.");
+            ->with('status', "Reposición programada para {$cita->alumno->nombreCompleto()}.");
+    }
+
+    /**
+     * Aprueba una solicitud hecha desde el portal: vuelve a revisar las
+     * reglas (el cupo pudo ocuparse mientras esperaba) y crea la clase de
+     * reposición para esa única fecha, ligada a la falta original.
+     */
+    public function aprobarSolicitud(Request $request, SolicitudReposicion $solicitud): RedirectResponse
+    {
+        $this->authorize('update', $solicitud->falta);
+
+        if ($solicitud->estado !== EstadoInscripcion::Pendiente) {
+            return back()->withErrors(['solicitud' => 'Esta solicitud ya fue procesada.']);
+        }
+
+        if ($motivo = Reposiciones::motivoDeRechazo($solicitud->falta, $solicitud->horario, $solicitud->fecha)) {
+            return back()->withErrors(['solicitud' => "No se puede aprobar: {$motivo[1]}"]);
+        }
+
+        DB::transaction(function () use ($request, $solicitud) {
+            Reposiciones::programar($solicitud->falta, $solicitud->horario, $solicitud->fecha, $request->user()->id);
+
+            $solicitud->update([
+                'estado' => EstadoInscripcion::Aprobada->value,
+                'resuelta_por' => $request->user()->id,
+                'resuelta_en' => now(),
+            ]);
+        });
+
+        return back()->with('status', "Reposición de {$solicitud->alumno->nombreCompleto()} aprobada y programada.");
+    }
+
+    public function rechazarSolicitud(Request $request, SolicitudReposicion $solicitud): RedirectResponse
+    {
+        $this->authorize('update', $solicitud->falta);
+
+        if ($solicitud->estado !== EstadoInscripcion::Pendiente) {
+            return back()->withErrors(['solicitud' => 'Esta solicitud ya fue procesada.']);
+        }
+
+        $solicitud->update([
+            'estado' => EstadoInscripcion::Rechazada->value,
+            'resuelta_por' => $request->user()->id,
+            'resuelta_en' => now(),
+        ]);
+
+        return back()->with('status', "Solicitud de reposición de {$solicitud->alumno->nombreCompleto()} rechazada.");
     }
 }

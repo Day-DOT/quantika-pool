@@ -8,6 +8,7 @@ use App\Http\Controllers\Concerns\AgendaCitasIniciales;
 use App\Http\Controllers\Controller;
 use App\Models\Horario;
 use App\Models\Inscripcion;
+use App\Support\Reposiciones;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -39,6 +40,10 @@ class ReservaController extends Controller
 
         return view('quantika.reservas.index', [
             'reservas' => $reservas,
+            'solicitudes' => Reposiciones::solicitudesPendientes($sucursalId)
+                ->with(['alumno', 'falta.horario', 'horario.instructor.user'])
+                ->orderBy('created_at')
+                ->get(),
         ]);
     }
 

@@ -90,7 +90,7 @@ class DashboardController extends Controller
     {
         return Inscripcion::pendientes()
             ->when($sucursalId, fn ($q) => $q->whereHas('horario', fn ($h) => $h->where('sucursal_id', $sucursalId)))
-            ->count();
+            ->count() + \App\Support\Reposiciones::solicitudesPendientes($sucursalId)->count();
     }
 
     private function deudoresCount(?int $sucursalId): int

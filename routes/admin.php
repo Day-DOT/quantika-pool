@@ -78,6 +78,8 @@ Route::middleware(['auth', 'role:admin,super_admin'])->group(function () {
     // --- Reposiciones de clases (por faltas) ---
     Route::get('/reposiciones', [ReposicionController::class, 'index'])->name('reposiciones.index');
     Route::post('/citas/{cita}/reponer', [ReposicionController::class, 'store'])->name('citas.reponer');
+    Route::patch('/reposiciones/solicitudes/{solicitud}/aprobar', [ReposicionController::class, 'aprobarSolicitud'])->name('reposiciones.solicitudes.aprobar');
+    Route::patch('/reposiciones/solicitudes/{solicitud}/rechazar', [ReposicionController::class, 'rechazarSolicitud'])->name('reposiciones.solicitudes.rechazar');
 
     // --- Clases extra (una sola fecha, fuera del plan) ---
     Route::post('/alumnos/{alumno}/clase-extra', [ClaseExtraController::class, 'store'])->name('alumnos.clase-extra.store');

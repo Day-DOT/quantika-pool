@@ -29,139 +29,164 @@
                     <p>No es posible recuperar clases hasta que la escuela vincule un alumno a tu cuenta.</p>
                 </div>
 
-            @elseif ($sucursales->isEmpty())
-
-                <div class="empty-state">
-                    <h3>No hay sucursales disponibles</h3>
-                    <p>Contacta a la escuela para más información.</p>
-                </div>
-
             @else
 
                 <div class="section-header">
                     <h3>Recuperar clase para {{ $alumno->nombreCompleto() }}</h3>
                 </div>
 
-                <form method="GET" action="{{ route('portal.reservar.index') }}" style="max-width:340px; margin-bottom:26px;">
-                    <input type="hidden" name="alumno" value="{{ $alumno->id }}">
-                    <label class="field-label" for="sucursal">Sucursal</label>
-                    <select name="sucursal" id="sucursal" class="field-select" onchange="this.form.submit()">
-                        @foreach ($sucursales as $sucursal)
-                            <option value="{{ $sucursal->id }}" @selected($sucursalId === $sucursal->id)>{{ $sucursal->nombre }}</option>
-                        @endforeach
-                    </select>
-                </form>
-
-                <p style="color:var(--muted); font-size:12px; margin-bottom:20px; max-width:640px;">
-                    Se muestran los grupos del nivel actual de {{ $alumno->nombreCompleto() }}
-                    (<strong style="color:var(--text);">{{ $alumno->nivel?->nombre ?? 'sin nivel asignado' }}</strong>)
-                    y de los niveles más cercanos, con su cupo disponible en tiempo real.
+                <p style="color:var(--muted); font-size:13px; line-height:1.6; margin-bottom:20px; max-width:680px;">
+                    Si {{ $alumno->nombreCompleto() }} faltó a una clase, puedes pedir reponerla en otro grupo.
+                    La reposición es de una sola clase, debe tomarse dentro del mismo mes de la falta y
+                    se permiten hasta {{ $maximoPorMes }} por mes. La escuela confirma cada solicitud.
                 </p>
 
-                @if (! $alumno->plan_id)
+                {{-- SOLICITUDES ENVIADAS --}}
+                @if ($solicitudes->isNotEmpty())
+                    <div class="data-card" style="padding:16px 20px; margin-bottom:20px;">
+                        <strong style="display:block; margin-bottom:10px;">Tus solicitudes</strong>
+                        @foreach ($solicitudes as $solicitud)
+                            @php
+                                $claseEstado = match ($solicitud->estado) {
+                                    \App\Enums\EstadoInscripcion::Aprobada => 'badge-green',
+                                    \App\Enums\EstadoInscripcion::Rechazada => 'badge-red',
+                                    default => 'badge-yellow',
+                                };
+                            @endphp
+                            <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; padding:8px 0; border-top:1px solid var(--border);">
+                                <span style="font-size:13px;">
+                                    {{ $solicitud->horario?->nombre_grupo }} ·
+                                    {{ $solicitud->fecha->translatedFormat('l d \d\e F') }}
+                                    <span style="color:var(--muted);">(por la falta del {{ $solicitud->falta?->fecha?->format('d/m') }})</span>
+                                </span>
+                                <span class="badge {{ $claseEstado }}">{{ $solicitud->estado->label() }}</span>
+                            </div>
+                        @endforeach
+                    </div>
+                @endif
+
+                @if (! $admiteReposicion)
 
                     <div class="empty-state">
-                        <h3>Sin plan de mensualidad asignado</h3>
-                        <p>{{ $alumno->nombreCompleto() }} no tiene un plan asignado todavía. Contacta a la escuela para que le asignen uno antes de recuperar clases.</p>
+                        <h3>Las clases de bebés no tienen reposición</h3>
+                        <p>Si tienes dudas, contacta a la escuela.</p>
+                    </div>
+
+                @elseif ($faltas->isEmpty())
+
+                    <div class="empty-state">
+                        <h3>No hay faltas por reponer</h3>
+                        <p>{{ $alumno->nombreCompleto() }} no tiene faltas registradas este mes. Solo se pueden reponer clases a las que no asistió.</p>
+                    </div>
+
+                @elseif ($faltasLibres->isEmpty())
+
+                    <div class="empty-state">
+                        <h3>Tus solicitudes están en revisión</h3>
+                        <p>Ya pediste reponer todas las faltas de este mes. La escuela te confirmará cada una.</p>
+                    </div>
+
+                @elseif ($restantesDelMes <= 0)
+
+                    <div class="empty-state">
+                        <h3>Ya usaste las reposiciones de este mes</h3>
+                        <p>Se permiten hasta {{ $maximoPorMes }} reposiciones por mes, contando las solicitudes en espera.</p>
                     </div>
 
                 @else
 
-                    <div class="data-card" style="padding:16px 20px; margin-bottom:20px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
-                        <div>
-                            <strong>{{ $alumno->plan->nombre }}</strong>
-                            <span style="color:var(--muted); font-size:12px;">({{ $alumno->plan->clases_por_semana }} clases/semana)</span>
-                        </div>
-                        <div id="contadorCupos" style="font-weight:800;" data-cupos-disponibles="{{ $cuposDisponibles }}">
-                            @if ($cuposDisponibles > 0)
-                                Te faltan <span id="cuposRestantes">{{ $cuposDisponibles }}</span> clase(s) por elegir esta semana
-                            @else
-                                Ya reservaste/tienes activas todas tus clases de la semana ({{ $cuposUsados }}/{{ $alumno->plan->clases_por_semana }})
-                            @endif
-                        </div>
-                    </div>
+                    {{-- ELEGIR FECHA --}}
+                    <form method="GET" action="{{ route('portal.reservar.index') }}" style="max-width:340px; margin-bottom:22px;">
+                        <input type="hidden" name="alumno" value="{{ $alumno->id }}">
+                        <label class="field-label" for="fecha">¿Qué día quieres reponer?</label>
+                        <input type="date" name="fecha" id="fecha" class="field-input"
+                               value="{{ $fecha->toDateString() }}"
+                               min="{{ today()->toDateString() }}"
+                               max="{{ $finDeMes->toDateString() }}"
+                               onchange="this.form.submit()">
+                        <span style="display:block; color:var(--muted); font-size:11px; margin-top:6px;">
+                            Solo fechas de este mes (hasta el {{ $finDeMes->format('d/m/Y') }}).
+                        </span>
+                    </form>
 
-                    @if (($faltasDisponibles ?? 0) === 0)
-                        <div class="alert alert-warning">No tienes faltas disponibles para recuperar este mes.</div>
-                    @endif
-                    <form method="POST" action="{{ route('portal.reservar.store') }}" id="formReservar">
+                    <form method="POST" action="{{ route('portal.reservar.store') }}" id="formReponer">
                         @csrf
                         <input type="hidden" name="alumno_id" value="{{ $alumno->id }}">
+                        <input type="hidden" name="fecha" value="{{ $fecha->toDateString() }}">
+
+                        <div style="max-width:340px; margin-bottom:22px;">
+                            <label class="field-label" for="cita_id">Falta que repones</label>
+                            <select name="cita_id" id="cita_id" class="field-select" required>
+                                @foreach ($faltasLibres as $falta)
+                                    <option value="{{ $falta->id }}" @selected((int) old('cita_id') === $falta->id)>
+                                        {{ $falta->fecha->translatedFormat('l d \d\e F') }} · {{ $falta->horario?->nombre_grupo }}
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
+
+                        <div class="section-header">
+                            <h3>Grupos del {{ $fecha->translatedFormat('l d \d\e F') }}</h3>
+                        </div>
 
                         <div class="schedule-grid">
 
-                            @forelse ($horarios as $horario)
+                            @forelse ($grupos as $grupo)
                                 @php
                                     $cupoClase = match (true) {
-                                        $horario->cupo_disponible <= 0 => 'full',
-                                        $horario->cupo_disponible <= 2 => 'low',
+                                        $grupo->cupo_disponible <= 0 => 'full',
+                                        $grupo->cupo_disponible <= 2 => 'low',
                                         default => 'ok',
                                     };
-                                    $mismoNivel = $alumno->nivel_id === $horario->nivel_id;
-                                    $seleccionable = ! $horario->ya_inscrito && ! $horario->ya_pendiente && $horario->cupo_disponible > 0;
                                 @endphp
-                                <div class="schedule-card" style="--level-color: {{ $horario->nivel?->color_hex ?? '#42d8ef' }}">
+                                <div class="schedule-card" style="--level-color: {{ $grupo->nivel?->color_hex ?? '#42d8ef' }}">
 
                                     <div class="schedule-top">
                                         <div>
-                                            <div class="schedule-name">{{ $horario->nombre_grupo }}</div>
+                                            <div class="schedule-name">{{ $grupo->nombre_grupo }}</div>
                                             <div class="schedule-meta">
-                                                {{ $horario->dia_semana->label() }} ·
-                                                {{ \Illuminate\Support\Carbon::parse($horario->hora_inicio)->format('H:i') }}
-                                                - {{ \Illuminate\Support\Carbon::parse($horario->hora_fin)->format('H:i') }}
+                                                {{ substr($grupo->hora_inicio, 0, 5) }} - {{ substr($grupo->hora_fin, 0, 5) }}
+                                                @if ($grupo->nivel)
+                                                    <br>
+                                                    Nivel: {{ $grupo->nivel->nombre }}
+                                                @endif
                                                 <br>
-                                                Nivel: {{ $horario->nivel?->nombre }} {{ $mismoNivel ? '' : '(nivel cercano)' }}
+                                                Instructor: {{ $grupo->instructor?->user?->name ?? '—' }}
                                                 <br>
-                                                Instructor: {{ $horario->instructor?->user?->name ?? '—' }}
-                                                <br>
-                                                Carril: {{ $horario->carril?->nombre ?? '—' }}
+                                                Carril: {{ $grupo->carril?->nombre ?? '—' }}
                                             </div>
-                                        </div>
-                                        <div class="animal" style="width:44px; height:44px; min-width:44px;">
-                                            @if ($horario->nivel?->imagen)
-                                                <img src="{{ asset($horario->nivel->imagen) }}" alt="{{ $horario->nivel->nombre }}" style="width:26px; height:26px;">
-                                            @endif
                                         </div>
                                     </div>
 
                                     <div class="schedule-cupo {{ $cupoClase }}">
-                                        @if ($horario->cupo_disponible <= 0)
-                                            ● Sin cupo disponible
+                                        @if ($grupo->cupo_disponible <= 0)
+                                            ● Sin cupo ese día
                                         @else
-                                            ● {{ $horario->cupo_disponible }} de {{ $horario->capacidad_maxima }} lugares disponibles
+                                            ● {{ $grupo->cupo_disponible }} lugar(es) disponible(s) ese día
                                         @endif
                                     </div>
 
-                                    @if ($horario->ya_inscrito)
-                                        <span class="badge badge-cyan" style="align-self:flex-start;">✓ Ya inscrito en este grupo</span>
-                                    @elseif ($horario->ya_pendiente)
-                                        <span class="badge badge-yellow" style="align-self:flex-start;">⏳ Reserva pendiente de aprobación</span>
-                                    @else
-                                        <label class="btn btn-outline btn-block horario-checkbox" style="display:flex; align-items:center; gap:8px; cursor:pointer;">
-                                            <input
-                                                type="checkbox"
-                                                name="horario_ids[]"
-                                                value="{{ $horario->id }}"
-                                                class="check-horario"
-                                                {{ $seleccionable ? '' : 'disabled data-sin-cupo="1"' }}>
-                                            {{ $horario->cupo_disponible <= 0 ? 'Sin cupo' : 'Elegir esta clase' }}
-                                        </label>
-                                    @endif
+                                    <label class="btn btn-outline btn-block" style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+                                        <input type="radio" name="horario_id" value="{{ $grupo->id }}" class="radio-grupo"
+                                               @checked((int) old('horario_id') === $grupo->id)
+                                               @disabled($grupo->cupo_disponible <= 0)>
+                                        {{ $grupo->cupo_disponible <= 0 ? 'Sin cupo' : 'Reponer en este grupo' }}
+                                    </label>
 
                                 </div>
                             @empty
                                 <div class="empty-state" style="grid-column: 1 / -1;">
-                                    <h3>No hay grupos disponibles</h3>
-                                    <p>No encontramos horarios activos para esta sucursal en el nivel actual o niveles cercanos.</p>
+                                    <h3>No hay grupos ese día</h3>
+                                    <p>Ese día no hay clases para la edad de {{ $alumno->nombreCompleto() }} en su sucursal. Prueba con otra fecha.</p>
                                 </div>
                             @endforelse
 
                         </div>
 
-                        @if ($cuposDisponibles > 0 && $horarios->isNotEmpty())
+                        @if ($grupos->isNotEmpty())
                             <div style="margin-top:20px; max-width:340px;">
-                                <button type="submit" class="btn btn-primary btn-block" id="btnReservar" disabled>
-                                    Recuperar clases seleccionadas
+                                <button type="submit" class="btn btn-primary btn-block" id="btnReponer" disabled>
+                                    Solicitar reposición
                                 </button>
                             </div>
                         @endif
@@ -179,35 +204,18 @@
 
 <script>
     (function () {
-        const contador = document.getElementById('contadorCupos');
-        const boton = document.getElementById('btnReservar');
+        const boton = document.getElementById('btnReponer');
+        const radios = Array.from(document.querySelectorAll('.radio-grupo'));
 
-        if (! contador || ! boton) {
+        if (! boton) {
             return;
         }
 
-        const limite = parseInt(contador.dataset.cuposDisponibles, 10) || 0;
-        const faltasDisponibles = @json($faltasDisponibles ?? 0);
-        const checks = Array.from(document.querySelectorAll('.check-horario'));
-        const restantesSpan = document.getElementById('cuposRestantes');
-
         function actualizar() {
-            const seleccionados = checks.filter((c) => c.checked);
-
-            checks.forEach((c) => {
-                if (! c.checked && ! c.dataset.sinCupo) {
-                    c.disabled = seleccionados.length >= limite;
-                }
-            });
-
-            if (restantesSpan) {
-                restantesSpan.textContent = Math.max(0, limite - seleccionados.length);
-            }
-
-            boton.disabled = faltasDisponibles === 0 || seleccionados.length === 0 || seleccionados.length > limite;
+            boton.disabled = ! radios.some((r) => r.checked);
         }
 
-        checks.forEach((c) => c.addEventListener('change', actualizar));
+        radios.forEach((r) => r.addEventListener('change', actualizar));
         actualizar();
     })();
 </script>

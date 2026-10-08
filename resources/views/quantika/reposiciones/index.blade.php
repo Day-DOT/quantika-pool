@@ -5,6 +5,13 @@
 
 @section('content')
 
+    @if ($solicitudesPendientes > 0)
+        <div class="panel" style="margin-bottom:20px; border-color:rgba(66,216,239,.4);">
+            Hay {{ $solicitudesPendientes }} solicitud(es) de reposición enviadas por tutores esperando respuesta.
+            <a href="{{ route('reservas.index') }}" class="section-link">Revisarlas →</a>
+        </div>
+    @endif
+
     <div class="section-header">
         <h3>Faltas pendientes de reposición este mes</h3>
         <span style="color:var(--muted); font-size:12px;">
@@ -42,10 +49,12 @@
                                 <td>
                                     @php
                                         $categoriaEdadAlumno = $falta->alumno?->nivel?->categoria_edad;
+                                        // Los grupos sin nivel asignado también se ofrecen: su
+                                        // categoría no se conoce y la decide quien programa.
                                         $horariosCompatibles = $horariosDisponibles->filter(
                                             fn ($horario) => $horario->sucursal_id === $falta->sucursal_id
-                                                && $categoriaEdadAlumno !== 'Bebés'
-                                                && (! $categoriaEdadAlumno || $horario->nivel?->categoria_edad === $categoriaEdadAlumno)
+                                                && \App\Support\Reposiciones::admiteReposicion($falta->alumno)
+                                                && \App\Support\Reposiciones::grupoCompatible($horario, $falta->alumno)
                                         );
                                     @endphp
                                     <form method="POST" action="{{ route('citas.reponer', $falta) }}" style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
@@ -66,7 +75,7 @@
                                                 </option>
                                             @endforeach
                                         </select>
-                                        <input type="date" name="fecha" class="form-input" style="font-size:12px; width:150px;" required>
+                                        <input type="date" name="fecha" class="form-input" style="font-size:12px; width:150px;" max="{{ $falta->fecha->copy()->endOfMonth()->toDateString() }}" required>
                                         <button type="submit" class="btn btn-primary btn-sm">Programar</button>
                                     </form>
                                 </td>

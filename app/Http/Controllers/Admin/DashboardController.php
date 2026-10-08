@@ -168,7 +168,7 @@ class DashboardController extends Controller
         // --- Reservas de alumnos pendientes de aprobación ---
         $reservasPendientesCount = Inscripcion::pendientes()
             ->when($sucursalId, fn ($q) => $q->whereHas('horario', fn ($h) => $h->where('sucursal_id', $sucursalId)))
-            ->count();
+            ->count() + \App\Support\Reposiciones::solicitudesPendientes($sucursalId)->count();
 
         // --- Alumnos con saldo vencido (para el acceso rápido a deudores) ---
         $deudoresQuery = Pago::vencidos();
