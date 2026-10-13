@@ -424,6 +424,8 @@
         .person { display: flex; align-items: center; gap: 10px; }
 
         .person .avatar { width: 36px; height: 36px; border-radius: 11px; font-size: 11px; }
+        .avatar-photo { object-fit: cover; padding: 0; background: #062f42; flex-shrink: 0; }
+        .person .avatar-photo { width: 48px; height: 48px; border-radius: 14px; }
 
         .person-name { font-weight: 800; }
         .person-sub { color: #9db5c2; font-size: 10px; margin-top: 2px; }

@@ -145,4 +145,45 @@ class InstructorDashboardTest extends TestCase
             ->assertSee('Pendiente Prueba')
             ->assertSee('Evaluado Prueba');
     }
+
+    public function test_el_instructor_ve_la_foto_de_perfil_de_sus_alumnos_o_sus_iniciales(): void
+    {
+        $instructor = Instructor::factory()->create();
+        $horario = Horario::factory()->create([
+            'instructor_id' => $instructor->id,
+            'sucursal_id' => $instructor->sucursal_id,
+            'activo' => true,
+        ]);
+
+        $conFoto = Alumno::factory()->create([
+            'sucursal_id' => $instructor->sucursal_id,
+            'nombre' => 'Ana',
+            'apellidos' => 'Con Foto',
+            'foto_path' => 'alumnos/documentos/ana.jpg',
+        ]);
+        $sinFoto = Alumno::factory()->create([
+            'sucursal_id' => $instructor->sucursal_id,
+            'nombre' => 'Beto',
+            'apellidos' => 'Zamora',
+            'foto_path' => null,
+        ]);
+
+        foreach ([$conFoto, $sinFoto] as $alumno) {
+            Inscripcion::factory()->create(['alumno_id' => $alumno->id, 'horario_id' => $horario->id, 'activa' => true]);
+        }
+
+        foreach ([route('instructor.alumnos.index'), route('instructor.grupos.show', $horario)] as $pagina) {
+            $this->actingAs($instructor->user)
+                ->get($pagina)
+                ->assertOk()
+                ->assertSee('storage/alumnos/documentos/ana.jpg', false)
+                ->assertSee('alt="Foto de Ana Con Foto"', false)
+                ->assertSee('<div class="avatar">BZ</div>', false);
+        }
+
+        $this->actingAs($instructor->user)
+            ->get(route('instructor.alumnos.show', $conFoto))
+            ->assertOk()
+            ->assertSee('storage/alumnos/documentos/ana.jpg', false);
+    }
 }

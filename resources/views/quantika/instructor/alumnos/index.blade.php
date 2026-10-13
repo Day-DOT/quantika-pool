@@ -49,18 +49,10 @@
 
                         @foreach ($alumnos as $alumno)
 
-                            @php
-                                $iniciales = collect(preg_split('/\s+/', trim($alumno->nombreCompleto())))
-                                    ->filter()
-                                    ->map(fn ($p) => mb_strtoupper(mb_substr($p, 0, 1)))
-                                    ->take(2)
-                                    ->implode('');
-                            @endphp
-
                             <tr>
                                 <td>
                                     <div class="person">
-                                        <div class="avatar">{{ $iniciales ?: '—' }}</div>
+                                        @include('quantika.instructor.partials.avatar-alumno', ['alumno' => $alumno])
                                         <div>
                                             <div class="person-name">{{ $alumno->nombreCompleto() }}</div>
                                             <div class="person-sub">{{ $alumno->telefono ?? 'Sin teléfono' }}</div>

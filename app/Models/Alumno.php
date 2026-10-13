@@ -90,6 +90,18 @@ class Alumno extends Model
         return trim("{$this->nombre} {$this->apellidos}");
     }
 
+    /**
+     * Iniciales para el avatar cuando el alumno no tiene foto.
+     */
+    public function iniciales(): string
+    {
+        return collect(preg_split('/\s+/', trim($this->nombreCompleto())))
+            ->filter()
+            ->map(fn (string $parte) => mb_strtoupper(mb_substr($parte, 0, 1)))
+            ->take(2)
+            ->implode('') ?: '—';
+    }
+
     public function edad(): ?int
     {
         return $this->fecha_nacimiento?->age;

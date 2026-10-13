@@ -13,6 +13,18 @@
         ← Volver a mis alumnos
     </a>
 
+    @if ($alumno->foto_path)
+        <div class="card card-pad" style="display:flex; align-items:center; gap:18px; margin-bottom:18px;">
+            <img src="{{ \Illuminate\Support\Facades\Storage::disk('public')->url($alumno->foto_path) }}"
+                 alt="Foto de {{ $alumno->nombreCompleto() }}"
+                 style="width:96px; height:96px; object-fit:cover; border-radius:22px; border:2px solid var(--cyan);">
+            <div>
+                <div style="font-size:20px; font-weight:800;">{{ $alumno->nombreCompleto() }}</div>
+                <div class="person-sub" style="font-size:12px;">{{ $alumno->nombreNivelConSubNivel() ?? 'Sin nivel asignado' }}</div>
+            </div>
+        </div>
+    @endif
+
     <div class="stats-grid cols-4">
 
         <div class="stat-card">

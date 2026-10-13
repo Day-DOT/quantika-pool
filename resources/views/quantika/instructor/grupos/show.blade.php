@@ -71,17 +71,12 @@
                                 $cita = $citasHoy->get($alumno->id);
                                 // La clase de hoy se movió a otra fecha: sigue en el grupo, pero hoy no viene.
                                 $seMovio = $cita?->estado === \App\Enums\EstadoCita::Reagendada;
-                                $iniciales = collect(preg_split('/\s+/', trim($alumno->nombreCompleto())))
-                                    ->filter()
-                                    ->map(fn ($p) => mb_strtoupper(mb_substr($p, 0, 1)))
-                                    ->take(2)
-                                    ->implode('');
                             @endphp
 
                             <tr>
                                 <td>
                                     <div class="person">
-                                        <div class="avatar">{{ $iniciales ?: '—' }}</div>
+                                        @include('quantika.instructor.partials.avatar-alumno', ['alumno' => $alumno])
                                         <div>
                                             <div class="person-name">{{ $alumno->nombreCompleto() }}</div>
                                             @if ($cita?->es_extra)

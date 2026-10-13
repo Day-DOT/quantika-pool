@@ -38,11 +38,6 @@
                         @foreach ($evaluaciones as $evaluacion)
 
                             @php
-                                $iniciales = collect(preg_split('/\s+/', trim($evaluacion->alumno?->nombreCompleto() ?? '')))
-                                    ->filter()
-                                    ->map(fn ($p) => mb_strtoupper(mb_substr($p, 0, 1)))
-                                    ->take(2)
-                                    ->implode('');
                                 $porcentaje = $evaluacion->porcentajeAvance();
                                 $claseBadge = match (true) {
                                     $porcentaje >= 100 => 'badge-green',
@@ -54,7 +49,7 @@
                             <tr>
                                 <td>
                                     <div class="person">
-                                        <div class="avatar">{{ $iniciales ?: '—' }}</div>
+                                        @include('quantika.instructor.partials.avatar-alumno', ['alumno' => $evaluacion->alumno])
                                         <div class="person-name">{{ $evaluacion->alumno?->nombreCompleto() ?? 'Alumno eliminado' }}</div>
                                     </div>
                                 </td>
