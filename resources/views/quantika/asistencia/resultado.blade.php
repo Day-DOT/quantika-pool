@@ -98,11 +98,21 @@
                 Nivel: {{ $alumno->nombreNivelConSubNivel() ?? 'Sin nivel' }}<br>
                 Sucursal: {{ $alumno->sucursal?->nombre ?? 'Sin sucursal' }}<br>
                 Tutor: {{ $alumno->nombreTutor() ?? 'Sin tutor' }}<br>
-                @if ($horariosHoy?->isNotEmpty())
-                    Clase(s) de hoy:
-                    {{ $horariosHoy->map(fn ($horario) => $horario->nombre_grupo.' ('.substr($horario->hora_inicio, 0, 5).')')->join(', ') }}
-                @endif
             </div>
+            @if ($horariosHoy?->isNotEmpty())
+                <div style="text-align:left;margin:0 0 18px;font-size:13px;line-height:1.6;">
+                    <strong style="color:#eaf6fb;">Clase(s) de hoy</strong>
+                    @foreach ($horariosHoy as $horario)
+                        <div style="margin-top:8px;padding:10px 12px;border:1px solid rgba(66,216,239,.28);border-radius:12px;color:var(--muted);">
+                            <div style="color:#eaf6fb;font-weight:800;">
+                                {{ $horario->nombre_grupo }} · {{ substr($horario->hora_inicio, 0, 5) }}–{{ substr($horario->hora_fin, 0, 5) }}
+                            </div>
+                            Carril: <strong style="color:var(--cyan);">{{ $horario->carril?->nombre ?? 'Sin carril' }}</strong><br>
+                            Instructor: <strong style="color:var(--cyan);">{{ $horario->instructor?->user?->name ?? 'Sin instructor' }}</strong>
+                        </div>
+                    @endforeach
+                </div>
+            @endif
             @if (($puedeRegistrar ?? false) && $horariosHoy->isNotEmpty())
                 <form method="POST" action="{{ route('asistencia.confirmar', $alumno->qr_token) }}">
                     @csrf

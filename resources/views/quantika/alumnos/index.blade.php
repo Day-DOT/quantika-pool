@@ -866,7 +866,7 @@
 
                 <div class="form-group">
                     <label>Foto del alumno (opcional)</label>
-                    <input type="file" class="form-input" name="foto" accept="image/*" capture="environment">
+                    <input type="file" class="form-input" name="foto" accept=".jpg,.jpeg,.png,image/jpeg,image/png">
                     <small>Selecciona una imagen o toma la foto directamente con la cámara.</small>
                 </div>
 

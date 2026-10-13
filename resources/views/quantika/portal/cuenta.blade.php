@@ -72,6 +72,7 @@
                                 <th>Fecha</th>
                                 <th>Horario</th>
                                 <th>Grupo</th>
+                                <th>Carril</th>
                                 <th>Instructor</th>
                                 <th>Estado</th>
                             </tr>
@@ -82,11 +83,12 @@
                                     <td>{{ $cita->fecha->translatedFormat('d M Y') }}</td>
                                     <td>{{ \Illuminate\Support\Carbon::parse($cita->hora_inicio)->format('H:i') }} - {{ \Illuminate\Support\Carbon::parse($cita->hora_fin)->format('H:i') }}</td>
                                     <td>{{ $cita->horario?->nombre_grupo ?? '—' }}</td>
+                                    <td>{{ $cita->horario?->carril?->nombre ?? '—' }}</td>
                                     <td>{{ $cita->horario?->instructor?->user?->name ?? '—' }}</td>
                                     <td><span class="badge badge-cyan">● {{ $cita->estado->label() }}</span></td>
                                 </tr>
                             @empty
-                                <tr><td colspan="5" class="empty-row">No hay clases agendadas próximamente.</td></tr>
+                                <tr><td colspan="6" class="empty-row">No hay clases agendadas próximamente.</td></tr>
                             @endforelse
                         </tbody>
                     </table>

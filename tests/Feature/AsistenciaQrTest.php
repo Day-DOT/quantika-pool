@@ -86,6 +86,42 @@ class AsistenciaQrTest extends TestCase
         ]);
     }
 
+    public function test_al_escanear_se_muestra_el_carril_y_el_instructor_de_la_clase_de_hoy(): void
+    {
+        $sucursal = Sucursal::factory()->create();
+        $admin = User::factory()->admin($sucursal->id)->create();
+        $instructor = Instructor::factory()->create(['sucursal_id' => $sucursal->id]);
+        $alumno = $this->crearAlumnoConClaseHoy($sucursal, $instructor);
+
+        $horario = Horario::where('instructor_id', $instructor->id)->sole();
+        $horario->carril->update(['nombre' => 'Carril 3']);
+
+        foreach ([
+            $this->actingAs($admin)->get($alumno->qrUrl()),
+            $this->actingAs($admin)->post(route('asistencia.confirmar', $alumno->qr_token)),
+        ] as $respuesta) {
+            $respuesta->assertOk()
+                ->assertSee('Carril 3')
+                ->assertSee($instructor->user->name);
+        }
+    }
+
+    public function test_la_foto_del_alumno_se_puede_tomar_o_elegir_de_la_galeria(): void
+    {
+        $sucursal = Sucursal::factory()->create();
+        $admin = User::factory()->admin($sucursal->id)->create();
+        $alumno = Alumno::factory()->create(['sucursal_id' => $sucursal->id]);
+
+        // Con el atributo "capture" el celular solo deja usar la cámara.
+        foreach ([route('alumnos.index'), route('alumnos.edit', $alumno)] as $pagina) {
+            $this->actingAs($admin)
+                ->get($pagina)
+                ->assertOk()
+                ->assertSee('name="foto"', false)
+                ->assertDontSee('capture=', false);
+        }
+    }
+
     public function test_alumno_sin_clase_programada_hoy_muestra_mensaje(): void
     {
         $sucursal = Sucursal::factory()->create();
