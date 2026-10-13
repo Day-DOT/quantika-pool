@@ -64,6 +64,21 @@ class Horario extends Model
         return $this->hasMany(Cita::class);
     }
 
+    /**
+     * Nombre completo para listas de selección. Muchos grupos comparten
+     * nombre, día y hora, así que el carril y el instructor son lo que
+     * permite distinguirlos.
+     */
+    public function etiqueta(): string
+    {
+        return implode(' · ', [
+            $this->nombre_grupo,
+            $this->dia_semana->label().' '.substr($this->hora_inicio, 0, 5),
+            $this->carril?->nombre ?? 'Sin carril',
+            $this->instructor?->user?->name ?? 'Sin instructor',
+        ]);
+    }
+
     public function scopeDeSucursal($query, int $sucursalId)
     {
         return $query->where('sucursal_id', $sucursalId);

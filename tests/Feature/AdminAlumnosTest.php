@@ -557,7 +557,8 @@ class AdminAlumnosTest extends TestCase
         $this->assertFalse($inscripcion->activa);
         $this->assertTrue($inscripcion->fecha_fin->isToday());
         $this->assertSame(EstadoInscripcion::Rechazada, $e['reserva']->fresh()->estado);
-        $this->assertSame(EstadoCita::Cancelada, $e['citaFutura']->fresh()->estado);
+        // La clase futura de su grupo se quita: ya no está inscrito en él.
+        $this->assertModelMissing($e['citaFutura']);
 
         $this->assertModelMissing($e['pagoFuturo']);
         $this->assertModelExists($e['pagoPasado']);

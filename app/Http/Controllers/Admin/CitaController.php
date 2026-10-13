@@ -2,58 +2,134 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Enums\EstadoCita;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Admin\AvisarFaltaRequest;
 use App\Http\Requests\Admin\ReagendarCitaRequest;
+use App\Http\Requests\Admin\ReagendarClaseRequest;
+use App\Models\Alumno;
 use App\Models\Cita;
 use App\Models\Horario;
+use App\Support\ClasesDelAlumno;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 
 class CitaController extends Controller
 {
     use AuthorizesRequests;
 
     /**
-     * Reagenda la clase individual de un alumno a otro horario/fecha.
-     * Solo se permite si el alumno todavía tiene clases disponibles esta
-     * semana según su plan (validación exigida antes de aplicar el cambio).
+     * Reagenda una clase ya guardada a otro horario/fecha. La administración
+     * puede hacerlo las veces que haga falta: mover una clase no le suma
+     * clases al alumno, así que no depende del límite semanal de su plan.
      */
     public function reagendar(ReagendarCitaRequest $request, Cita $cita): RedirectResponse
     {
         $datos = $request->validated();
 
-        $alumno = $cita->alumno;
+        return $this->moverClase($request, $cita, Horario::findOrFail($datos['horario_id']), Carbon::parse($datos['fecha']));
+    }
 
-        if (! $alumno->tieneClasesDisponiblesEstaSemana()) {
-            return back()->withErrors([
-                'fecha' => "{$alumno->nombreCompleto()} ya alcanzó el límite de clases de esta semana según su plan. No se puede reagendar.",
+    /**
+     * Reagenda una clase del alumno indicando cuál es (grupo y fecha). Sirve
+     * también para las clases de su plan que todavía no tienen una Cita
+     * guardada, que son la mayoría.
+     */
+    public function reagendarClase(ReagendarClaseRequest $request, Alumno $alumno): RedirectResponse
+    {
+        $datos = $request->validated();
+
+        $clase = ClasesDelAlumno::localizar(
+            $alumno,
+            Horario::findOrFail($datos['origen_horario_id']),
+            Carbon::parse($datos['origen_fecha'])->startOfDay(),
+        );
+
+        if (! $clase) {
+            return back()->withErrors(['fecha' => 'El alumno no tiene clase en ese grupo para la fecha indicada.']);
+        }
+
+        return $this->moverClase($request, $clase, Horario::findOrFail($datos['horario_id']), Carbon::parse($datos['fecha']));
+    }
+
+    /**
+     * Registra desde antes que el alumno no asistirá a una clase (la familia
+     * avisó). El instructor lo ve en su lista de ese día y la falta queda
+     * disponible para reponerse.
+     */
+    public function avisarFalta(AvisarFaltaRequest $request, Alumno $alumno): RedirectResponse
+    {
+        $datos = $request->validated();
+        $fecha = Carbon::parse($datos['fecha'])->startOfDay();
+
+        $clase = ClasesDelAlumno::localizar($alumno, Horario::findOrFail($datos['horario_id']), $fecha);
+
+        if (! $clase) {
+            return back()->withErrors(['falta' => 'El alumno no tiene clase en ese grupo para la fecha indicada.']);
+        }
+
+        if ($clase->asistio !== null) {
+            return back()->withErrors(['falta' => 'Esa clase ya tiene asistencia o falta registrada.']);
+        }
+
+        $clase->fill([
+            'asistio' => false,
+            'falta_avisada' => true,
+            'estado' => EstadoCita::Completada->value,
+            'notas' => $datos['notas'] ?? 'Avisó con anticipación que no asistiría.',
+            'registrado_por' => $request->user()->id,
+        ])->save();
+
+        return back()->with(
+            'status',
+            "Falta avisada de {$alumno->nombreCompleto()} registrada para el {$fecha->format('d/m/Y')}. Su instructor la verá en la lista de ese día."
+        );
+    }
+
+    /**
+     * Deshace un aviso de falta registrado por error.
+     */
+    public function quitarAvisoDeFalta(Cita $cita): RedirectResponse
+    {
+        $this->authorize('update', $cita);
+
+        abort_unless($cita->falta_avisada, 404);
+
+        if ($cita->reposicion()->exists()) {
+            return back()->withErrors(['falta' => 'Esa falta ya tiene una reposición programada. Cancela primero la reposición.']);
+        }
+
+        $esDeSuPlan = ClasesDelAlumno::estaInscrito($cita->alumno, $cita->horario_id)
+            && ! $cita->es_extra
+            && ! $cita->reposicion_de_id;
+
+        if ($esDeSuPlan) {
+            // Vuelve a ser una clase normal de su grupo: no necesita registro.
+            $cita->delete();
+        } else {
+            $cita->update([
+                'asistio' => null,
+                'falta_avisada' => false,
+                'estado' => EstadoCita::Programada->value,
+                'notas' => null,
             ]);
         }
 
-        $nuevoHorario = Horario::findOrFail($datos['horario_id']);
+        return back()->with('status', 'Aviso de falta retirado. La clase vuelve a estar programada.');
+    }
 
-        if ($nuevoHorario->sucursal_id !== $cita->sucursal_id) {
-            return back()->withErrors([
-                'horario_id' => 'El nuevo horario debe pertenecer a la misma sucursal que la clase.',
-            ]);
+    private function moverClase(ReagendarCitaRequest|ReagendarClaseRequest $request, Cita $clase, Horario $nuevoHorario, Carbon $nuevaFecha): RedirectResponse
+    {
+        $motivo = DB::transaction(
+            fn () => ClasesDelAlumno::reagendar($clase, $nuevoHorario, $nuevaFecha, $request->user())
+        );
+
+        if ($motivo) {
+            return back()->withErrors([$motivo[0] => $motivo[1]]);
         }
 
-        $nuevaFecha = Carbon::parse($datos['fecha']);
-
-        if ($nuevaFecha->isoWeekday() !== $nuevoHorario->dia_semana->value) {
-            return back()->withErrors([
-                'fecha' => "La fecha elegida no coincide con el día ({$nuevoHorario->dia_semana->label()}) del horario seleccionado.",
-            ]);
-        }
-
-        $cita->update([
-            'horario_id' => $nuevoHorario->id,
-            'fecha' => $nuevaFecha->toDateString(),
-            'hora_inicio' => $nuevoHorario->hora_inicio,
-            'hora_fin' => $nuevoHorario->hora_fin,
-        ]);
-
-        return back()->with('status', "Clase de {$alumno->nombreCompleto()} reagendada correctamente.");
+        return back()->with('status', "Clase de {$clase->alumno->nombreCompleto()} reagendada correctamente.");
     }
 }

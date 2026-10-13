@@ -1583,28 +1583,37 @@
             @csrf
             @method('PATCH')
 
+            {{-- La clase se identifica por alumno + grupo + fecha: así se
+                 pueden reagendar también las clases de sus grupos que no
+                 tienen un registro propio (la mayoría). --}}
+            <input type="hidden" name="origen_horario_id">
+            <input type="hidden" name="origen_fecha">
+
             <label>Clase a reagendar</label>
-            <select name="_cita_id" required style="{{ $campoEstilo }}" onchange="this.form.action = '/citas/' + this.value + '/reagendar';">
+            <select name="_clase" required style="{{ $campoEstilo }}" onchange="elegirClaseAReagendar(this)">
                 <option value="">Seleccionar alumno y clase</option>
-                @foreach ($citasProximas as $citaOpcion)
-                    <option value="{{ $citaOpcion->id }}">
-                        {{ $citaOpcion->alumno?->nombreCompleto() }} · {{ $citaOpcion->horario?->nombre_grupo }} ·
-                        {{ $citaOpcion->fecha->translatedFormat('d M') }} {{ substr($citaOpcion->hora_inicio, 0, 5) }}
+                @foreach ($clasesParaReagendar as $claseOpcion)
+                    <option value="{{ $loop->index }}"
+                            data-alumno="{{ $claseOpcion['cita']->alumno_id }}"
+                            data-horario="{{ $claseOpcion['cita']->horario_id }}"
+                            data-fecha="{{ $claseOpcion['cita']->fecha->toDateString() }}">
+                        {{ $claseOpcion['cita']->alumno?->nombreCompleto() }} ·
+                        {{ $claseOpcion['cita']->fecha->translatedFormat('D d M') }} {{ substr($claseOpcion['cita']->hora_inicio, 0, 5) }} ·
+                        {{ $claseOpcion['cita']->horario?->nombre_grupo }} ·
+                        {{ $claseOpcion['cita']->horario?->carril?->nombre ?? 'Sin carril' }}
                     </option>
                 @endforeach
             </select>
 
             <p style="color:var(--muted); font-size:12px; margin:-4px 0 12px;">
-                Solo se puede reagendar si el alumno todavía tiene clases disponibles esta semana según su plan.
+                Se listan las clases de las próximas dos semanas. Reagendar mueve solo esa clase; el alumno conserva su grupo.
             </p>
 
             <label>Nuevo horario</label>
             <select name="horario_id" required style="{{ $campoEstilo }}">
                 <option value="">Seleccionar grupo</option>
                 @foreach ($horariosExistentes as $horarioOpcion)
-                    <option value="{{ $horarioOpcion->id }}">
-                        {{ $horarioOpcion->nombre_grupo }} · {{ $horarioOpcion->dia_semana->label() }} {{ substr($horarioOpcion->hora_inicio, 0, 5) }} · {{ $horarioOpcion->carril?->nombre ?? 'Sin carril' }} · {{ $horarioOpcion->instructor?->user?->name ?? 'Sin instructor' }}
-                    </option>
+                    <option value="{{ $horarioOpcion->id }}">{{ $horarioOpcion->etiqueta() }}</option>
                 @endforeach
             </select>
 
@@ -1699,7 +1708,8 @@
                 <option value="">Seleccionar grupo</option>
                 @foreach ($horariosExistentes as $horarioOpcion)
                     <option value="{{ $horarioOpcion->id }}">
-                        {{ $horarioOpcion->nombre_grupo }} · {{ $horarioOpcion->dia_semana->label() }} {{ substr($horarioOpcion->hora_inicio, 0, 5) }}
+                        {{ $horarioOpcion->etiqueta() }} ·
+                        {{ $horarioOpcion->inscripciones->where('activa', true)->count() }}/{{ $horarioOpcion->capacidad_maxima }}
                     </option>
                 @endforeach
             </select>
@@ -1743,9 +1753,8 @@
                 <option value="">Seleccionar grupo</option>
                 @foreach ($horariosExistentes as $horarioOpcion)
                     <option value="{{ $horarioOpcion->id }}">
-                        {{ $horarioOpcion->nombre_grupo }} · {{ $horarioOpcion->instructor?->user?->name ?? 'Sin instructor' }} ·
-                        {{ $horarioOpcion->inscripciones->where('activa', true)->count() }}/{{ $horarioOpcion->capacidad_maxima }} ·
-                        {{ $horarioOpcion->dia_semana->label() }} {{ substr($horarioOpcion->hora_inicio, 0, 5) }}
+                        {{ $horarioOpcion->etiqueta() }} ·
+                        {{ $horarioOpcion->inscripciones->where('activa', true)->count() }}/{{ $horarioOpcion->capacidad_maxima }}
                     </option>
                 @endforeach
             </select>
@@ -1797,6 +1806,23 @@ function limpiarFiltros() {
     document.getElementById('filtroNivel').value = '';
     document.getElementById('filtroCarril').value = '';
     filtrarClases();
+}
+
+// Al elegir la clase a reagendar se apunta el formulario al alumno y se
+// anota de qué grupo y fecha es la clase que se va a mover.
+function elegirClaseAReagendar(select) {
+    const opcion = select.selectedOptions[0];
+    const form = select.form;
+
+    if (! opcion || ! opcion.dataset.alumno) {
+        form.removeAttribute('action');
+
+        return;
+    }
+
+    form.action = '/alumnos/' + opcion.dataset.alumno + '/clases/reagendar';
+    form.elements['origen_horario_id'].value = opcion.dataset.horario;
+    form.elements['origen_fecha'].value = opcion.dataset.fecha;
 }
 
 function abrirModalHorario(tipo) {

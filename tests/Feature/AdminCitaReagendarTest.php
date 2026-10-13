@@ -66,7 +66,7 @@ class AdminCitaReagendarTest extends TestCase
         $this->assertEquals($miercoles, $cita->fecha->toDateString());
     }
 
-    public function test_no_se_puede_reagendar_si_el_alumno_ya_agoto_su_limite_semanal_del_plan(): void
+    public function test_se_puede_reagendar_aunque_el_alumno_ya_tenga_todas_las_clases_de_su_plan_esa_semana(): void
     {
         $sucursal = Sucursal::factory()->create();
         $admin = User::factory()->admin($sucursal->id)->create();
@@ -79,7 +79,7 @@ class AdminCitaReagendarTest extends TestCase
 
         $inicioSemana = Carbon::now()->startOfWeek(Carbon::MONDAY);
 
-        // El alumno ya tiene 2 citas esta semana (su límite según el plan).
+        // El alumno ya tiene 2 clases esta semana (el total de su plan).
         Cita::factory()->create([
             'horario_id' => $horarioViejo->id,
             'alumno_id' => $alumno->id,
@@ -92,18 +92,19 @@ class AdminCitaReagendarTest extends TestCase
             'horario_id' => $horarioViejo->id,
             'alumno_id' => $alumno->id,
             'sucursal_id' => $sucursal->id,
-            'fecha' => $inicioSemana->copy()->addDays(2)->toDateString(),
+            'fecha' => $inicioSemana->copy()->addDays(7)->toDateString(),
             'estado' => EstadoCita::Programada->value,
         ]);
 
+        // Mover una clase no le suma clases: no depende del límite del plan.
         $response = $this->actingAs($admin)->patch(route('citas.reagendar', $citaAReagendar), [
             'horario_id' => $horarioNuevo->id,
             'fecha' => $inicioSemana->copy()->addDays(2)->toDateString(),
         ]);
 
-        $response->assertSessionHasErrors('fecha');
+        $response->assertSessionDoesntHaveErrors();
 
-        $this->assertEquals($horarioViejo->id, $citaAReagendar->refresh()->horario_id);
+        $this->assertEquals($horarioNuevo->id, $citaAReagendar->refresh()->horario_id);
     }
 
     public function test_no_se_puede_reagendar_a_un_horario_de_otra_sucursal(): void

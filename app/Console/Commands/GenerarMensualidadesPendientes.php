@@ -31,7 +31,11 @@ class GenerarMensualidadesPendientes extends Command
             ->with('plan', 'ultimoPagoMensualidad')
             ->chunkById(100, function ($alumnos) use ($hoy, &$generados) {
                 foreach ($alumnos as $alumno) {
-                    if ($alumno->plan->precio === null) {
+                    // Mismo monto de su última mensualidad pagada; el precio
+                    // del plan solo aplica si todavía no ha pagado ninguna.
+                    $monto = $alumno->montoSiguienteMensualidad();
+
+                    if ($monto === null) {
                         continue;
                     }
 
@@ -67,7 +71,7 @@ class GenerarMensualidadesPendientes extends Command
                         'sucursal_id' => $alumno->sucursal_id,
                         'concepto' => ConceptoPago::Mensualidad->value,
                         'periodo' => $proximaFecha->format('Y-m'),
-                        'monto' => $alumno->plan->precio,
+                        'monto' => $monto,
                         'fecha_vencimiento' => $proximaFecha->toDateString(),
                         'estado' => EstadoPago::Pendiente->value,
                     ]);

@@ -305,7 +305,62 @@ class AdminPagosTest extends TestCase
         $response = $this->actingAs($admin)->get(route('pagos.index'));
 
         $response->assertOk();
-        $response->assertDontSee($alumno->nombreCompleto());
+
+        // Se revisa la lista de "próximos a pagar" y no toda la página: el
+        // pago ya hecho puede aparecer en el calendario del mes.
+        $this->assertFalse(
+            $response->viewData('proximosAPagar')->contains(fn (array $fila) => $fila['alumno']->is($alumno))
+        );
+    }
+
+    public function test_la_mensualidad_siguiente_conserva_el_monto_pagado_aunque_el_plan_cueste_mas(): void
+    {
+        $sucursal = Sucursal::factory()->create();
+        $admin = User::factory()->admin($sucursal->id)->create();
+        $alumno = Alumno::factory()->create([
+            'sucursal_id' => $sucursal->id,
+            'plan_id' => Plan::factory()->create(['precio' => 1100])->id,
+        ]);
+
+        // Paga $990 (10% de descuento sobre un plan de $1,100).
+        $this->actingAs($admin)->post(route('pagos.store'), [
+            'alumno_id' => $alumno->id,
+            'concepto' => 'mensualidad',
+            'periodo' => now()->format('Y-m'),
+            'monto' => 990,
+            'fecha_vencimiento' => now()->toDateString(),
+            'estado' => 'pagado',
+        ])->assertRedirect();
+
+        $siguiente = Pago::where('alumno_id', $alumno->id)->where('estado', EstadoPago::Pendiente->value)->sole();
+
+        $this->assertEquals(990, $siguiente->monto);
+        $this->assertTrue($siguiente->fecha_vencimiento->isSameDay(now()->addMonthNoOverflow()));
+    }
+
+    public function test_al_marcar_como_pagada_una_mensualidad_editada_la_siguiente_copia_ese_monto(): void
+    {
+        $sucursal = Sucursal::factory()->create();
+        $admin = User::factory()->admin($sucursal->id)->create();
+        $alumno = Alumno::factory()->create([
+            'sucursal_id' => $sucursal->id,
+            'plan_id' => Plan::factory()->create(['precio' => 1200])->id,
+        ]);
+
+        $pendiente = Pago::factory()->create([
+            'alumno_id' => $alumno->id,
+            'sucursal_id' => $sucursal->id,
+            'concepto' => 'mensualidad',
+            'estado' => EstadoPago::Pendiente->value,
+            'monto' => 900,
+            'fecha_vencimiento' => now()->toDateString(),
+        ]);
+
+        $this->actingAs($admin)->patch(route('pagos.marcar-pagado', $pendiente))->assertRedirect();
+
+        $siguiente = Pago::where('alumno_id', $alumno->id)->where('estado', EstadoPago::Pendiente->value)->sole();
+
+        $this->assertEquals(900, $siguiente->monto);
     }
 
     public function test_admin_marca_un_pago_como_pagado(): void

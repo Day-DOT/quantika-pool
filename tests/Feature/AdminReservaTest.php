@@ -11,6 +11,7 @@ use App\Models\Instructor;
 use App\Models\Nivel;
 use App\Models\Sucursal;
 use App\Models\User;
+use App\Support\ClasesDelAlumno;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -71,9 +72,9 @@ class AdminReservaTest extends TestCase
             'estado' => 'aprobada',
         ]);
 
-        $this->assertGreaterThan(
-            0,
-            Cita::where('horario_id', $e['horario']->id)->where('alumno_id', $e['alumno']->id)->count()
+        // Sus clases se deducen de la inscripción: no hace falta guardarlas.
+        $this->assertTrue(
+            ClasesDelAlumno::proximas($e['alumno'])->contains(fn (array $clase) => $clase['cita']->horario_id === $e['horario']->id)
         );
     }
 

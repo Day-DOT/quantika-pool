@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Alumno;
+use App\Models\Evaluacion;
 use App\Models\Horario;
 use App\Models\Inscripcion;
 use App\Models\Instructor;
@@ -88,5 +89,60 @@ class InstructorDashboardTest extends TestCase
         $response->assertOk();
         $response->assertSee('Pingüinos');
         $response->assertSee('Grupo de Hoy');
+    }
+
+    public function test_el_instructor_puede_ver_quienes_estan_pendientes_de_evaluar(): void
+    {
+        $instructor = Instructor::factory()->create();
+        $nivel = Nivel::factory()->create();
+
+        $horario = Horario::factory()->create([
+            'instructor_id' => $instructor->id,
+            'sucursal_id' => $instructor->sucursal_id,
+            'nivel_id' => $nivel->id,
+            'activo' => true,
+        ]);
+
+        $inscribir = function (string $nombre) use ($instructor, $nivel, $horario): Alumno {
+            $alumno = Alumno::factory()->create([
+                'sucursal_id' => $instructor->sucursal_id,
+                'nivel_id' => $nivel->id,
+                'nombre' => $nombre,
+                'apellidos' => 'Prueba',
+            ]);
+            Inscripcion::factory()->create(['alumno_id' => $alumno->id, 'horario_id' => $horario->id, 'activa' => true]);
+
+            return $alumno;
+        };
+
+        $evaluado = $inscribir('Evaluado');
+        $pendiente = $inscribir('Pendiente');
+
+        Evaluacion::factory()->create([
+            'alumno_id' => $evaluado->id,
+            'instructor_id' => $instructor->id,
+            'nivel_id' => $nivel->id,
+        ]);
+
+        // El número del panel lleva a la lista.
+        $this->actingAs($instructor->user)
+            ->get('/instructor')
+            ->assertOk()
+            ->assertSee(route('instructor.alumnos.index', ['evaluacion' => 'pendientes']), false);
+
+        $this->actingAs($instructor->user)
+            ->get(route('instructor.alumnos.index', ['evaluacion' => 'pendientes']))
+            ->assertOk()
+            ->assertSee('Alumnos pendientes de evaluar')
+            ->assertSee('Pendiente Prueba')
+            ->assertDontSee('Evaluado Prueba')
+            ->assertSee(route('instructor.evaluaciones.create', $pendiente), false);
+
+        // La lista completa sigue mostrando a todos.
+        $this->actingAs($instructor->user)
+            ->get(route('instructor.alumnos.index'))
+            ->assertOk()
+            ->assertSee('Pendiente Prueba')
+            ->assertSee('Evaluado Prueba');
     }
 }

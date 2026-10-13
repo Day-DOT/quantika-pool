@@ -154,14 +154,14 @@
                 <div class="stat-change">{{ $diaHoy->label() }}</div>
             </div>
 
-            <div class="stat-card">
+            <a href="{{ route('instructor.alumnos.index', ['evaluacion' => 'pendientes']) }}" class="stat-card" style="text-decoration:none; color:inherit; display:block;">
                 <div class="stat-top">
                     <span class="stat-name">Evaluaciones pendientes</span>
                     <div class="stat-icon">✓</div>
                 </div>
                 <div class="stat-value">{{ $stats['pendientesEvaluacion'] }}</div>
-                <div class="stat-change">En el nivel actual</div>
-            </div>
+                <div class="stat-change">Ver quiénes faltan →</div>
+            </a>
 
         </section>
 
@@ -234,7 +234,8 @@
                         @php
                             $citas = $citasHoy->get($horario->id, collect());
                             $totalAlumnos = $alumnosPorHorario->get($horario->id, 0);
-                            $registradas = $citas->count();
+                            $registradas = $citas->whereNotNull('asistio')->count();
+                            $avisaronFalta = $citas->where('falta_avisada', true)->count();
                             $completa = $totalAlumnos > 0 && $registradas >= $totalAlumnos;
                         @endphp
 
@@ -243,6 +244,9 @@
                             <div class="grupo-meta">{{ $horario->nivel?->nombre }} · Carril {{ $horario->carril?->nombre }}</div>
                             <div class="grupo-meta">{{ substr($horario->hora_inicio, 0, 5) }} – {{ substr($horario->hora_fin, 0, 5) }}</div>
                             <div class="grupo-meta">{{ $totalAlumnos }} alumno(s) · {{ $registradas }} asistencia(s) registrada(s)</div>
+                            @if ($avisaronFalta > 0)
+                                <div class="grupo-meta" style="color:var(--red);">{{ $avisaronFalta }} avisó/avisaron que no asistirá(n)</div>
+                            @endif
                             <span class="badge {{ $completa ? 'badge-green' : 'badge-yellow' }}" style="margin-top:10px;">
                                 {{ $completa ? '● Asistencia completa' : '● Pendiente de asistencia' }}
                             </span>

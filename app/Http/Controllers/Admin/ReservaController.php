@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Admin;
 
 use App\Enums\EstadoInscripcion;
 use App\Http\Controllers\Admin\Concerns\ScopesSucursal;
-use App\Http\Controllers\Concerns\AgendaCitasIniciales;
 use App\Http\Controllers\Controller;
 use App\Models\Horario;
 use App\Models\Inscripcion;
@@ -18,7 +17,6 @@ use Illuminate\View\View;
 
 class ReservaController extends Controller
 {
-    use AgendaCitasIniciales;
     use AuthorizesRequests;
     use ScopesSucursal;
 
@@ -48,8 +46,8 @@ class ReservaController extends Controller
     }
 
     /**
-     * Aprueba una reserva pendiente: reconfirma el cupo del horario, marca
-     * la Inscripcion como activa/aprobada y agenda sus primeras Citas.
+     * Aprueba una reserva pendiente: reconfirma el cupo del horario y marca
+     * la Inscripcion como activa/aprobada. Sus clases se deducen de ella.
      */
     public function aprobar(Request $request, Inscripcion $inscripcion): RedirectResponse
     {
@@ -80,8 +78,6 @@ class ReservaController extends Controller
                     'aprobado_por' => $request->user()->id,
                     'aprobado_en' => now(),
                 ]);
-
-                $this->agendarPrimerasCitas($horario, $inscripcion->alumno, $request->user()->id);
             });
         } catch (ValidationException $e) {
             return back()->withErrors($e->errors());

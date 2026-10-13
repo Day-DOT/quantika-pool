@@ -74,6 +74,11 @@ Route::middleware(['auth', 'role:admin,super_admin'])->group(function () {
 
     // --- Citas (reagendamiento individual) ---
     Route::patch('/citas/{cita}/reagendar', [CitaController::class, 'reagendar'])->name('citas.reagendar');
+    Route::patch('/alumnos/{alumno}/clases/reagendar', [CitaController::class, 'reagendarClase'])->name('alumnos.clases.reagendar');
+
+    // --- Faltas avisadas con anticipación ---
+    Route::post('/alumnos/{alumno}/clases/falta-avisada', [CitaController::class, 'avisarFalta'])->name('alumnos.clases.falta-avisada');
+    Route::delete('/citas/{cita}/falta-avisada', [CitaController::class, 'quitarAvisoDeFalta'])->name('citas.falta-avisada.destroy');
 
     // --- Reposiciones de clases (por faltas) ---
     Route::get('/reposiciones', [ReposicionController::class, 'index'])->name('reposiciones.index');

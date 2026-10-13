@@ -40,7 +40,10 @@ class AlumnoController extends Controller
             ->get()
             ->groupBy('alumno_id');
 
-        $alumnos = Alumno::whereIn('id', $inscripciones->keys())
+        $pendientesIds = $instructor->alumnosPendientesDeEvaluar()->pluck('id');
+        $soloPendientes = $request->query('evaluacion') === 'pendientes';
+
+        $alumnos = Alumno::whereIn('id', $soloPendientes ? $pendientesIds : $inscripciones->keys())
             ->with('nivel')
             ->orderBy('nombre')
             ->orderBy('apellidos')
@@ -55,6 +58,8 @@ class AlumnoController extends Controller
 
         return view('quantika.instructor.alumnos.index', [
             'alumnos' => $alumnos,
+            'pendientesIds' => $pendientesIds,
+            'soloPendientes' => $soloPendientes,
         ]);
     }
 

@@ -316,13 +316,17 @@ class PagoController extends Controller
         return back()->with('status', 'Pago marcado como pagado.');
     }
 
+    /**
+     * Al pagarse una mensualidad se agenda la del mes siguiente por el
+     * mismo monto que se acaba de pagar: así se conservan los descuentos y
+     * precios acordados con cada alumno, sin volver al precio del plan.
+     */
     private function agendarSiguienteMensualidad(Pago $pago): void
     {
         if ($pago->concepto !== ConceptoPago::Mensualidad
             || ! $pago->fecha_vencimiento
             || ! $pago->alumno?->plan
-            || $pago->alumno->estado !== EstadoAlumno::Activo
-            || $pago->alumno->plan->precio === null) {
+            || $pago->alumno->estado !== EstadoAlumno::Activo) {
             return;
         }
 
@@ -342,7 +346,7 @@ class PagoController extends Controller
             'sucursal_id' => $pago->sucursal_id,
             'concepto' => ConceptoPago::Mensualidad->value,
             'periodo' => $siguienteFecha->format('Y-m'),
-            'monto' => $pago->alumno->plan->precio,
+            'monto' => $pago->monto,
             'fecha_vencimiento' => $siguienteFecha->toDateString(),
             'estado' => EstadoPago::Pendiente->value,
         ]);

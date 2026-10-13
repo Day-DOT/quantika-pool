@@ -73,7 +73,7 @@ class GenerarMensualidadesPendientesTest extends TestCase
         $this->assertEquals(1, Pago::where('alumno_id', $alumno->id)->count());
     }
 
-    public function test_agenda_el_siguiente_pago_despues_de_un_pago_pagado(): void
+    public function test_agenda_el_siguiente_pago_con_el_mismo_monto_del_ultimo_pago(): void
     {
         $sucursal = Sucursal::factory()->create();
         $plan = Plan::factory()->create(['precio' => 950]);
@@ -89,6 +89,7 @@ class GenerarMensualidadesPendientesTest extends TestCase
             'sucursal_id' => $sucursal->id,
             'concepto' => ConceptoPago::Mensualidad->value,
             'estado' => EstadoPago::Pagado->value,
+            'monto' => 800,
             'fecha_vencimiento' => now()->toDateString(),
             'fecha_pago' => now()->toDateString(),
         ]);
@@ -101,8 +102,10 @@ class GenerarMensualidadesPendientesTest extends TestCase
             ->whereDate('fecha_vencimiento', now()->addMonthNoOverflow()->toDateString())
             ->first();
 
+        // Pagó $800 aunque su plan cuesta $950: el siguiente mes se le
+        // cobra lo mismo que pagó, no el precio del plan.
         $this->assertNotNull($siguientePago);
-        $this->assertSame(950.0, (float) $siguientePago->monto);
+        $this->assertSame(800.0, (float) $siguientePago->monto);
     }
 
     public function test_no_genera_nada_para_un_alumno_inactivo(): void

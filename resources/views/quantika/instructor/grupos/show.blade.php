@@ -69,6 +69,8 @@
 
                             @php
                                 $cita = $citasHoy->get($alumno->id);
+                                // La clase de hoy se movió a otra fecha: sigue en el grupo, pero hoy no viene.
+                                $seMovio = $cita?->estado === \App\Enums\EstadoCita::Reagendada;
                                 $iniciales = collect(preg_split('/\s+/', trim($alumno->nombreCompleto())))
                                     ->filter()
                                     ->map(fn ($p) => mb_strtoupper(mb_substr($p, 0, 1)))
@@ -86,6 +88,13 @@
                                                 <span class="badge badge-cyan">Clase extra · solo hoy</span>
                                             @elseif ($cita?->reposicion_de_id)
                                                 <span class="badge badge-cyan">Reposición · solo hoy</span>
+                                            @elseif (! $inscritosIds->contains($alumno->id))
+                                                <span class="badge badge-cyan">Clase reagendada · solo hoy</span>
+                                            @endif
+                                            @if ($cita?->falta_avisada)
+                                                <span class="badge badge-red">Avisó que no asistirá</span>
+                                            @elseif ($seMovio)
+                                                <span class="badge badge-yellow">Reagendó esta clase · hoy no viene</span>
                                             @endif
                                             <div class="person-sub">{{ $alumno->telefono ?? 'Sin teléfono' }}</div>
                                         </div>
@@ -93,7 +102,11 @@
                                 </td>
                                 <td>{{ $alumno->nivel?->nombre ?? 'Sin nivel' }}</td>
                                 <td>
-                                    @if ($cita?->asistio === null)
+                                    @if ($seMovio)
+                                        <span class="badge badge-muted">No viene hoy</span>
+                                    @elseif ($cita?->falta_avisada)
+                                        <span class="badge badge-red">● No asistirá (avisó)</span>
+                                    @elseif ($cita?->asistio === null)
                                         <span class="badge badge-muted">Sin registrar</span>
                                     @elseif ($cita->asistio)
                                         <span class="badge badge-green">● Asistió</span>
@@ -102,7 +115,11 @@
                                     @endif
                                 </td>
                                 <td>
-                                    @if ($cita?->asistio === false)
+                                    @if ($seMovio)
+                                        <span class="badge badge-muted">Clase reagendada</span>
+                                    @elseif ($cita?->falta_avisada)
+                                        <span class="badge badge-red">Falta avisada</span>
+                                    @elseif ($cita?->asistio === false)
                                         <span class="badge badge-red">Marcada como falta</span>
                                     @else
                                         <form method="POST" action="{{ route('instructor.grupos.asistencia', [$horario, $alumno]) }}">

@@ -25,6 +25,9 @@ class Reposiciones
 
     private const CATEGORIA_SIN_REPOSICION = 'Bebés';
 
+    /** Estados en los que la clase ya no ocurre: no bloquean esa fecha. */
+    private const ESTADOS_SIN_CLASE = ['cancelada', 'reagendada'];
+
     /**
      * Faltas del mes en curso que todavía no tienen reposición programada.
      */
@@ -125,7 +128,7 @@ class Reposiciones
             return ['fecha', "La fecha elegida no coincide con el día ({$horario->dia_semana->label()}) del horario seleccionado."];
         }
 
-        if (Cita::where('horario_id', $horario->id)->where('alumno_id', $alumno->id)->whereDate('fecha', $fecha)->exists()) {
+        if (self::registroEnEsaFecha($alumno->id, $horario, $fecha)->whereNotIn('estado', self::ESTADOS_SIN_CLASE)->exists()) {
             return ['horario_id', 'El alumno ya tiene una clase registrada en ese grupo para esa fecha.'];
         }
 
@@ -146,6 +149,9 @@ class Reposiciones
      */
     public static function programar(Cita $falta, Horario $horario, Carbon $fecha, ?int $registradoPor = null): Cita
     {
+        // Una clase cancelada en esa fecha ya no ocupa el lugar: se reemplaza.
+        self::registroEnEsaFecha($falta->alumno_id, $horario, $fecha)->whereIn('estado', self::ESTADOS_SIN_CLASE)->delete();
+
         return Cita::create([
             'horario_id' => $horario->id,
             'alumno_id' => $falta->alumno_id,
@@ -157,6 +163,11 @@ class Reposiciones
             'reposicion_de_id' => $falta->id,
             'registrado_por' => $registradoPor,
         ]);
+    }
+
+    private static function registroEnEsaFecha(int $alumnoId, Horario $horario, Carbon $fecha): Builder
+    {
+        return Cita::where('horario_id', $horario->id)->where('alumno_id', $alumnoId)->whereDate('fecha', $fecha);
     }
 
     /**

@@ -25,6 +25,7 @@ class Cita extends Model
         'registrado_por',
         'reposicion_de_id',
         'es_extra',
+        'falta_avisada',
     ];
 
     protected function casts(): array
@@ -34,6 +35,7 @@ class Cita extends Model
             'estado' => EstadoCita::class,
             'asistio' => 'boolean',
             'es_extra' => 'boolean',
+            'falta_avisada' => 'boolean',
         ];
     }
 
@@ -79,13 +81,19 @@ class Cita extends Model
 
     /**
      * Clases de una sola fecha que ocupan lugar en un grupo sin que el
-     * alumno esté inscrito en él: clases extra y reposiciones de faltas.
+     * alumno esté inscrito en él: clases extra, reposiciones de faltas y
+     * clases reagendadas desde otro grupo.
      */
     public function scopeVisitantesDelDia($query, int $horarioId, $fecha)
     {
-        return $query->where('horario_id', $horarioId)
-            ->whereDate('fecha', $fecha)
-            ->where('estado', '!=', EstadoCita::Cancelada->value)
-            ->where(fn ($q) => $q->where('es_extra', true)->orWhereNotNull('reposicion_de_id'));
+        return $query->where('citas.horario_id', $horarioId)
+            ->whereDate('citas.fecha', $fecha)
+            ->whereNotIn('citas.estado', [EstadoCita::Cancelada->value, EstadoCita::Reagendada->value])
+            ->whereNotExists(fn ($inscrito) => $inscrito
+                ->selectRaw('1')
+                ->from('inscripciones')
+                ->whereColumn('inscripciones.alumno_id', 'citas.alumno_id')
+                ->whereColumn('inscripciones.horario_id', 'citas.horario_id')
+                ->where('inscripciones.activa', true));
     }
 }

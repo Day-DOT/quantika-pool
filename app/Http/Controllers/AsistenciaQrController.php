@@ -5,7 +5,7 @@ namespace App\Http\Controllers;
 use App\Enums\EstadoCita;
 use App\Models\Alumno;
 use App\Models\Cita;
-use App\Models\Horario;
+use App\Support\ClasesDelAlumno;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -96,6 +96,7 @@ class AsistenciaQrController extends Controller
             }
 
             $cita->asistio = true;
+            $cita->falta_avisada = false;
             $cita->estado = EstadoCita::Completada;
             $cita->registrado_por = $request->user()->id;
             $cita->save();
@@ -119,27 +120,15 @@ class AsistenciaQrController extends Controller
 
     /**
      * Grupos en los que el alumno tiene clase hoy: los de su inscripción
-     * que caen en este día de la semana y los de una sola fecha (clase
-     * extra o reposición) agendados para hoy.
+     * que caen en este día (salvo que esa clase se haya movido a otra
+     * fecha) y los de una sola fecha: extra, reposición o reagendada.
      */
     private function horariosDeHoy(Alumno $alumno)
     {
-        $deSuPlan = $alumno->inscripciones()
-            ->activas()
-            ->with('horario')
-            ->get()
-            ->pluck('horario')
-            ->filter(fn (?Horario $horario) => $horario && $horario->activo && $horario->dia_semana->value === today()->dayOfWeekIso);
-
-        $deUnaSolaFecha = $alumno->citas()
-            ->whereDate('fecha', today())
-            ->where('estado', '!=', EstadoCita::Cancelada->value)
-            ->where(fn ($query) => $query->where('es_extra', true)->orWhereNotNull('reposicion_de_id'))
-            ->with('horario')
-            ->get()
-            ->pluck('horario')
-            ->filter();
-
-        return $deSuPlan->concat($deUnaSolaFecha)->unique('id')->values();
+        return ClasesDelAlumno::enRango($alumno, today(), today())
+            ->map(fn (array $clase) => $clase['cita']->horario)
+            ->filter()
+            ->unique('id')
+            ->values();
     }
 }

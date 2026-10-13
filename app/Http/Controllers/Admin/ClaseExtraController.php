@@ -54,7 +54,10 @@ class ClaseExtraController extends Controller
             return back()->withErrors(['clase_extra' => 'El alumno ya está inscrito en ese grupo: esa clase ya forma parte de su plan.']);
         }
 
-        if (Cita::where('horario_id', $horario->id)->where('alumno_id', $alumno->id)->whereDate('fecha', $fecha)->exists()) {
+        $registroPrevio = Cita::where('horario_id', $horario->id)->where('alumno_id', $alumno->id)->whereDate('fecha', $fecha)->first();
+
+        // Una clase cancelada en esa fecha no impide agendar: se reemplaza.
+        if ($registroPrevio && ! in_array($registroPrevio->estado, [EstadoCita::Cancelada, EstadoCita::Reagendada], true)) {
             return back()->withErrors(['clase_extra' => 'El alumno ya tiene una clase registrada en ese grupo para esa fecha.']);
         }
 
@@ -64,7 +67,9 @@ class ClaseExtraController extends Controller
             return back()->withErrors(['clase_extra' => 'Ese grupo ya no tiene cupo disponible para esa fecha.']);
         }
 
-        DB::transaction(function () use ($request, $alumno, $horario, $fecha, $datos) {
+        DB::transaction(function () use ($request, $alumno, $horario, $fecha, $datos, $registroPrevio) {
+            $registroPrevio?->delete();
+
             Cita::create([
                 'horario_id' => $horario->id,
                 'alumno_id' => $alumno->id,

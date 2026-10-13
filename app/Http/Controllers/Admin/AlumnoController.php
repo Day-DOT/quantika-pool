@@ -3,7 +3,6 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Enums\EstadoAlumno;
-use App\Enums\EstadoCita;
 use App\Enums\Rol;
 use App\Http\Controllers\Admin\Concerns\ScopesSucursal;
 use App\Http\Controllers\Controller;
@@ -16,6 +15,7 @@ use App\Models\Instructor;
 use App\Models\Nivel;
 use App\Models\Plan;
 use App\Models\User;
+use App\Support\ClasesDelAlumno;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -245,18 +245,17 @@ class AlumnoController extends Controller
             ? $alumno->evaluaciones->first(fn ($evaluacion) => $evaluacion->nivel_id === $alumno->nivel_id)
             : null;
 
-        $proximasCitas = $alumno->citas()
-            ->whereDate('fecha', '>=', now()->toDateString())
-            ->whereNotIn('estado', [EstadoCita::Cancelada->value, EstadoCita::Completada->value])
-            ->with('horario')
-            ->orderBy('fecha')
-            ->get();
-
+        // Los grupos se listan con carril e instructor: muchos comparten
+        // nombre, día y hora y sin eso no se pueden distinguir.
         $horariosDisponibles = Horario::where('sucursal_id', $alumno->sucursal_id)
             ->where('activo', true)
+            ->with(['carril', 'instructor.user'])
             ->orderBy('dia_semana')
             ->orderBy('hora_inicio')
-            ->get();
+            ->get()
+            ->sort(fn (Horario $a, Horario $b) => [$a->dia_semana->value, $a->hora_inicio] <=> [$b->dia_semana->value, $b->hora_inicio]
+                ?: strnatcasecmp($a->carril?->nombre ?? '', $b->carril?->nombre ?? ''))
+            ->values();
 
         $instructoresDisponibles = Instructor::where('sucursal_id', $alumno->sucursal_id)
             ->where('estado', 'activo')
@@ -279,7 +278,9 @@ class AlumnoController extends Controller
                 'Contrato firmado' => $alumno->contrato_firmado_path,
             ])->filter(fn ($ruta) => ! $ruta)->keys()->values(),
             'pagosVencidos' => $alumno->pagos()->vencidos()->orderBy('fecha_vencimiento')->get(),
-            'proximasCitas' => $proximasCitas,
+            // Se calculan desde sus grupos: no dependen de que exista una
+            // Cita guardada para cada fecha.
+            'proximasClases' => ClasesDelAlumno::proximas($alumno),
             'historialAsistencia' => $alumno->citas()
                 ->whereNotNull('asistio')
                 ->with('horario', 'reposicion')

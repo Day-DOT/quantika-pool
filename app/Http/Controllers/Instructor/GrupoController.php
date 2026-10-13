@@ -36,11 +36,13 @@ class GrupoController extends Controller
             ->keyBy('alumno_id');
 
         // Además de los inscritos, hoy toman la clase quienes tienen una
-        // clase extra o una reposición agendada en este grupo.
+        // clase de una sola fecha en este grupo: extra, reposición o
+        // reagendada desde otro grupo.
         $visitantesHoy = Cita::visitantesDelDia($horario->id, $hoy)->pluck('alumno_id');
+        $inscritosIds = $horario->inscripciones()->activas()->pluck('alumno_id');
 
         $alumnos = Alumno::query()
-            ->whereIn('id', $horario->inscripciones()->activas()->pluck('alumno_id')->merge($visitantesHoy))
+            ->whereIn('id', $inscritosIds->merge($visitantesHoy))
             ->with('nivel')
             ->orderBy('nombre')
             ->orderBy('apellidos')
@@ -52,6 +54,7 @@ class GrupoController extends Controller
             'horario' => $horario,
             'alumnos' => $alumnos,
             'citasHoy' => $citasHoy,
+            'inscritosIds' => $inscritosIds,
             'hoy' => $hoy,
         ]);
     }
@@ -102,6 +105,7 @@ class GrupoController extends Controller
         }
 
         $cita->asistio = $request->boolean('asistio');
+        $cita->falta_avisada = false;
         $cita->estado = EstadoCita::Completada;
         $cita->notas = $request->filled('notas') ? $request->string('notas')->toString() : $cita->notas;
         $cita->registrado_por = $request->user()->id;

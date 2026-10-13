@@ -272,7 +272,8 @@ class AdminHorariosTest extends TestCase
         // El selector de "Reagendar" debe listar la clase por alumno (individual),
         // no solo el nombre del grupo.
         $response->assertSee('Pepito Pérez');
-        $response->assertSee('/citas/');
+        $response->assertSee('data-alumno="'.$alumno->id.'"', false);
+        $response->assertSee('data-horario="'.$horario->id.'"', false);
     }
 
     public function test_admin_reagenda_una_clase_existente(): void

@@ -208,9 +208,7 @@
                         <select name="horario_id" id="claseExtraHorario" class="form-select" required>
                             <option value="">Selecciona un grupo</option>
                             @foreach ($horariosDisponibles as $horarioOpcion)
-                                <option value="{{ $horarioOpcion->id }}" data-dia="{{ $horarioOpcion->dia_semana->value }}" @selected((int) old('horario_id') === $horarioOpcion->id)>
-                                    {{ $horarioOpcion->nombre_grupo }} · {{ $horarioOpcion->dia_semana->label() }} {{ substr($horarioOpcion->hora_inicio, 0, 5) }}
-                                </option>
+                                <option value="{{ $horarioOpcion->id }}" data-dia="{{ $horarioOpcion->dia_semana->value }}" @selected((int) old('horario_id') === $horarioOpcion->id)>{{ $horarioOpcion->etiqueta() }}</option>
                             @endforeach
                         </select>
                     </div>
@@ -377,8 +375,9 @@
                 @foreach ($alumno->inscripciones as $inscripcion)
                     <div class="stat-value" style="font-size:16px;">{{ $inscripcion->horario?->nombre_grupo }}</div>
                     <div class="stat-change">
-                        {{ $inscripcion->horario?->instructor?->user?->name ?? 'Sin instructor' }} ·
-                        {{ $inscripcion->horario?->dia_semana?->label() }} {{ $inscripcion->horario?->hora_inicio }}
+                        {{ $inscripcion->horario?->dia_semana?->label() }} {{ substr((string) $inscripcion->horario?->hora_inicio, 0, 5) }} ·
+                        {{ $inscripcion->horario?->carril?->nombre ?? 'Sin carril' }} ·
+                        {{ $inscripcion->horario?->instructor?->user?->name ?? 'Sin instructor' }}
                     </div>
 
                     @if ($inscripcion->horario)
@@ -422,57 +421,93 @@
 
     <div class="section-header">
         <h3>Próximas clases</h3>
+        <span style="color:var(--muted); font-size:12px;">Siguientes 4 semanas, según sus grupos y sus clases de una sola fecha</span>
     </div>
 
     <div class="panel">
-        @if ($proximasCitas->isEmpty())
-            <div class="empty-state">Este alumno no tiene clases próximas agendadas.</div>
+        @if ($proximasClases->isEmpty())
+            <div class="empty-state">Este alumno no tiene clases próximas: no está inscrito en ningún grupo activo.</div>
         @else
             <div class="table-wrap">
                 <table class="data-table">
                     <thead>
                         <tr>
                             <th>Fecha</th>
-                            <th>Grupo / Horario actual</th>
-                            <th>Reagendar a</th>
+                            <th>Grupo / Horario</th>
+                            <th>Reagendar o avisar falta</th>
                         </tr>
                     </thead>
                     <tbody>
-                        @foreach ($proximasCitas as $cita)
+                        @foreach ($proximasClases as $clase)
+                            @php
+                                $cita = $clase['cita'];
+                                $etiquetaTipo = match ($clase['tipo']) {
+                                    \App\Support\ClasesDelAlumno::TIPO_EXTRA => 'CLASE EXTRA',
+                                    \App\Support\ClasesDelAlumno::TIPO_REPOSICION => 'RECUPERACIÓN DE FALTA',
+                                    \App\Support\ClasesDelAlumno::TIPO_REAGENDADA => 'CLASE REAGENDADA',
+                                    default => null,
+                                };
+                            @endphp
                             <tr>
-                                <td>{{ $cita->fecha->translatedFormat('d M Y') }}</td>
+                                <td>
+                                    {{ ucfirst($cita->fecha->translatedFormat('D d M Y')) }}
+                                    @if ($cita->fecha->isToday())
+                                        <div style="color:var(--cyan); font-size:11px; font-weight:800;">HOY</div>
+                                    @endif
+                                </td>
                                 <td>
                                     {{ $cita->horario?->nombre_grupo }}
-                                    @if ($cita->reposicion_de_id)
-                                        <div style="color:var(--cyan); font-size:11px; font-weight:800;">RECUPERACIÓN DE FALTA</div>
-                                    @endif
-                                    @if ($cita->es_extra)
-                                        <div style="color:var(--cyan); font-size:11px; font-weight:800;">CLASE EXTRA</div>
+                                    @if ($etiquetaTipo)
+                                        <div style="color:var(--cyan); font-size:11px; font-weight:800;">{{ $etiquetaTipo }}</div>
                                     @endif
                                     <div style="color:var(--muted); font-size:12px;">
                                         {{ substr($cita->hora_inicio, 0, 5) }}–{{ substr($cita->hora_fin, 0, 5) }}
+                                        · {{ $cita->horario?->carril?->nombre ?? 'Sin carril' }}
+                                        · {{ $cita->horario?->instructor?->user?->name ?? 'Sin instructor' }}
                                     </div>
+                                    @if ($cita->falta_avisada)
+                                        <span class="badge badge-red" style="margin-top:6px;">● Avisó que no asistirá</span>
+                                    @endif
                                 </td>
                                 <td>
-                                    <form method="POST" action="{{ route('citas.reagendar', $cita) }}" style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
-                                        @csrf
-                                        @method('PATCH')
-                                        <select name="horario_id" class="form-select" style="font-size:12px;" required>
-                                            @foreach ($horariosDisponibles as $horarioOpcion)
-                                                <option value="{{ $horarioOpcion->id }}" @selected($horarioOpcion->id === $cita->horario_id)>
-                                                    {{ $horarioOpcion->nombre_grupo }} · {{ $horarioOpcion->dia_semana->label() }} {{ substr($horarioOpcion->hora_inicio, 0, 5) }}
-                                                </option>
-                                            @endforeach
-                                        </select>
-                                        <input type="date" name="fecha" class="form-input" style="font-size:12px; width:150px;" value="{{ $cita->fecha->toDateString() }}" required>
-                                        <button type="submit" class="btn btn-outline btn-sm">Reagendar</button>
-                                    </form>
-                                    @if ($cita->es_extra)
-                                        <form method="POST" action="{{ route('citas.clase-extra.destroy', $cita) }}" style="margin-top:8px;" onsubmit="return confirm('¿Cancelar esta clase extra?');">
+                                    @if ($cita->falta_avisada)
+                                        <form method="POST" action="{{ route('citas.falta-avisada.destroy', $cita) }}">
                                             @csrf
                                             @method('DELETE')
-                                            <button type="submit" class="btn btn-outline btn-sm">Cancelar clase extra</button>
+                                            <button type="submit" class="btn btn-outline btn-sm">Quitar aviso de falta</button>
                                         </form>
+                                    @else
+                                        <form method="POST" action="{{ route('alumnos.clases.reagendar', $alumno) }}" style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+                                            @csrf
+                                            @method('PATCH')
+                                            <input type="hidden" name="origen_horario_id" value="{{ $cita->horario_id }}">
+                                            <input type="hidden" name="origen_fecha" value="{{ $cita->fecha->toDateString() }}">
+                                            <select name="horario_id" class="form-select" style="font-size:12px; max-width:320px;" required>
+                                                @foreach ($horariosDisponibles as $horarioOpcion)
+                                                    <option value="{{ $horarioOpcion->id }}" @selected($horarioOpcion->id === $cita->horario_id)>{{ $horarioOpcion->etiqueta() }}</option>
+                                                @endforeach
+                                            </select>
+                                            <input type="date" name="fecha" class="form-input" style="font-size:12px; width:150px;" value="{{ $cita->fecha->toDateString() }}" required>
+                                            <button type="submit" class="btn btn-outline btn-sm">Reagendar</button>
+                                        </form>
+
+                                        <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:8px;">
+                                            <form method="POST" action="{{ route('alumnos.clases.falta-avisada', $alumno) }}"
+                                                  onsubmit="return confirm('¿Registrar que {{ $alumno->nombre }} avisó que no asistirá a esta clase?');">
+                                                @csrf
+                                                <input type="hidden" name="horario_id" value="{{ $cita->horario_id }}">
+                                                <input type="hidden" name="fecha" value="{{ $cita->fecha->toDateString() }}">
+                                                <button type="submit" class="btn btn-outline btn-sm">Avisó que faltará</button>
+                                            </form>
+
+                                            @if ($cita->es_extra)
+                                                <form method="POST" action="{{ route('citas.clase-extra.destroy', $cita) }}" onsubmit="return confirm('¿Cancelar esta clase extra?');">
+                                                    @csrf
+                                                    @method('DELETE')
+                                                    <button type="submit" class="btn btn-outline btn-sm">Cancelar clase extra</button>
+                                                </form>
+                                            @endif
+                                        </div>
                                     @endif
                                 </td>
                             </tr>

@@ -3,9 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Enums\DiaSemana;
-use App\Enums\EstadoCita;
 use App\Enums\EstadoInscripcion;
-use App\Http\Controllers\Concerns\AgendaCitasIniciales;
 use App\Http\Controllers\Admin\Concerns\ScopesSucursal;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\AsignarAlumnoRequest;
@@ -15,12 +13,12 @@ use App\Http\Requests\Admin\ReagendarHorarioRequest;
 use App\Http\Requests\Admin\StoreHorarioRequest;
 use App\Models\Alumno;
 use App\Models\Carril;
-use App\Models\Cita;
 use App\Models\Horario;
 use App\Models\Inscripcion;
 use App\Models\Instructor;
 use App\Models\Nivel;
 use App\Models\Sucursal;
+use App\Support\ClasesDelAlumno;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Carbon;
@@ -30,7 +28,6 @@ use Illuminate\View\View;
 
 class HorarioController extends Controller
 {
-    use AgendaCitasIniciales;
     use AuthorizesRequests;
     use ScopesSucursal;
 
@@ -107,12 +104,9 @@ class HorarioController extends Controller
         $this->aplicarSucursal($alumnosQuery);
         $alumnosTodos = $alumnosQuery->get();
 
-        $citasProximasQuery = Cita::query()
-            ->whereDate('fecha', '>=', $hoy->toDateString())
-            ->whereNotIn('estado', [EstadoCita::Cancelada->value, EstadoCita::Completada->value])
-            ->with(['alumno', 'horario']);
-        $this->aplicarSucursal($citasProximasQuery);
-        $citasProximas = $citasProximasQuery->orderBy('fecha')->get();
+        // Todas las clases por delante de cada alumno (las de sus grupos y
+        // las de una sola fecha), para poder elegir cuál reagendar.
+        $clasesParaReagendar = ClasesDelAlumno::proximasDeTodos($this->sucursalId());
 
         return view('quantika.horarios.index', [
             'dias' => $dias,
@@ -129,7 +123,9 @@ class HorarioController extends Controller
             'instructoresDisponibles' => $instructoresDisponibles,
             'carrilesDisponibles' => $carrilesSelectQuery->get(),
             'diasSemana' => DiaSemana::cases(),
-            'horariosExistentes' => $horarios,
+            // Ordenados por día, hora y carril para ubicarlos en las listas.
+            'horariosExistentes' => $horarios->sort(fn (Horario $a, Horario $b) => [$a->dia_semana->value, $a->hora_inicio] <=> [$b->dia_semana->value, $b->hora_inicio]
+                ?: strnatcasecmp($a->carril?->nombre ?? '', $b->carril?->nombre ?? ''))->values(),
             'detallesClases' => $horarios->mapWithKeys(fn (Horario $horario) => [
                 $horario->id => [
                     'grupo' => $horario->nombre_grupo,
@@ -162,7 +158,7 @@ class HorarioController extends Controller
             ])->values(),
             'esVistaGlobal' => $this->sucursalId() === null,
             'sucursalesTodas' => Sucursal::orderBy('nombre')->get(),
-            'citasProximas' => $citasProximas,
+            'clasesParaReagendar' => $clasesParaReagendar,
         ]);
     }
 
@@ -214,14 +210,31 @@ class HorarioController extends Controller
             ]);
         }
 
-        $horario->update([
-            'nombre_grupo' => $datos['nombre_grupo'],
-            'dia_semana' => $datos['dia_semana'],
-            'hora_inicio' => $datos['hora_inicio'],
-            'hora_fin' => $datos['hora_fin'],
-            'carril_id' => $datos['carril_id'],
-            'capacidad_maxima' => $datos['capacidad_maxima'] ?? $horario->capacidad_maxima,
-        ]);
+        $cambiaDeDia = (int) $datos['dia_semana'] !== $horario->dia_semana->value;
+
+        DB::transaction(function () use ($horario, $datos, $cambiaDeDia) {
+            $horario->update([
+                'nombre_grupo' => $datos['nombre_grupo'],
+                'dia_semana' => $datos['dia_semana'],
+                'hora_inicio' => $datos['hora_inicio'],
+                'hora_fin' => $datos['hora_fin'],
+                'carril_id' => $datos['carril_id'],
+                'capacidad_maxima' => $datos['capacidad_maxima'] ?? $horario->capacidad_maxima,
+            ]);
+
+            $clasesFuturas = $horario->citas()->whereDate('fecha', '>=', today())->whereNull('asistio');
+
+            // Las clases apartadas en el día anterior ya no corresponden al
+            // grupo; las de los inscritos se recalculan solas con el día nuevo.
+            if ($cambiaDeDia) {
+                (clone $clasesFuturas)->where('es_extra', false)->whereNull('reposicion_de_id')->delete();
+            }
+
+            $clasesFuturas->update([
+                'hora_inicio' => $horario->hora_inicio,
+                'hora_fin' => $horario->hora_fin,
+            ]);
+        });
 
         return redirect()->route('horarios.index')->with('status', "Clase \"{$horario->nombre_grupo}\" reagendada correctamente.");
     }
@@ -320,8 +333,6 @@ class HorarioController extends Controller
                     'aprobado_por' => $request->user()->id,
                     'aprobado_en' => now(),
                 ]);
-
-                $this->agendarPrimerasCitas($horario, $alumno, $request->user()->id);
             });
         } catch (ValidationException $e) {
             return back()->withErrors($e->errors());
@@ -377,6 +388,10 @@ class HorarioController extends Controller
                     'fecha_fin' => now()->toDateString(),
                 ]);
 
+                // Sin esto el alumno seguía apareciendo con clases en el
+                // grupo que dejó.
+                ClasesDelAlumno::liberarClasesFuturas($alumno->id, $inscripcionOrigen->horario_id);
+
                 Inscripcion::create([
                     'horario_id' => $horario->id,
                     'alumno_id' => $alumno->id,
@@ -387,8 +402,6 @@ class HorarioController extends Controller
                     'aprobado_por' => $request->user()->id,
                     'aprobado_en' => now(),
                 ]);
-
-                $this->agendarPrimerasCitas($horario, $alumno, $request->user()->id);
             });
         } catch (ValidationException $e) {
             return back()->withErrors($e->errors());
@@ -417,15 +430,7 @@ class HorarioController extends Controller
                 'fecha_fin' => today()->toDateString(),
             ]);
 
-            Cita::query()
-                ->where('alumno_id', $inscripcion->alumno_id)
-                ->where('horario_id', $inscripcion->horario_id)
-                ->whereDate('fecha', '>=', today()->toDateString())
-                ->whereNotIn('estado', [
-                    EstadoCita::Cancelada->value,
-                    EstadoCita::Completada->value,
-                ])
-                ->update(['estado' => EstadoCita::Cancelada->value]);
+            ClasesDelAlumno::liberarClasesFuturas($inscripcion->alumno_id, $inscripcion->horario_id);
         });
 
         return back()->with('status', "{$inscripcion->alumno->nombreCompleto()} fue retirado únicamente de la clase seleccionada.");

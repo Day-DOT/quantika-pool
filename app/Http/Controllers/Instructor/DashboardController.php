@@ -69,13 +69,7 @@ class DashboardController extends Controller
             ->values()
             ->take(6);
 
-        $pendientesEvaluacion = Alumno::whereIn('id', $alumnosIdsUnicos)
-            ->whereNotNull('nivel_id')
-            ->whereDoesntHave('evaluaciones', function ($query) use ($instructor) {
-                $query->where('instructor_id', $instructor->id)
-                    ->whereColumn('nivel_id', 'alumnos.nivel_id');
-            })
-            ->count();
+        $pendientesEvaluacion = $instructor->alumnosPendientesDeEvaluar()->count();
 
         $nivelesPreview = Alumno::whereIn('id', $alumnosIdsUnicos)
             ->whereNotNull('nivel_id')

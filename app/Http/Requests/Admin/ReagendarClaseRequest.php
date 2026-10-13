@@ -1,0 +1,33 @@
+<?php
+
+namespace App\Http\Requests\Admin;
+
+use Illuminate\Foundation\Http\FormRequest;
+
+class ReagendarClaseRequest extends FormRequest
+{
+    public function authorize(): bool
+    {
+        return $this->user()->can('update', $this->route('alumno'));
+    }
+
+    public function rules(): array
+    {
+        return [
+            'origen_horario_id' => ['required', 'integer', 'exists:horarios,id'],
+            'origen_fecha' => ['required', 'date'],
+            'horario_id' => ['required', 'integer', 'exists:horarios,id'],
+            'fecha' => ['required', 'date'],
+        ];
+    }
+
+    public function messages(): array
+    {
+        return [
+            'origen_horario_id.required' => 'Selecciona la clase que quieres reagendar.',
+            'origen_fecha.required' => 'Selecciona la clase que quieres reagendar.',
+            'horario_id.required' => 'Selecciona el nuevo horario para esta clase.',
+            'fecha.required' => 'Selecciona la nueva fecha de la clase.',
+        ];
+    }
+}
