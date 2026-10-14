@@ -6,6 +6,7 @@ use App\Enums\EstadoCita;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Cita extends Model
@@ -67,6 +68,15 @@ class Cita extends Model
     public function reposicion(): HasOne
     {
         return $this->hasOne(Cita::class, 'reposicion_de_id');
+    }
+
+    /**
+     * Solicitudes del portal en espera para reponer esta falta.
+     */
+    public function solicitudesPendientes(): HasMany
+    {
+        return $this->hasMany(SolicitudReposicion::class, 'cita_id')
+            ->where('estado', \App\Enums\EstadoInscripcion::Pendiente->value);
     }
 
     public function scopeDeSucursal($query, int $sucursalId)

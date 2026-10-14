@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Alumno;
 
+use App\Enums\EstadoAlumno;
 use App\Enums\EstadoInscripcion;
 use App\Http\Controllers\Alumno\Concerns\ResuelveAlumnoActivo;
 use App\Http\Controllers\Controller;
@@ -47,7 +48,10 @@ class ReservaController extends Controller
             ->latest()
             ->limit(8)
             ->get();
-        $pendientes = $solicitudes->where('estado', EstadoInscripcion::Pendiente);
+
+        // Se cuentan aparte: las en espera no deben depender del límite de
+        // solicitudes que se muestran.
+        $pendientes = SolicitudReposicion::pendientes()->where('alumno_id', $alumno->id)->get();
 
         // Una falta con solicitud en espera no se puede volver a pedir.
         $faltasLibres = $faltas->whereNotIn('id', $pendientes->pluck('cita_id'))->values();
@@ -58,7 +62,8 @@ class ReservaController extends Controller
         );
 
         $admiteReposicion = Reposiciones::admiteReposicion($alumno);
-        $puedeSolicitar = $admiteReposicion && $faltasLibres->isNotEmpty() && $restantesDelMes > 0;
+        $estaActivo = $alumno->estado === EstadoAlumno::Activo;
+        $puedeSolicitar = $estaActivo && $admiteReposicion && $faltasLibres->isNotEmpty() && $restantesDelMes > 0;
 
         $fecha = $this->fechaElegida($request);
 
@@ -71,6 +76,7 @@ class ReservaController extends Controller
             'restantesDelMes' => $restantesDelMes,
             'maximoPorMes' => Reposiciones::MAXIMO_POR_MES,
             'admiteReposicion' => $admiteReposicion,
+            'estaActivo' => $estaActivo,
             'puedeSolicitar' => $puedeSolicitar,
             'fecha' => $fecha,
             'finDeMes' => today()->endOfMonth(),

@@ -333,6 +333,24 @@ class ClasesDelAlumno
             ->delete();
     }
 
+    /**
+     * Clase del alumno que ese día se cruza en horario con el grupo dado (no
+     * se puede estar en dos clases a la vez). No cuentan las faltas: si no
+     * va a esa clase, la hora está libre.
+     */
+    public static function claseQueSeEmpalma(Alumno $alumno, Horario $horario, Carbon $fecha): ?Cita
+    {
+        $inicio = substr((string) $horario->hora_inicio, 0, 5);
+        $fin = substr((string) $horario->hora_fin, 0, 5);
+
+        return self::enRango($alumno, $fecha, $fecha)
+            ->map(fn (array $clase) => $clase['cita'])
+            ->first(fn (Cita $cita) => $cita->horario_id !== $horario->id
+                && $cita->asistio !== false
+                && substr((string) $cita->hora_inicio, 0, 5) < $fin
+                && $inicio < substr((string) $cita->hora_fin, 0, 5));
+    }
+
     public static function estaInscrito(Alumno $alumno, int $horarioId): bool
     {
         return Inscripcion::where('alumno_id', $alumno->id)

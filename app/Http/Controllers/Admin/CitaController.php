@@ -101,6 +101,10 @@ class CitaController extends Controller
             return back()->withErrors(['falta' => 'Esa falta ya tiene una reposición programada. Cancela primero la reposición.']);
         }
 
+        if ($cita->solicitudesPendientes()->exists()) {
+            return back()->withErrors(['falta' => 'El tutor ya pidió reponer esa falta. Rechaza primero su solicitud en "Reservas pendientes".']);
+        }
+
         $esDeSuPlan = ClasesDelAlumno::estaInscrito($cita->alumno, $cita->horario_id)
             && ! $cita->es_extra
             && ! $cita->reposicion_de_id;

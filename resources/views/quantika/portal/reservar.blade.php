@@ -65,7 +65,14 @@
                     </div>
                 @endif
 
-                @if (! $admiteReposicion)
+                @if (! $estaActivo)
+
+                    <div class="empty-state">
+                        <h3>{{ $alumno->nombreCompleto() }} no está activo</h3>
+                        <p>Solo los alumnos activos pueden reponer clases. Si tienes dudas, contacta a la escuela.</p>
+                    </div>
+
+                @elseif (! $admiteReposicion)
 
                     <div class="empty-state">
                         <h3>Las clases de bebés no tienen reposición</h3>

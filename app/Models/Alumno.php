@@ -8,6 +8,7 @@ use App\Enums\EstadoCita;
 use App\Enums\EstadoInscripcion;
 use App\Enums\EstadoPago;
 use App\Support\ClasesDelAlumno;
+use App\Support\Reposiciones;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -356,5 +357,8 @@ class Alumno extends Model
             ->where('estado', EstadoPago::Pendiente->value)
             ->whereDate('fecha_vencimiento', '>', $hoy)
             ->delete();
+
+        // Sus solicitudes de reposición en espera ya no se pueden atender.
+        Reposiciones::cerrarSolicitudesPendientes($this->citas()->pluck('id')->all());
     }
 }

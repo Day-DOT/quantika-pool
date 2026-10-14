@@ -621,6 +621,8 @@
             <div class="stat-extra">{{ $statAsistenciaPct >= 90 ? 'Excelente' : ($statAsistenciaPct >= 75 ? 'Buena' : 'A mejorar') }}</div>
         </div>
 
+        {{-- Ingresos y montos pendientes: solo el super administrador. --}}
+        @if (auth()->user()->isSuperAdmin())
         <div class="stat-card money">
             <div class="stat-top">
                 <span class="stat-title">Ingresos del mes</span>
@@ -646,6 +648,7 @@
                 {{ $statPagosPendientesCount }} {{ Str::plural('pago', $statPagosPendientesCount) }} pendientes
             </div>
         </div>
+        @endif
 
     </section>
 

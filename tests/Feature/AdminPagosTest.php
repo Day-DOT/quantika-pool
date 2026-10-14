@@ -415,4 +415,68 @@ class AdminPagosTest extends TestCase
 
         $this->assertDatabaseHas('pagos', ['id' => $pago->id]);
     }
+
+    public function test_el_administrador_de_sucursal_no_ve_los_totales_de_dinero(): void
+    {
+        $sucursal = Sucursal::factory()->create();
+        $admin = User::factory()->admin($sucursal->id)->create();
+        $alumno = Alumno::factory()->create(['sucursal_id' => $sucursal->id]);
+
+        // Dos pagos vencidos: $300 + $477 = $777 en total.
+        foreach ([300, 477] as $monto) {
+            Pago::factory()->create([
+                'alumno_id' => $alumno->id,
+                'sucursal_id' => $sucursal->id,
+                'estado' => EstadoPago::Vencido->value,
+                'monto' => $monto,
+                'fecha_vencimiento' => now()->subDays(10)->toDateString(),
+            ]);
+        }
+
+        $this->actingAs($admin)->get(route('pagos.index'))
+            ->assertOk()
+            ->assertDontSee('COBRADO EN')
+            ->assertDontSee('PAGOS PENDIENTES')
+            ->assertDontSee('Ingresos de los últimos 8 meses')
+            ->assertDontSee('Estado de pagos')
+            ->assertSee('Calendario de pagos');
+
+        $this->actingAs($admin)->get(route('pagos.deudores'))
+            ->assertOk()
+            ->assertSee($alumno->nombreCompleto())
+            ->assertSee('$477.00')
+            ->assertDontSee('$777.00');
+
+        $this->actingAs($admin)->get(route('admin.dashboard'))
+            ->assertOk()
+            ->assertDontSee('Ingresos del mes');
+    }
+
+    public function test_el_super_administrador_si_ve_los_totales_de_dinero(): void
+    {
+        $sucursal = Sucursal::factory()->create();
+        $superAdmin = User::factory()->superAdmin()->create();
+        $alumno = Alumno::factory()->create(['sucursal_id' => $sucursal->id]);
+
+        // Dos pagos vencidos: $300 + $477 = $777 en total.
+        foreach ([300, 477] as $monto) {
+            Pago::factory()->create([
+                'alumno_id' => $alumno->id,
+                'sucursal_id' => $sucursal->id,
+                'estado' => EstadoPago::Vencido->value,
+                'monto' => $monto,
+                'fecha_vencimiento' => now()->subDays(10)->toDateString(),
+            ]);
+        }
+
+        $this->actingAs($superAdmin)->get(route('pagos.index'))
+            ->assertOk()
+            ->assertSee('COBRADO EN')
+            ->assertSee('PAGOS PENDIENTES')
+            ->assertSee('Estado de pagos');
+
+        $this->actingAs($superAdmin)->get(route('pagos.deudores'))
+            ->assertOk()
+            ->assertSee('$777.00');
+    }
 }

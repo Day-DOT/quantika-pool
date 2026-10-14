@@ -14,6 +14,7 @@ use App\Models\Cita;
 use App\Models\Horario;
 use App\Models\Inscripcion;
 use App\Models\Pago;
+use App\Support\ClasesDelAlumno;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Carbon;
@@ -59,6 +60,12 @@ class ClaseExtraController extends Controller
         // Una clase cancelada en esa fecha no impide agendar: se reemplaza.
         if ($registroPrevio && ! in_array($registroPrevio->estado, [EstadoCita::Cancelada, EstadoCita::Reagendada], true)) {
             return back()->withErrors(['clase_extra' => 'El alumno ya tiene una clase registrada en ese grupo para esa fecha.']);
+        }
+
+        if ($empalme = ClasesDelAlumno::claseQueSeEmpalma($alumno, $horario, $fecha)) {
+            return back()->withErrors([
+                'clase_extra' => "Ese día el alumno ya tiene clase a esa hora ({$empalme->horario?->nombre_grupo}, ".substr((string) $empalme->hora_inicio, 0, 5).').',
+            ]);
         }
 
         $inscritos = Inscripcion::where('horario_id', $horario->id)->where('activa', true)->count();

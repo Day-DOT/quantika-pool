@@ -2,6 +2,7 @@
 
 namespace App\Support;
 
+use App\Enums\EstadoAlumno;
 use App\Enums\EstadoCita;
 use App\Models\Alumno;
 use App\Models\Cita;
@@ -96,6 +97,10 @@ class Reposiciones
     {
         $alumno = $falta->alumno;
 
+        if ($alumno->estado !== EstadoAlumno::Activo) {
+            return ['fecha', "{$alumno->nombreCompleto()} no está activo: solo los alumnos activos pueden reponer clases."];
+        }
+
         if ($falta->asistio !== false) {
             return ['fecha', 'Esa clase no está marcada como falta.'];
         }
@@ -136,11 +141,33 @@ class Reposiciones
             return ['horario_id', 'El alumno ya está inscrito en ese grupo: esa clase ya forma parte de su plan.'];
         }
 
+        if ($empalme = ClasesDelAlumno::claseQueSeEmpalma($alumno, $horario, $fecha)) {
+            return ['horario_id', "Ese día el alumno ya tiene clase a esa hora ({$empalme->horario?->nombre_grupo}, ".substr((string) $empalme->hora_inicio, 0, 5).').'];
+        }
+
         if (self::cupoDisponible($horario, $fecha) <= 0) {
             return ['horario_id', 'Ese horario ya no tiene cupo disponible para esa fecha.'];
         }
 
         return null;
+    }
+
+    /**
+     * Cierra las solicitudes del portal que siguen en espera para esas
+     * faltas (por ejemplo, porque la escuela ya programó la reposición o el
+     * alumno se dio de baja).
+     *
+     * @param  list<int>|int  $faltasIds
+     */
+    public static function cerrarSolicitudesPendientes(array|int $faltasIds, ?int $resueltaPor = null): void
+    {
+        SolicitudReposicion::pendientes()
+            ->whereIn('cita_id', (array) $faltasIds)
+            ->update([
+                'estado' => \App\Enums\EstadoInscripcion::Rechazada->value,
+                'resuelta_por' => $resueltaPor,
+                'resuelta_en' => now(),
+            ]);
     }
 
     /**
@@ -198,8 +225,13 @@ class Reposiciones
             ->where('dia_semana', $fecha->isoWeekday())
             ->orderBy('hora_inicio')
             ->get()
-            ->filter(function (Horario $horario) use ($alumno, $categoriaAlumno) {
+            ->filter(function (Horario $horario) use ($alumno, $categoriaAlumno, $fecha) {
                 if ($horario->inscripciones->contains('alumno_id', $alumno->id)) {
+                    return false;
+                }
+
+                // No se ofrecen grupos a la misma hora que otra de sus clases.
+                if (ClasesDelAlumno::claseQueSeEmpalma($alumno, $horario, $fecha)) {
                     return false;
                 }
 

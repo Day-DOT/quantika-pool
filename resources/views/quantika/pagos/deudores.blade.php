@@ -83,8 +83,11 @@
     </p>
 
     <div class="summary-card">
-        <strong>${{ number_format($totalVencido, 2) }}</strong>
-        <span>en {{ $deudores->count() }} pago{{ $deudores->count() === 1 ? '' : 's' }} vencido{{ $deudores->count() === 1 ? '' : 's' }}</span>
+        {{-- El monto total vencido solo lo ve el super administrador. --}}
+        @if (auth()->user()->isSuperAdmin())
+            <strong>${{ number_format($totalVencido, 2) }}</strong>
+        @endif
+        <span>{{ auth()->user()->isSuperAdmin() ? 'en ' : '' }}{{ $deudores->count() }} pago{{ $deudores->count() === 1 ? '' : 's' }} vencido{{ $deudores->count() === 1 ? '' : 's' }}</span>
     </div>
 
     <div class="panel">

@@ -432,6 +432,10 @@
     </div>
 
 
+    {{-- Los totales de dinero (cobrado, pendiente, en revisión, deudores e
+         ingresos por mes) solo los ve el super administrador. --}}
+    @if (auth()->user()->isSuperAdmin())
+
     <!-- ESTADÍSTICAS -->
     <div class="stats">
 
@@ -538,6 +542,8 @@
         </div>
 
     </div>
+
+    @endif
 
     <!-- CALENDARIO DE PAGOS -->
     <div class="card" style="margin-top:22px;">

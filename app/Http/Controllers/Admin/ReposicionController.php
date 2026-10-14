@@ -29,7 +29,7 @@ class ReposicionController extends Controller
         $sucursalId = $this->sucursalId();
 
         $faltas = Cita::query()
-            ->with(['alumno.nivel', 'horario'])
+            ->with(['alumno.nivel', 'horario', 'solicitudesPendientes.horario'])
             ->where('asistio', false)
             ->whereDoesntHave('reposicion')
             ->whereMonth('fecha', now()->month)
@@ -73,7 +73,13 @@ class ReposicionController extends Controller
             return back()->withErrors([$motivo[0] => $motivo[1]]);
         }
 
-        Reposiciones::programar($cita, $horario, $fecha, $request->user()->id);
+        DB::transaction(function () use ($cita, $horario, $fecha, $request) {
+            Reposiciones::programar($cita, $horario, $fecha, $request->user()->id);
+
+            // Si el tutor había pedido otra fecha para esta falta, esa
+            // solicitud ya no aplica.
+            Reposiciones::cerrarSolicitudesPendientes($cita->id, $request->user()->id);
+        });
 
         return redirect()
             ->route('reposiciones.index')
@@ -91,6 +97,10 @@ class ReposicionController extends Controller
 
         if ($solicitud->estado !== EstadoInscripcion::Pendiente) {
             return back()->withErrors(['solicitud' => 'Esta solicitud ya fue procesada.']);
+        }
+
+        if ($solicitud->fecha->lt(today())) {
+            return back()->withErrors(['solicitud' => 'La fecha que pidió el tutor ya pasó. Rechaza la solicitud para que pueda pedir otra.']);
         }
 
         if ($motivo = Reposiciones::motivoDeRechazo($solicitud->falta, $solicitud->horario, $solicitud->fecha)) {

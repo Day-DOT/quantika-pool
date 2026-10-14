@@ -376,4 +376,146 @@ class PortalReposicionTest extends TestCase
 
         $this->assertSame($e['destino']->id, Cita::whereNotNull('reposicion_de_id')->sole()->horario_id);
     }
+
+    // ------------------------------------------------------------------
+    // CASOS LÍMITE
+    // ------------------------------------------------------------------
+
+    public function test_no_se_ofrece_ni_se_acepta_un_grupo_a_la_misma_hora_que_otra_de_sus_clases(): void
+    {
+        $e = $this->crearEscenario();
+
+        // Ese mismo día ya tiene clase de 16:00 a 17:00 en su otro grupo.
+        $otroGrupo = $this->crearGrupo($e['sucursal'], $e['fecha'], 'Grupo Propio Mismo Dia');
+        $otroGrupo->update(['hora_inicio' => '16:00:00', 'hora_fin' => '17:00:00']);
+        Inscripcion::factory()->create(['horario_id' => $otroGrupo->id, 'alumno_id' => $e['alumno']->id, 'activa' => true]);
+
+        $e['destino']->update(['hora_inicio' => '16:30:00', 'hora_fin' => '17:30:00']);
+
+        $this->actingAs($e['tutor'])
+            ->get(route('portal.reservar.index', ['alumno' => $e['alumno']->id, 'fecha' => $e['fecha']->toDateString()]))
+            ->assertOk()
+            ->assertDontSee('Grupo Destino');
+
+        $this->solicitar($e)->assertSessionHasErrors('horario_id');
+
+        // A otra hora el mismo día sí se puede.
+        $e['destino']->update(['hora_inicio' => '17:00:00', 'hora_fin' => '18:00:00']);
+        $this->solicitar($e)->assertSessionHasNoErrors();
+    }
+
+    public function test_no_se_aprueba_la_reposicion_de_un_alumno_que_ya_no_esta_activo(): void
+    {
+        $e = $this->crearEscenario();
+        $this->solicitar($e)->assertSessionHasNoErrors();
+
+        $e['alumno']->update(['estado' => 'baja_definitiva']);
+
+        $this->actingAs($e['admin'])
+            ->patch(route('reposiciones.solicitudes.aprobar', SolicitudReposicion::sole()))
+            ->assertSessionHasErrors('solicitud');
+
+        $this->assertSame(0, Cita::whereNotNull('reposicion_de_id')->count());
+
+        $this->actingAs($e['tutor'])
+            ->get(route('portal.reservar.index', ['alumno' => $e['alumno']->id]))
+            ->assertOk()
+            ->assertSee('no está activo')
+            ->assertDontSee('Solicitar reposición');
+    }
+
+    public function test_la_baja_temporal_cierra_sus_solicitudes_en_espera(): void
+    {
+        $e = $this->crearEscenario();
+        $this->solicitar($e)->assertSessionHasNoErrors();
+
+        $this->actingAs($e['admin'])->patch(route('alumnos.baja', $e['alumno']))->assertRedirect();
+
+        $this->assertSame(EstadoInscripcion::Rechazada, SolicitudReposicion::sole()->estado);
+    }
+
+    public function test_si_la_escuela_programa_la_reposicion_la_solicitud_del_tutor_se_cierra(): void
+    {
+        $e = $this->crearEscenario();
+        $this->solicitar($e)->assertSessionHasNoErrors();
+
+        $otroDestino = $this->crearGrupo($e['sucursal'], $e['fecha'], 'Grupo Elegido Por La Escuela');
+
+        $this->actingAs($e['admin'])
+            ->get(route('reposiciones.index'))
+            ->assertOk()
+            ->assertSee('El tutor pidió reponerla');
+
+        $this->actingAs($e['admin'])->post(route('citas.reponer', $e['falta']), [
+            'horario_id' => $otroDestino->id,
+            'fecha' => $e['fecha']->toDateString(),
+        ])->assertSessionHasNoErrors();
+
+        $this->assertSame(EstadoInscripcion::Rechazada, SolicitudReposicion::sole()->estado);
+        $this->assertSame($otroDestino->id, Cita::whereNotNull('reposicion_de_id')->sole()->horario_id);
+    }
+
+    public function test_no_se_aprueba_una_solicitud_cuya_fecha_ya_paso(): void
+    {
+        $e = $this->crearEscenario();
+        $this->solicitar($e)->assertSessionHasNoErrors();
+
+        $this->travelTo($e['fecha']->copy()->addDays(1)->setTime(9, 0));
+
+        $this->actingAs($e['admin'])
+            ->patch(route('reposiciones.solicitudes.aprobar', SolicitudReposicion::sole()))
+            ->assertSessionHasErrors('solicitud');
+
+        $this->assertSame(0, Cita::whereNotNull('reposicion_de_id')->count());
+    }
+
+    public function test_no_se_quita_un_aviso_de_falta_que_el_tutor_ya_pidio_reponer(): void
+    {
+        $e = $this->crearEscenario();
+
+        // Falta avisada para la próxima clase de su grupo habitual.
+        $grupoHabitual = Horario::where('nombre_grupo', 'Grupo Habitual')->sole();
+        $proxima = today()->subDays(3)->addWeek();
+
+        $this->actingAs($e['admin'])->post(route('alumnos.clases.falta-avisada', $e['alumno']), [
+            'horario_id' => $grupoHabitual->id,
+            'fecha' => $proxima->toDateString(),
+        ])->assertSessionHasNoErrors();
+
+        $avisada = Cita::where('falta_avisada', true)->sole();
+
+        $this->solicitar($e, ['cita_id' => $avisada->id])->assertSessionHasNoErrors();
+
+        $this->actingAs($e['admin'])
+            ->delete(route('citas.falta-avisada.destroy', $avisada))
+            ->assertSessionHasErrors('falta');
+
+        $this->assertModelExists($avisada);
+        $this->assertSame(1, SolicitudReposicion::pendientes()->count());
+    }
+
+    public function test_una_reposicion_aprobada_aparece_ese_dia_al_instructor_y_en_el_qr(): void
+    {
+        $e = $this->crearEscenario();
+        $this->solicitar($e);
+
+        $this->actingAs($e['admin'])
+            ->patch(route('reposiciones.solicitudes.aprobar', SolicitudReposicion::sole()))
+            ->assertSessionHasNoErrors();
+
+        $this->travelTo($e['fecha']->copy()->setTime(9, 0));
+
+        $this->actingAs($e['destino']->instructor->user)
+            ->get(route('instructor.grupos.show', $e['destino']))
+            ->assertOk()
+            ->assertSee($e['alumno']->nombreCompleto())
+            ->assertSee('Reposición · solo hoy');
+
+        $this->actingAs($e['admin'])
+            ->post(route('asistencia.confirmar', $e['alumno']->qr_token))
+            ->assertOk()
+            ->assertSee('Asistencia registrada en: Grupo Destino.');
+
+        $this->assertTrue(Cita::whereNotNull('reposicion_de_id')->sole()->asistio);
+    }
 }
