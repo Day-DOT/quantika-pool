@@ -76,6 +76,9 @@ Route::middleware(['auth', 'role:admin,super_admin'])->group(function () {
     Route::patch('/citas/{cita}/reagendar', [CitaController::class, 'reagendar'])->name('citas.reagendar');
     Route::patch('/alumnos/{alumno}/clases/reagendar', [CitaController::class, 'reagendarClase'])->name('alumnos.clases.reagendar');
 
+    // --- Asistencia o falta registrada a mano (hoy o días anteriores) ---
+    Route::post('/alumnos/{alumno}/clases/asistencia', [CitaController::class, 'registrarAsistencia'])->name('alumnos.clases.asistencia');
+
     // --- Faltas avisadas con anticipación ---
     Route::post('/alumnos/{alumno}/clases/falta-avisada', [CitaController::class, 'avisarFalta'])->name('alumnos.clases.falta-avisada');
     Route::delete('/citas/{cita}/falta-avisada', [CitaController::class, 'quitarAvisoDeFalta'])->name('citas.falta-avisada.destroy');

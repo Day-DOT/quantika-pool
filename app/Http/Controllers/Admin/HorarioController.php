@@ -136,8 +136,12 @@ class HorarioController extends Controller
                     'instructor_id' => $horario->instructor_id,
                     'sucursal_id' => $horario->sucursal_id,
                     'capacidad' => $horario->capacidad_maxima,
+                    // Última fecha (hasta hoy) en que el grupo dio clase: es la que
+                    // se propone al registrar una asistencia o falta a mano.
+                    'ultima_fecha' => today()->subDays((today()->isoWeekday() - $horario->dia_semana->value + 7) % 7)->toDateString(),
                     'alumnos' => $horario->inscripciones->map(fn (Inscripcion $inscripcion) => [
                         'inscripcion_id' => $inscripcion->id,
+                        'alumno_id' => $inscripcion->alumno_id,
                         'nombre' => $inscripcion->alumno?->nombreCompleto() ?? 'Alumno no disponible',
                         'telefono' => $inscripcion->alumno?->telefono,
                         'email' => $inscripcion->alumno?->email,

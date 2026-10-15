@@ -538,6 +538,7 @@
                             <th>Grupo</th>
                             <th>Resultado</th>
                             <th>Notas</th>
+                            <th>Corregir</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -563,6 +564,17 @@
                                     @endif
                                 </td>
                                 <td>{{ $cita->notas ?? '—' }}</td>
+                                <td>
+                                    @if ($cita->fecha->lte(today()) && ! ($cita->asistio === false && $cita->reposicion))
+                                        <form method="POST" action="{{ route('alumnos.clases.asistencia', $alumno) }}">
+                                            @csrf
+                                            <input type="hidden" name="horario_id" value="{{ $cita->horario_id }}">
+                                            <input type="hidden" name="fecha" value="{{ $cita->fecha->toDateString() }}">
+                                            <input type="hidden" name="asistio" value="{{ $cita->asistio ? 0 : 1 }}">
+                                            <button type="submit" class="btn btn-outline btn-sm">{{ $cita->asistio ? 'Cambiar a falta' : 'Sí asistió' }}</button>
+                                        </form>
+                                    @endif
+                                </td>
                             </tr>
                         @endforeach
                     </tbody>

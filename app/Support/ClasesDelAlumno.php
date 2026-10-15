@@ -31,6 +31,15 @@ class ClasesDelAlumno
 
     public const TIPO_REAGENDADA = 'reagendada';
 
+    /**
+     * Desde esta fecha las clases sin asistencia registrada cuentan como
+     * falta automáticamente; las anteriores se registran a mano.
+     */
+    public const INICIO_FALTAS_AUTOMATICAS = '2026-10-14';
+
+    /** Minutos después del fin de la clase antes de marcar la falta. */
+    public const MINUTOS_DE_GRACIA = 15;
+
     /** Estados en los que la clase ya no ocurre en esa fecha y grupo. */
     private const ESTADOS_SIN_CLASE = [EstadoCita::Cancelada, EstadoCita::Reagendada];
 
@@ -349,6 +358,142 @@ class ClasesDelAlumno
                 && $cita->asistio !== false
                 && substr((string) $cita->hora_inicio, 0, 5) < $fin
                 && $inicio < substr((string) $cita->hora_fin, 0, 5));
+    }
+
+    /**
+     * Marca falta a quienes tenían clase ese día y no registraron asistencia
+     * (no escanearon su QR ni el instructor la marcó). Solo para clases que
+     * ya terminaron. Devuelve cuántas faltas marcó.
+     */
+    public static function marcarFaltasSinRegistro(Carbon $fecha): int
+    {
+        $fecha = $fecha->copy()->startOfDay();
+
+        if ($fecha->lt(Carbon::parse(self::INICIO_FALTAS_AUTOMATICAS)) || $fecha->gt(today())) {
+            return 0;
+        }
+
+        $horarios = Horario::query()
+            ->where('activo', true)
+            ->where('dia_semana', $fecha->isoWeekday())
+            ->get()
+            ->filter(fn (Horario $horario) => $fecha->lt(today())
+                || $fecha->copy()->setTimeFromTimeString($horario->hora_fin)->addMinutes(self::MINUTOS_DE_GRACIA)->lte(now()));
+
+        $marcadas = 0;
+
+        foreach ($horarios as $horario) {
+            $registradas = Cita::where('horario_id', $horario->id)->whereDate('fecha', $fecha)->get()->keyBy('alumno_id');
+
+            // Clases ya guardadas que quedaron sin asistencia (de una sola
+            // fecha o de su grupo): pasan a falta.
+            foreach ($registradas as $cita) {
+                if ($cita->asistio === null && in_array($cita->estado, [EstadoCita::Programada, EstadoCita::Confirmada], true)) {
+                    $cita->update(self::datosDeFaltaAutomatica());
+                    $marcadas++;
+                }
+            }
+
+            $inscritos = Inscripcion::where('horario_id', $horario->id)
+                ->where('activa', true)
+                ->where(fn ($query) => $query->whereNull('fecha_inicio')->orWhereDate('fecha_inicio', '<=', $fecha))
+                ->whereHas('alumno', fn ($query) => $query->where('estado', EstadoAlumno::Activo->value))
+                ->pluck('alumno_id');
+
+            foreach ($inscritos as $alumnoId) {
+                if ($registradas->has($alumnoId)) {
+                    continue;
+                }
+
+                Cita::create([
+                    'horario_id' => $horario->id,
+                    'alumno_id' => $alumnoId,
+                    'sucursal_id' => $horario->sucursal_id,
+                    'fecha' => $fecha->toDateString(),
+                    'hora_inicio' => $horario->hora_inicio,
+                    'hora_fin' => $horario->hora_fin,
+                    ...self::datosDeFaltaAutomatica(),
+                ]);
+                $marcadas++;
+            }
+        }
+
+        return $marcadas;
+    }
+
+    /**
+     * Registra a mano la asistencia o la falta de una clase de hoy o de un
+     * día anterior (también corrige una falta automática). Devuelve
+     * [campo, motivo] si no se puede, o null si quedó registrada.
+     *
+     * @return array{0: string, 1: string}|null
+     */
+    public static function registrarAsistencia(Alumno $alumno, Horario $horario, Carbon $fecha, bool $asistio, User $quien): ?array
+    {
+        $fecha = $fecha->copy()->startOfDay();
+
+        if ($horario->sucursal_id !== $alumno->sucursal_id) {
+            return ['horario_id', 'Ese grupo no pertenece a la sucursal del alumno.'];
+        }
+
+        if ($fecha->isoWeekday() !== $horario->dia_semana->value) {
+            return ['fecha', "Ese grupo da clase los {$horario->dia_semana->label()}: elige una fecha de ese día."];
+        }
+
+        $cita = Cita::where('alumno_id', $alumno->id)
+            ->where('horario_id', $horario->id)
+            ->whereDate('fecha', $fecha)
+            ->first();
+
+        if ($cita && in_array($cita->estado, self::ESTADOS_SIN_CLASE, true)) {
+            return ['fecha', 'Esa clase se canceló o se reagendó a otra fecha.'];
+        }
+
+        if (! $cita) {
+            $estabaInscrito = Inscripcion::where('alumno_id', $alumno->id)
+                ->where('horario_id', $horario->id)
+                ->where(fn ($query) => $query->whereNull('fecha_inicio')->orWhereDate('fecha_inicio', '<=', $fecha))
+                ->where(fn ($query) => $query->where('activa', true)->orWhereDate('fecha_fin', '>=', $fecha))
+                ->exists();
+
+            if (! $estabaInscrito) {
+                return ['fecha', 'El alumno no tenía clase en ese grupo ese día.'];
+            }
+
+            $cita = self::citaCalculada($alumno, $horario, $fecha);
+        }
+
+        if ($asistio && $cita->exists && $cita->reposicion()->exists()) {
+            return ['fecha', 'Esa falta ya tiene una reposición programada; no se puede cambiar a asistencia.'];
+        }
+
+        $cita->fill([
+            'asistio' => $asistio,
+            'falta_avisada' => false,
+            'estado' => EstadoCita::Completada->value,
+            'notas' => $asistio ? null : 'Falta registrada por la administración.',
+            'registrado_por' => $quien->id,
+        ])->save();
+
+        // Si en realidad sí asistió, ya no hay nada que reponer.
+        if ($asistio) {
+            Reposiciones::cerrarSolicitudesPendientes($cita->id, $quien->id);
+        }
+
+        return null;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private static function datosDeFaltaAutomatica(): array
+    {
+        return [
+            'asistio' => false,
+            'falta_avisada' => false,
+            'estado' => EstadoCita::Completada->value,
+            'notas' => 'Sin registro de asistencia: falta automática.',
+        ];
     }
 
     public static function estaInscrito(Alumno $alumno, int $horarioId): bool

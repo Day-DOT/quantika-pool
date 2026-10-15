@@ -1862,6 +1862,8 @@ function cerrarModalHorario() {
 const detallesClases = @json($detallesClases);
 const instructoresParaCambiar = @json($instructoresParaCambiar);
 const cambiarInstructorUrl = @json(route('horarios.cambiar-instructor', ['horario' => '__HORARIO_ID__']));
+const registrarAsistenciaUrl = @json(route('alumnos.clases.asistencia', ['alumno' => '__ALUMNO_ID__']));
+const fechaDeHoy = @json(today()->toDateString());
 
 document.querySelector('#formEditarHorario select[name="_horario_id"]').addEventListener('change', function () {
     const opcion = this.selectedOptions[0];
@@ -1909,6 +1911,35 @@ function abrirDetalleClase(horarioId) {
             <h3 style="font-size:14px;margin-bottom:9px;">Alumnos inscritos</h3>
             <div class="class-students">${alumnosHtml}</div>
         </div>`;
+    if (alumnos.length) {
+        document.getElementById('detalleClaseContenido').insertAdjacentHTML('beforeend', `
+            <form method="POST" style="margin-top:16px;padding-top:16px;border-top:1px solid rgba(83,214,238,.2);"
+                  onsubmit="return this.action !== '' && this.action !== window.location.href;">
+                <input type="hidden" name="_token" value="{{ csrf_token() }}">
+                <input type="hidden" name="horario_id" value="${horarioId}">
+                <label style="display:block;margin-bottom:4px;">Registrar asistencia o falta</label>
+                <small style="display:block;color:var(--muted);margin-bottom:8px;">
+                    Para hoy o días anteriores. Si no se registra nada, al terminar la clase se marca falta automáticamente.
+                </small>
+                <input type="search" placeholder="Buscar alumno..." autocomplete="off" oninput="filtrarAlumnosAsistencia(this)"
+                       style="width:100%;margin-bottom:8px;${@json($campoEstilo)}">
+                <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                    <select name="_alumno" required style="flex:1;min-width:200px;${@json($campoEstilo)}"
+                            onchange="this.form.action = this.value ? registrarAsistenciaUrl.replace('__ALUMNO_ID__', this.value) : '';">
+                        <option value="">Seleccionar alumno</option>
+                        ${alumnos.map(function (alumno) {
+                            return `<option value="${alumno.alumno_id}">${escapeHtml(alumno.nombre)}</option>`;
+                        }).join('')}
+                    </select>
+                    <input type="date" name="fecha" required max="${fechaDeHoy}" value="${clase.ultima_fecha}" style="${@json($campoEstilo)}">
+                </div>
+                <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;">
+                    <button type="submit" name="asistio" value="0" class="btn-modal-submit" style="background:#7b3541;">Marcar falta</button>
+                    <button type="submit" name="asistio" value="1" class="btn-modal-submit">Marcar asistencia</button>
+                </div>
+            </form>`);
+    }
+
     document.getElementById('detalleClaseContenido').insertAdjacentHTML('beforeend', `
         <form method="POST" action="${cambiarInstructorUrl.replace('__HORARIO_ID__', horarioId)}" style="margin-top:16px;padding-top:16px;border-top:1px solid rgba(83,214,238,.2);">
             <input type="hidden" name="_token" value="{{ csrf_token() }}">
@@ -1932,6 +1963,16 @@ function abrirDetalleClase(horarioId) {
             <button type="button" class="btn-modal-submit" style="background:#7b3541;" onclick="eliminarClase(${horarioId})">Eliminar clase</button>
         </div>`);
     document.getElementById('detalleClaseOverlay').style.display = 'flex';
+}
+
+// Filtra la lista de alumnos del formulario de asistencia mientras se escribe.
+function filtrarAlumnosAsistencia(buscador) {
+    const termino = buscador.value.trim().toLowerCase();
+    const selector = buscador.form.elements['_alumno'];
+
+    Array.from(selector.options).forEach(function (option, index) {
+        option.hidden = index > 0 && termino !== '' && ! option.textContent.toLowerCase().includes(termino);
+    });
 }
 
 function asignarDesdeCalendario(horarioId) {

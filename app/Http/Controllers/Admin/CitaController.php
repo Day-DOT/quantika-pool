@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\AvisarFaltaRequest;
 use App\Http\Requests\Admin\ReagendarCitaRequest;
 use App\Http\Requests\Admin\ReagendarClaseRequest;
+use App\Http\Requests\Admin\RegistrarAsistenciaRequest;
 use App\Models\Alumno;
 use App\Models\Cita;
 use App\Models\Horario;
@@ -85,6 +86,29 @@ class CitaController extends Controller
         return back()->with(
             'status',
             "Falta avisada de {$alumno->nombreCompleto()} registrada para el {$fecha->format('d/m/Y')}. Su instructor la verá en la lista de ese día."
+        );
+    }
+
+    /**
+     * Registra a mano la asistencia o la falta de un alumno en una clase de
+     * hoy o de días anteriores (también sirve para corregir una falta
+     * automática si el alumno sí fue pero no escaneó su QR).
+     */
+    public function registrarAsistencia(RegistrarAsistenciaRequest $request, Alumno $alumno): RedirectResponse
+    {
+        $datos = $request->validated();
+        $asistio = $request->boolean('asistio');
+        $fecha = Carbon::parse($datos['fecha']);
+
+        $motivo = ClasesDelAlumno::registrarAsistencia($alumno, Horario::findOrFail($datos['horario_id']), $fecha, $asistio, $request->user());
+
+        if ($motivo) {
+            return back()->withErrors([$motivo[0] => $motivo[1]]);
+        }
+
+        return back()->with(
+            'status',
+            ($asistio ? 'Asistencia' : 'Falta')." de {$alumno->nombreCompleto()} registrada para el {$fecha->format('d/m/Y')}."
         );
     }
 
