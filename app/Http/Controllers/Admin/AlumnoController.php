@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Enums\EstadoAlumno;
+use App\Enums\EstadoCita;
 use App\Enums\Rol;
 use App\Http\Controllers\Admin\Concerns\ScopesSucursal;
 use App\Http\Controllers\Controller;
@@ -281,6 +282,19 @@ class AlumnoController extends Controller
             // Se calculan desde sus grupos: no dependen de que exista una
             // Cita guardada para cada fecha.
             'proximasClases' => ClasesDelAlumno::proximas($alumno),
+            // Fechas próximas en que no va a su grupo de siempre (para que la
+            // tarjeta "Grupo actual" no muestre una hora que ya cambió).
+            'cambiosProximos' => $alumno->citas()
+                ->whereDate('fecha', '>=', today())
+                ->whereDate('fecha', '<=', today()->addDays(14))
+                ->where(fn ($query) => $query->where('estado', EstadoCita::Reagendada->value)->orWhere('falta_avisada', true))
+                ->orderBy('fecha')
+                ->get()
+                ->map(fn ($cita) => [
+                    'cita' => $cita,
+                    'destino' => $cita->estado === EstadoCita::Reagendada ? ClasesDelAlumno::destinoDeReagendada($cita) : null,
+                ])
+                ->groupBy(fn (array $cambio) => $cambio['cita']->horario_id),
             'historialAsistencia' => $alumno->citas()
                 ->whereNotNull('asistio')
                 ->with('horario', 'reposicion')

@@ -1891,8 +1891,11 @@ function abrirDetalleClase(horarioId) {
     const alumnosHtml = alumnos.length
         ? alumnos.map(function (alumno) {
             const contacto = [alumno.telefono, alumno.email].filter(Boolean).join(' · ');
+            const cambio = alumno.cambio_semana
+                ? `<small style="color:var(--yellow);font-weight:800;">${escapeHtml(clase.fecha_semana)}: ${escapeHtml(alumno.cambio_semana)}</small>`
+                : '';
             return `<div class="class-student" style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
-                <div><strong>${escapeHtml(alumno.nombre)}</strong><small>${escapeHtml(contacto || 'Sin datos de contacto')}</small></div>
+                <div><strong>${escapeHtml(alumno.nombre)}</strong><small>${escapeHtml(contacto || 'Sin datos de contacto')}</small>${cambio}</div>
                 <div style="display:flex;align-items:center;gap:8px;"><small>${escapeHtml(alumno.estado)}</small>
                 <button type="button" class="btn-modal-submit" style="padding:7px 10px;background:#7b3541;" onclick="retirarAlumnoDeClase(${alumno.inscripcion_id}, '${escapeHtml(alumno.nombre).replace(/'/g, "\\'")}')">Quitar</button></div>
             </div>`;
@@ -1910,7 +1913,14 @@ function abrirDetalleClase(horarioId) {
         <div>
             <h3 style="font-size:14px;margin-bottom:9px;">Alumnos inscritos</h3>
             <div class="class-students">${alumnosHtml}</div>
-        </div>`;
+        </div>
+        ${(clase.vienen_esta_semana || []).length ? `
+        <div style="margin-top:14px;">
+            <h3 style="font-size:14px;margin-bottom:9px;">Vienen solo esta semana (${escapeHtml(clase.fecha_semana)})</h3>
+            <div class="class-students">${clase.vienen_esta_semana.map(function (visita) {
+                return `<div class="class-student"><div><strong>${escapeHtml(visita.nombre)}</strong><small>${escapeHtml(visita.motivo)}</small></div></div>`;
+            }).join('')}</div>
+        </div>` : ''}`;
     if (alumnos.length) {
         document.getElementById('detalleClaseContenido').insertAdjacentHTML('beforeend', `
             <form method="POST" style="margin-top:16px;padding-top:16px;border-top:1px solid rgba(83,214,238,.2);"

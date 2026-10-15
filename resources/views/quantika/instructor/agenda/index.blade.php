@@ -61,12 +61,25 @@
                                     <summary style="cursor:pointer;color:var(--cyan);font-size:12px;">Ver alumnos inscritos</summary>
                                     <div style="margin-top:7px;font-size:12px;">
                                         @forelse ($horario->inscripciones as $inscripcion)
-                                            <div>{{ $inscripcion->alumno?->nombreCompleto() }}</div>
+                                            <div>
+                                                {{ $inscripcion->alumno?->nombreCompleto() }}
+                                                @foreach ($cambiosSemana[$horario->id]['noVienen']->where('cita.alumno_id', $inscripcion->alumno_id) as $cambio)
+                                                    <span style="color:var(--yellow);font-weight:800;">· {{ $cambio['motivo'] }}</span>
+                                                @endforeach
+                                            </div>
                                         @empty
                                             <div>Sin alumnos inscritos.</div>
                                         @endforelse
                                     </div>
                                 </details>
+                                @if ($cambiosSemana[$horario->id]['vienen']->isNotEmpty())
+                                    <div style="margin-top:8px;font-size:12px;">
+                                        <strong style="color:var(--cyan);">Vienen solo esta semana ({{ \App\Support\ClasesDelAlumno::fechaCorta($cambiosSemana[$horario->id]['fecha']) }}):</strong>
+                                        @foreach ($cambiosSemana[$horario->id]['vienen'] as $visita)
+                                            <div>{{ $visita['cita']->alumno?->nombreCompleto() }} · {{ $visita['motivo'] }}</div>
+                                        @endforeach
+                                    </div>
+                                @endif
                             </div>
 
                         @endforeach

@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Controllers\Instructor\Concerns\ResuelveInstructor;
 use App\Models\Horario;
 use App\Models\Inscripcion;
+use App\Support\ClasesDelAlumno;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 
@@ -43,6 +44,7 @@ class AgendaController extends Controller
         return view('quantika.instructor.agenda.index', [
             'horariosPorDia' => $horariosPorDia,
             'alumnosPorHorario' => $alumnosPorHorario,
+            'cambiosSemana' => ClasesDelAlumno::cambiosDeLaSemana($horarios, today()->startOfWeek()),
         ]);
     }
 }

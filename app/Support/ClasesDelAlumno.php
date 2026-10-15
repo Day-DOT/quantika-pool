@@ -496,6 +496,102 @@ class ClasesDelAlumno
         ];
     }
 
+    /**
+     * Cambios de una semana en varios grupos, para mostrarlos donde se ve la
+     * lista fija de inscritos: quién no viene esa semana (movió su clase o
+     * avisó que faltará) y quién viene solo esa vez (clase extra, reposición
+     * o reagendada desde otro grupo).
+     *
+     * @param  Collection<int, Horario>  $horarios
+     * @return array<int, array{fecha: Carbon, noVienen: Collection<int, array{cita: Cita, motivo: string}>, vienen: Collection<int, array{cita: Cita, motivo: string}>}>
+     */
+    public static function cambiosDeLaSemana(Collection $horarios, Carbon $inicioSemana): array
+    {
+        $inicioSemana = $inicioSemana->copy()->startOfDay();
+        $ids = $horarios->pluck('id');
+
+        $citas = Cita::query()
+            ->with(['alumno', 'horario.carril', 'horario.instructor.user'])
+            ->whereIn('horario_id', $ids)
+            ->whereDate('fecha', '>=', $inicioSemana)
+            ->whereDate('fecha', '<=', $inicioSemana->copy()->addDays(6))
+            ->get();
+
+        $inscritos = Inscripcion::where('activa', true)
+            ->whereIn('horario_id', $ids)
+            ->get(['horario_id', 'alumno_id'])
+            ->groupBy('horario_id')
+            ->map(fn (Collection $grupo) => $grupo->pluck('alumno_id')->all());
+
+        $cambios = [];
+
+        foreach ($horarios as $horario) {
+            $fecha = $inicioSemana->copy()->addDays($horario->dia_semana->value - 1);
+            $delDia = $citas->filter(fn (Cita $cita) => $cita->horario_id === $horario->id && $cita->fecha->isSameDay($fecha));
+            $inscritosDelGrupo = $inscritos->get($horario->id, []);
+
+            $noVienen = $delDia
+                ->filter(fn (Cita $cita) => $cita->estado === EstadoCita::Reagendada || $cita->falta_avisada)
+                ->map(function (Cita $cita) {
+                    if ($cita->falta_avisada) {
+                        return ['cita' => $cita, 'motivo' => 'Avisó que no asistirá'];
+                    }
+
+                    $destino = self::destinoDeReagendada($cita);
+
+                    return [
+                        'cita' => $cita,
+                        'motivo' => $destino
+                            ? 'Reagendó a '.self::fechaCorta($destino->fecha).' '.substr((string) $destino->hora_inicio, 0, 5)
+                                .' · '.$destino->horario?->nombre_grupo.' · '.($destino->horario?->carril?->nombre ?? 'Sin carril')
+                            : 'Reagendó esta clase',
+                    ];
+                })
+                ->values();
+
+            $vienen = $delDia
+                ->filter(fn (Cita $cita) => ! in_array($cita->estado, self::ESTADOS_SIN_CLASE, true)
+                    && ! in_array($cita->alumno_id, $inscritosDelGrupo, true))
+                ->map(fn (Cita $cita) => [
+                    'cita' => $cita,
+                    'motivo' => match (self::tipo($cita, [])) {
+                        self::TIPO_EXTRA => 'Clase extra',
+                        self::TIPO_REPOSICION => 'Reposición',
+                        default => 'Reagendada',
+                    },
+                ])
+                ->values();
+
+            $cambios[$horario->id] = ['fecha' => $fecha, 'noVienen' => $noVienen, 'vienen' => $vienen];
+        }
+
+        return $cambios;
+    }
+
+    /**
+     * Fecha corta en español sin depender del idioma configurado: "Mié 14/10".
+     */
+    public static function fechaCorta(Carbon $fecha): string
+    {
+        return mb_substr(\App\Enums\DiaSemana::from($fecha->isoWeekday())->label(), 0, 3).' '.$fecha->format('d/m');
+    }
+
+    /**
+     * Clase a la que se movió una clase reagendada (la nueva guarda en sus
+     * notas la fecha y el grupo de donde salió).
+     */
+    public static function destinoDeReagendada(Cita $marca): ?Cita
+    {
+        return Cita::query()
+            ->with(['horario.carril', 'horario.instructor.user'])
+            ->where('alumno_id', $marca->alumno_id)
+            ->where('id', '!=', $marca->id)
+            ->whereNotIn('estado', [EstadoCita::Cancelada->value, EstadoCita::Reagendada->value])
+            ->where('notas', 'like', 'Reagendada: era el '.$marca->fecha->format('d/m/Y').' en %')
+            ->latest('id')
+            ->first();
+    }
+
     public static function estaInscrito(Alumno $alumno, int $horarioId): bool
     {
         return Inscripcion::where('alumno_id', $alumno->id)

@@ -57,6 +57,10 @@ class HorarioController extends Controller
         $this->aplicarSucursal($horariosQuery);
         $horarios = $horariosQuery->get();
 
+        // Cambios de esta semana: quién no viene a su grupo y quién viene
+        // solo esta vez, para que el detalle de cada clase sea el real.
+        $cambiosSemana = ClasesDelAlumno::cambiosDeLaSemana($horarios, $inicioSemana);
+
         $horasBase = collect(range(8, 19))->map(fn ($h) => sprintf('%02d:00', $h));
         $horasReales = $horarios->map(fn (Horario $h) => substr($h->hora_inicio, 0, 5));
         $horas = $horasBase->merge($horasReales)->unique()->sort()->values();
@@ -139,9 +143,16 @@ class HorarioController extends Controller
                     // Última fecha (hasta hoy) en que el grupo dio clase: es la que
                     // se propone al registrar una asistencia o falta a mano.
                     'ultima_fecha' => today()->subDays((today()->isoWeekday() - $horario->dia_semana->value + 7) % 7)->toDateString(),
+                    'fecha_semana' => ClasesDelAlumno::fechaCorta($cambiosSemana[$horario->id]['fecha']),
+                    'vienen_esta_semana' => $cambiosSemana[$horario->id]['vienen']->map(fn (array $cambio) => [
+                        'nombre' => $cambio['cita']->alumno?->nombreCompleto() ?? 'Alumno',
+                        'motivo' => $cambio['motivo'],
+                    ])->values(),
                     'alumnos' => $horario->inscripciones->map(fn (Inscripcion $inscripcion) => [
                         'inscripcion_id' => $inscripcion->id,
                         'alumno_id' => $inscripcion->alumno_id,
+                        'cambio_semana' => $cambiosSemana[$horario->id]['noVienen']
+                            ->first(fn (array $cambio) => $cambio['cita']->alumno_id === $inscripcion->alumno_id)['motivo'] ?? null,
                         'nombre' => $inscripcion->alumno?->nombreCompleto() ?? 'Alumno no disponible',
                         'telefono' => $inscripcion->alumno?->telefono,
                         'email' => $inscripcion->alumno?->email,

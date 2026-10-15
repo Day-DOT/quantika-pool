@@ -379,6 +379,19 @@
                         {{ $inscripcion->horario?->carril?->nombre ?? 'Sin carril' }} ·
                         {{ $inscripcion->horario?->instructor?->user?->name ?? 'Sin instructor' }}
                     </div>
+                    @foreach ($cambiosProximos->get($inscripcion->horario_id, collect()) as $cambio)
+                        <div style="color:var(--yellow); font-size:11px; font-weight:800; margin-top:4px;">
+                            {{ \App\Support\ClasesDelAlumno::fechaCorta($cambio['cita']->fecha) }}:
+                            @if ($cambio['cita']->falta_avisada)
+                                avisó que no asistirá
+                            @elseif ($cambio['destino'])
+                                reagendada a {{ \App\Support\ClasesDelAlumno::fechaCorta($cambio['destino']->fecha) }} {{ substr((string) $cambio['destino']->hora_inicio, 0, 5) }}
+                                · {{ $cambio['destino']->horario?->nombre_grupo }} · {{ $cambio['destino']->horario?->carril?->nombre ?? 'Sin carril' }}
+                            @else
+                                clase reagendada
+                            @endif
+                        </div>
+                    @endforeach
 
                     @if ($inscripcion->horario)
                         <form method="POST" action="{{ route('horarios.cambiar-instructor', $inscripcion->horario) }}" style="display:flex; gap:6px; margin-top:8px;">
