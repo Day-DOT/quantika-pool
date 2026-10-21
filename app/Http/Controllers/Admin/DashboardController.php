@@ -15,6 +15,7 @@ use App\Models\Inscripcion;
 use App\Models\Instructor;
 use App\Models\Nivel;
 use App\Models\Pago;
+use App\Support\ClasesDelAlumno;
 use Illuminate\Support\Carbon;
 use Illuminate\View\View;
 
@@ -145,15 +146,24 @@ class DashboardController extends Controller
         $this->aplicarSucursal($horariosSemanaQuery);
         $horariosSemana = $horariosSemanaQuery->orderBy('hora_inicio')->get();
 
-        $calendarioSemana = collect(DiaSemana::cases())->map(function (DiaSemana $dia) use ($inicioSemana, $hoy, $horariosSemana) {
+        // Cambios de esta semana: quién movió su clase o avisó que falta y
+        // quién viene solo esta vez (reagendada, extra o reposición).
+        $cambiosSemana = ClasesDelAlumno::cambiosDeLaSemana($horariosSemana, $inicioSemana);
+
+        $calendarioSemana = collect(DiaSemana::cases())->map(function (DiaSemana $dia) use ($inicioSemana, $hoy, $horariosSemana, $cambiosSemana) {
             $fecha = $inicioSemana->copy()->addDays($dia->value - 1);
 
-            $clases = $horariosSemana->where('dia_semana', $dia)->map(function (Horario $horario) {
+            $clases = $horariosSemana->where('dia_semana', $dia)->map(function (Horario $horario) use ($cambiosSemana) {
                 $inscritos = $horario->inscripciones->count();
+                $cambios = $cambiosSemana[$horario->id];
 
                 return [
                     'horario' => $horario,
-                    'cupoDisponible' => max(0, $horario->capacidad_maxima - $inscritos),
+                    // Mismo criterio que Reposiciones::cupoDisponible: los
+                    // visitantes de la semana también ocupan lugar.
+                    'cupoDisponible' => max(0, $horario->capacidad_maxima - $inscritos - $cambios['vienen']->count()),
+                    'noVienen' => $cambios['noVienen'],
+                    'vienen' => $cambios['vienen'],
                 ];
             })->values();
 

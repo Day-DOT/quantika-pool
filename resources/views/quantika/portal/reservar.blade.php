@@ -37,8 +37,8 @@
 
                 <p style="color:var(--muted); font-size:13px; line-height:1.6; margin-bottom:20px; max-width:680px;">
                     Si {{ $alumno->nombreCompleto() }} faltó a una clase, puedes pedir reponerla en otro grupo.
-                    La reposición es de una sola clase, debe tomarse dentro del mismo mes de la falta y
-                    se permiten hasta {{ $maximoPorMes }} por mes. La escuela confirma cada solicitud.
+                    La reposición es de una sola clase, en un grupo de su mismo nivel, debe tomarse dentro del
+                    mismo mes de la falta y se permiten hasta {{ $maximoPorMes }} por mes. La escuela confirma cada solicitud.
                 </p>
 
                 {{-- SOLICITUDES ENVIADAS --}}
@@ -184,7 +184,7 @@
                             @empty
                                 <div class="empty-state" style="grid-column: 1 / -1;">
                                     <h3>No hay grupos ese día</h3>
-                                    <p>Ese día no hay clases para la edad de {{ $alumno->nombreCompleto() }} en su sucursal. Prueba con otra fecha.</p>
+                                    <p>Ese día no hay grupos del nivel de {{ $alumno->nombreCompleto() }}{{ $alumno->nivel ? ' ('.$alumno->nivel->nombre.')' : '' }} con lugar en su sucursal. Prueba con otra fecha.</p>
                                 </div>
                             @endforelse
 

@@ -200,12 +200,28 @@
                                 <summary style="cursor:pointer;font-size:11px;color:var(--cyan);">Ver alumnos</summary>
                                 <div style="font-size:11px;margin-top:6px;">
                                     @forelse ($fila['alumnos'] as $alumno)
-                                        <div>{{ $alumno->nombreCompleto() }}</div>
+                                        <div>
+                                            {{ $alumno->nombreCompleto() }}
+                                            @foreach ($fila['noVienen']->where('cita.alumno_id', $alumno->id) as $cambio)
+                                                <span style="color:var(--yellow);font-weight:700;">· {{ $cambio['motivo'] }}</span>
+                                            @endforeach
+                                        </div>
                                     @empty
                                         <div>Sin alumnos inscritos.</div>
                                     @endforelse
+                                    @foreach ($fila['vienen'] as $visita)
+                                        <div style="color:var(--cyan);font-weight:700;">+ {{ $visita['cita']->alumno?->nombreCompleto() }} · {{ $visita['motivo'] }}</div>
+                                    @endforeach
                                 </div>
                             </details>
+                            @if ($fila['noVienen']->isNotEmpty() || $fila['vienen']->isNotEmpty())
+                                <div style="font-size:11px;color:var(--yellow);font-weight:700;margin-top:4px;">
+                                    Esta semana:
+                                    @if ($fila['noVienen']->isNotEmpty()) {{ $fila['noVienen']->count() }} no viene(n) @endif
+                                    @if ($fila['noVienen']->isNotEmpty() && $fila['vienen']->isNotEmpty()) · @endif
+                                    @if ($fila['vienen']->isNotEmpty()) +{{ $fila['vienen']->count() }} solo esta vez @endif
+                                </div>
+                            @endif
                         </div>
                     @empty
                         <div class="week-day-empty">Sin clases</div>

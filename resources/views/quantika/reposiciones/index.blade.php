@@ -15,7 +15,7 @@
     <div class="section-header">
         <h3>Faltas pendientes de reposición este mes</h3>
         <span style="color:var(--muted); font-size:12px;">
-            Máximo {{ $maximoPorMes }} reposiciones por alumno al mes · no aplican en clases de bebés
+            Máximo {{ $maximoPorMes }} reposiciones por alumno al mes · solo niños y adultos (los bebés no reponen) · en grupos de su mismo nivel
         </span>
     </div>
 
@@ -54,30 +54,33 @@
                                 </td>
                                 <td>
                                     @php
-                                        $categoriaEdadAlumno = $falta->alumno?->nivel?->categoria_edad;
-                                        // Los grupos sin nivel asignado también se ofrecen: su
-                                        // categoría no se conoce y la decide quien programa.
-                                        $horariosCompatibles = $horariosDisponibles->filter(
-                                            fn ($horario) => $horario->sucursal_id === $falta->sucursal_id
-                                                && \App\Support\Reposiciones::admiteReposicion($falta->alumno)
-                                                && \App\Support\Reposiciones::grupoCompatible($horario, $falta->alumno)
-                                        );
+                                        // Solo niños y adultos reponen, y solo en grupos de su
+                                        // mismo nivel (deducido de los alumnos inscritos).
+                                        $nivelAlumno = $falta->alumno?->nivel?->nombre;
+                                        $admite = \App\Support\Reposiciones::admiteReposicion($falta->alumno);
+                                        $horariosCompatibles = $admite
+                                            ? $horariosDisponibles->filter(
+                                                fn ($horario) => $horario->sucursal_id === $falta->sucursal_id
+                                                    && $horario->id !== $falta->horario_id
+                                                    && \App\Support\Reposiciones::grupoCompatible($horario, $falta->alumno)
+                                            )
+                                            : collect();
                                     @endphp
                                     <form method="POST" action="{{ route('citas.reponer', $falta) }}" style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
                                         @csrf
                                         <select name="horario_id" class="form-select" style="font-size:12px;" required>
                                             <option value="">
-                                                @if ($categoriaEdadAlumno === 'Bebés')
+                                                @if (! $admite)
                                                     Las clases de bebés no tienen reposición
                                                 @elseif ($horariosCompatibles->isEmpty())
-                                                    No hay horarios disponibles{{ $categoriaEdadAlumno ? ' para '.$categoriaEdadAlumno : '' }}
+                                                    No hay grupos de su nivel{{ $nivelAlumno ? ' ('.$nivelAlumno.')' : '' }}
                                                 @else
-                                                    Seleccionar horario{{ $categoriaEdadAlumno ? ' · '.$categoriaEdadAlumno : '' }}
+                                                    Seleccionar grupo{{ $nivelAlumno ? ' · nivel '.$nivelAlumno : '' }}
                                                 @endif
                                             </option>
                                             @foreach ($horariosCompatibles as $horarioOpcion)
                                                 <option value="{{ $horarioOpcion->id }}">
-                                                    {{ $horarioOpcion->nombre_grupo }} · {{ $horarioOpcion->nivel?->categoria_edad ?? 'Sin categoría' }} · {{ $horarioOpcion->dia_semana->label() }} {{ substr($horarioOpcion->hora_inicio, 0, 5) }} · {{ $horarioOpcion->carril?->nombre ?? 'Sin carril' }} · {{ $horarioOpcion->instructor?->user?->name ?? 'Sin instructor' }}
+                                                    {{ $horarioOpcion->etiqueta() }}
                                                 </option>
                                             @endforeach
                                         </select>

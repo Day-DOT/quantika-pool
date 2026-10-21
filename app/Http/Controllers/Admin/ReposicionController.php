@@ -48,7 +48,7 @@ class ReposicionController extends Controller
 
         $horariosDisponibles = Horario::query()
             ->where('activo', true)
-            ->with(['nivel', 'carril', 'instructor.user'])
+            ->with(['nivel', 'carril', 'instructor.user', 'inscripciones' => fn ($q) => $q->where('activa', true)->with('alumno')])
             ->when($sucursalId, fn ($q) => $q->where('sucursal_id', $sucursalId))
             ->orderBy('dia_semana')
             ->orderBy('hora_inicio')

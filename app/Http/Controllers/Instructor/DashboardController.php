@@ -9,7 +9,9 @@ use App\Models\Cita;
 use App\Models\Horario;
 use App\Models\Inscripcion;
 use App\Models\Nivel;
+use App\Support\ClasesDelAlumno;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\View\View;
 
 class DashboardController extends Controller
@@ -57,6 +59,10 @@ class DashboardController extends Controller
         $horariosPorDia = $horarios->groupBy(fn (Horario $h) => $h->dia_semana->value);
 
         $horariosHoy = $horarios->where('dia_semana', $diaHoy);
+
+        // Cambios de esta semana: quién movió su clase o avisó que falta y
+        // quién viene solo esta vez (reagendada, extra o reposición).
+        $cambiosSemana = ClasesDelAlumno::cambiosDeLaSemana($horarios, $hoy->copy()->startOfWeek(Carbon::MONDAY));
 
         $citasHoy = Cita::with('alumno')
             ->whereIn('horario_id', $horariosHoy->pluck('id'))
@@ -107,6 +113,7 @@ class DashboardController extends Controller
             'horariosHoy' => $horariosHoy,
             'citasHoy' => $citasHoy,
             'alumnosPorHorario' => $alumnosPorHorario,
+            'cambiosSemana' => $cambiosSemana,
             'proximasClases' => $proximasClases,
             'nivelesPreview' => $nivelesPreview,
         ]);

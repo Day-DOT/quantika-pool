@@ -56,10 +56,27 @@ class PortalReposicionTest extends TestCase
 
         $falta = $this->crearFalta($alumno, $grupoHabitual, today()->subDays(3));
 
+        // El grupo destino tiene a un compañero del mismo nivel (así se
+        // deduce el nivel de los grupos, que casi nunca lo tienen asignado);
+        // su lugar se suma a la capacidad pedida.
         $fecha = today()->addDays(2);
-        $destino = $this->crearGrupo($sucursal, $fecha, 'Grupo Destino', $capacidadDestino);
+        $destino = $this->crearGrupo($sucursal, $fecha, 'Grupo Destino', $capacidadDestino + 1);
+        $this->inscribirCompanero($destino, $nivel);
 
-        return compact('sucursal', 'tutor', 'admin', 'alumno', 'falta', 'destino', 'fecha');
+        return compact('sucursal', 'tutor', 'admin', 'alumno', 'falta', 'destino', 'fecha', 'nivel');
+    }
+
+    private function inscribirCompanero(Horario $grupo, Nivel $nivel): Alumno
+    {
+        $companero = Alumno::factory()->create([
+            'sucursal_id' => $grupo->sucursal_id,
+            'nivel_id' => $nivel->id,
+            'estado' => 'activo',
+        ]);
+
+        Inscripcion::factory()->create(['horario_id' => $grupo->id, 'alumno_id' => $companero->id, 'activa' => true]);
+
+        return $companero;
     }
 
     private function crearGrupo(Sucursal $sucursal, Carbon $fecha, string $nombre, int $capacidad = 4, ?Nivel $nivel = null): Horario
@@ -117,32 +134,61 @@ class PortalReposicionTest extends TestCase
             ->assertSee('Solicitar reposición');
     }
 
-    public function test_solo_se_muestran_grupos_de_su_sucursal_y_de_su_categoria_de_edad(): void
+    public function test_solo_se_muestran_grupos_de_su_mismo_nivel_sucursal_y_dia(): void
     {
         $e = $this->crearEscenario();
 
-        $adultos = Nivel::factory()->create(['categoria_edad' => 'Adultos']);
-        $this->crearGrupo($e['sucursal'], $e['fecha'], 'Grupo Con Nivel Adultos', nivel: $adultos);
+        // Mismo nivel asignado al grupo (aunque no tenga alumnos): sí.
+        $this->crearGrupo($e['sucursal'], $e['fecha'], 'Grupo Con Su Nivel Asignado', nivel: $e['nivel']);
 
-        // Grupo sin nivel pero con un adulto inscrito: se deduce que es de adultos.
-        $grupoDeAdultos = $this->crearGrupo($e['sucursal'], $e['fecha'], 'Grupo Sin Nivel De Adultos');
-        Inscripcion::factory()->create([
-            'horario_id' => $grupoDeAdultos->id,
-            'alumno_id' => Alumno::factory()->create(['sucursal_id' => $e['sucursal']->id, 'nivel_id' => $adultos->id])->id,
-            'activa' => true,
-        ]);
+        // Otro nivel de la misma edad (deducido de sus alumnos): no.
+        $otroNivel = Nivel::factory()->create(['categoria_edad' => 'Niños']);
+        $grupoOtroNivel = $this->crearGrupo($e['sucursal'], $e['fecha'], 'Grupo De Otro Nivel');
+        $this->inscribirCompanero($grupoOtroNivel, $otroNivel);
 
-        $this->crearGrupo(Sucursal::factory()->create(), $e['fecha'], 'Grupo Otra Sucursal');
-        $this->crearGrupo($e['sucursal'], $e['fecha']->copy()->addDay(), 'Grupo Otro Dia');
+        // Sin alumnos ni nivel: no se sabe de qué nivel es, no se ofrece.
+        $this->crearGrupo($e['sucursal'], $e['fecha'], 'Grupo Vacio');
+
+        $this->inscribirCompanero($this->crearGrupo(Sucursal::factory()->create(), $e['fecha'], 'Grupo Otra Sucursal'), $e['nivel']);
+        $this->inscribirCompanero($this->crearGrupo($e['sucursal'], $e['fecha']->copy()->addDay(), 'Grupo Otro Dia'), $e['nivel']);
 
         $this->actingAs($e['tutor'])
             ->get(route('portal.reservar.index', ['alumno' => $e['alumno']->id, 'fecha' => $e['fecha']->toDateString()]))
             ->assertOk()
             ->assertSee('Grupo Destino')
-            ->assertDontSee('Grupo Con Nivel Adultos')
-            ->assertDontSee('Grupo Sin Nivel De Adultos')
+            ->assertSee('Grupo Con Su Nivel Asignado')
+            ->assertDontSee('Grupo De Otro Nivel')
+            ->assertDontSee('Grupo Vacio')
             ->assertDontSee('Grupo Otra Sucursal')
             ->assertDontSee('Grupo Otro Dia');
+
+        // Tampoco se acepta si se manda a mano un grupo de otro nivel.
+        $this->solicitar($e, ['horario_id' => $grupoOtroNivel->id])
+            ->assertSessionHasErrors(['horario_id' => 'Solo se puede reponer en un grupo del mismo nivel del alumno.']);
+    }
+
+    public function test_un_bebe_no_repone_aunque_tenga_nivel_de_ninos_si_esta_en_un_grupo_de_bebes(): void
+    {
+        $e = $this->crearEscenario();
+
+        $grupoBebes = $this->crearGrupo($e['sucursal'], today()->subDays(1), 'Bebés (1 a 3 años)');
+        Inscripcion::factory()->create(['horario_id' => $grupoBebes->id, 'alumno_id' => $e['alumno']->id, 'activa' => true]);
+
+        $this->actingAs($e['tutor'])
+            ->get(route('portal.reservar.index', ['alumno' => $e['alumno']->id]))
+            ->assertOk()
+            ->assertSee('Las clases de bebés no tienen reposición');
+
+        $this->solicitar($e)->assertSessionHasErrors('fecha');
+    }
+
+    public function test_un_alumno_de_tres_anos_o_menos_no_repone(): void
+    {
+        $e = $this->crearEscenario();
+        $e['alumno']->update(['fecha_nacimiento' => today()->subYears(2)]);
+
+        $this->solicitar($e)->assertSessionHasErrors('fecha');
+        $this->assertSame(0, SolicitudReposicion::count());
     }
 
     public function test_sin_faltas_en_el_mes_no_se_ofrece_reponer(): void
@@ -357,7 +403,7 @@ class PortalReposicionTest extends TestCase
             ->assertForbidden();
     }
 
-    public function test_la_administracion_puede_programar_una_reposicion_en_un_grupo_sin_nivel(): void
+    public function test_la_administracion_puede_programar_una_reposicion_en_un_grupo_sin_nivel_asignado_de_su_nivel(): void
     {
         $e = $this->crearEscenario();
 
@@ -440,6 +486,7 @@ class PortalReposicionTest extends TestCase
         $this->solicitar($e)->assertSessionHasNoErrors();
 
         $otroDestino = $this->crearGrupo($e['sucursal'], $e['fecha'], 'Grupo Elegido Por La Escuela');
+        $this->inscribirCompanero($otroDestino, $e['nivel']);
 
         $this->actingAs($e['admin'])
             ->get(route('reposiciones.index'))

@@ -782,6 +782,16 @@
                             <div class="week-class-carril">
                                 Carril: {{ $fila['horario']->carril?->nombre ?? 'Sin carril' }}
                             </div>
+                            @foreach ($fila['noVienen'] as $cambio)
+                                <div style="font-size:11px;color:var(--yellow);font-weight:700;margin-top:4px;">
+                                    {{ $cambio['cita']->alumno?->nombreCompleto() }} · {{ $cambio['motivo'] }}
+                                </div>
+                            @endforeach
+                            @foreach ($fila['vienen'] as $visita)
+                                <div style="font-size:11px;color:var(--cyan);font-weight:700;margin-top:4px;">
+                                    + {{ $visita['cita']->alumno?->nombreCompleto() }} · {{ $visita['motivo'] }}
+                                </div>
+                            @endforeach
                             <span class="week-class-cupo {{ $fila['cupoDisponible'] <= 0 ? 'full' : ($fila['cupoDisponible'] <= 2 ? 'low' : 'ok') }}">
                                 {{ $fila['cupoDisponible'] <= 0 ? 'Sin cupo' : $fila['cupoDisponible'].'/'.$fila['horario']->capacidad_maxima.' lugares' }}
                             </span>

@@ -42,9 +42,32 @@ class Reposiciones
             ->whereYear('fecha', now()->year);
     }
 
+    /**
+     * Los bebés no reponen clases; solo niños y adultos. Se considera bebé
+     * a quien tiene un nivel de bebés, tiene 3 años o menos, o está inscrito
+     * en un grupo de bebés (hay bebés con un nivel de niños asignado).
+     */
     public static function admiteReposicion(Alumno $alumno): bool
     {
-        return $alumno->nivel?->categoria_edad !== self::CATEGORIA_SIN_REPOSICION;
+        if ($alumno->nivel?->categoria_edad === self::CATEGORIA_SIN_REPOSICION
+            || $alumno->grupoEdad() === self::CATEGORIA_SIN_REPOSICION) {
+            return false;
+        }
+
+        return ! $alumno->inscripciones()
+            ->where('activa', true)
+            ->whereHas('horario', fn ($horario) => self::soloGruposDeBebes($horario))
+            ->exists();
+    }
+
+    /**
+     * Grupos de bebés: por su nivel o, si no tienen, por su nombre.
+     */
+    private static function soloGruposDeBebes($horario)
+    {
+        return $horario->where(fn ($query) => $query
+            ->whereHas('nivel', fn ($nivel) => $nivel->where('categoria_edad', self::CATEGORIA_SIN_REPOSICION))
+            ->orWhere('nombre_grupo', 'like', 'Beb%'));
     }
 
     /**
@@ -68,10 +91,39 @@ class Reposiciones
      */
     public static function grupoCompatible(Horario $horario, Alumno $alumno): bool
     {
-        $categoriaGrupo = $horario->nivel?->categoria_edad;
-        $categoriaAlumno = $alumno->nivel?->categoria_edad;
+        // Sin nivel asignado no hay con qué comparar: lo decide la escuela.
+        if (! $alumno->nivel_id) {
+            return true;
+        }
 
-        return $categoriaGrupo === null || $categoriaAlumno === null || $categoriaGrupo === $categoriaAlumno;
+        if ($horario->nivel_id) {
+            return $horario->nivel_id === $alumno->nivel_id;
+        }
+
+        // Casi ningún grupo tiene nivel asignado: su nivel es el de los
+        // alumnos inscritos. Se repone solo en grupos donde hay alumnos de
+        // su mismo nivel.
+        return self::nivelesDelGrupo($horario)->contains($alumno->nivel_id);
+    }
+
+    /**
+     * Niveles de los alumnos activos inscritos en el grupo.
+     *
+     * @return Collection<int, int>
+     */
+    private static function nivelesDelGrupo(Horario $horario): Collection
+    {
+        $inscripciones = $horario->relationLoaded('inscripciones')
+            ? $horario->inscripciones->where('activa', true)
+            : $horario->inscripciones()->where('activa', true)->with('alumno')->get();
+
+        return $inscripciones
+            ->map(fn (Inscripcion $inscripcion) => $inscripcion->alumno)
+            ->filter(fn (?Alumno $alumno) => $alumno?->estado === EstadoAlumno::Activo)
+            ->pluck('nivel_id')
+            ->filter()
+            ->unique()
+            ->values();
     }
 
     /**
@@ -126,7 +178,7 @@ class Reposiciones
         }
 
         if (! self::grupoCompatible($horario, $alumno)) {
-            return ['horario_id', 'El horario debe pertenecer a la misma categoría de edad del alumno.'];
+            return ['horario_id', 'Solo se puede reponer en un grupo del mismo nivel del alumno.'];
         }
 
         if ($fecha->isoWeekday() !== $horario->dia_semana->value) {
@@ -235,16 +287,7 @@ class Reposiciones
                     return false;
                 }
 
-                if ($horario->nivel || $categoriaAlumno === null) {
-                    return self::grupoCompatible($horario, $alumno);
-                }
-
-                $categoriasDelGrupo = $horario->inscripciones
-                    ->map(fn (Inscripcion $inscripcion) => $inscripcion->alumno?->nivel?->categoria_edad)
-                    ->filter()
-                    ->unique();
-
-                return $categoriasDelGrupo->isEmpty() || $categoriasDelGrupo->contains($categoriaAlumno);
+                return self::grupoCompatible($horario, $alumno);
             })
             ->each(function (Horario $horario) use ($fecha) {
                 $horario->cupo_disponible = self::cupoDisponible($horario, $fecha);

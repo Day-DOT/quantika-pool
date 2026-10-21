@@ -303,6 +303,49 @@ class ClasesDelAlumnoTest extends TestCase
             ->assertSee('Leonardo Padilla · Reagendada', false);
     }
 
+    public function test_la_clase_reagendada_se_ve_en_el_dashboard_del_admin_y_del_instructor(): void
+    {
+        $e = $this->crearEscenario();
+        $miercoles = $this->crearGrupo($e['sucursal'], self::MIERCOLES, 'Grupo Miércoles', 'Carril 3');
+        $miercoles->update(['hora_inicio' => '17:00:00', 'hora_fin' => '18:00:00']);
+
+        $this->actingAs($e['admin'])->patch(route('alumnos.clases.reagendar', $e['alumno']), [
+            'origen_horario_id' => $e['lunes']->id,
+            'origen_fecha' => '2026-10-12',
+            'horario_id' => $miercoles->id,
+            'fecha' => '2026-10-14',
+        ])->assertSessionHasNoErrors();
+
+        $destino = 'Mié 14/10 17:00 · Grupo Miércoles · Carril 3';
+
+        // Calendario de la semana del admin: sale del lunes y entra al miércoles.
+        $this->actingAs($e['admin'])
+            ->get(route('admin.dashboard'))
+            ->assertOk()
+            ->assertSee('Leonardo Padilla · Reagendó a '.$destino)
+            ->assertSee('+ Leonardo Padilla · Reagendada', false);
+
+        // Hoy (lunes) el instructor del grupo original ya no lo espera.
+        $this->actingAs($e['lunes']->instructor->user)
+            ->get(route('instructor.dashboard'))
+            ->assertOk()
+            ->assertSee('Reagendó a '.$destino)
+            ->assertSee('0 alumno(s) · 0 asistencia(s) registrada(s)', false);
+
+        // Calendario de la semana del super administrador.
+        $this->actingAs(User::factory()->superAdmin()->create())
+            ->get(route('super-admin.dashboard'))
+            ->assertOk()
+            ->assertSee('· Reagendó a '.$destino)
+            ->assertSee('+ Leonardo Padilla · Reagendada', false);
+
+        // El instructor del miércoles ve que esta semana viene uno más.
+        $this->actingAs($miercoles->instructor->user)
+            ->get(route('instructor.dashboard'))
+            ->assertOk()
+            ->assertSee('+1 solo esta vez', false);
+    }
+
     public function test_la_administracion_puede_reagendar_sin_limite_aunque_el_plan_este_completo(): void
     {
         $e = $this->crearEscenario();

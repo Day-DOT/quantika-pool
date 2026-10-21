@@ -14,6 +14,7 @@ use App\Models\Instructor;
 use App\Models\Nivel;
 use App\Models\Pago;
 use App\Models\Sucursal;
+use App\Support\ClasesDelAlumno;
 use App\Support\SucursalContext;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
@@ -64,16 +65,23 @@ class DashboardController extends Controller
             ->orderBy('hora_inicio')
             ->get();
 
-        return collect(DiaSemana::cases())->map(function (DiaSemana $dia) use ($inicioSemana, $hoy, $horarios) {
+        // Cambios de esta semana: quién movió su clase o avisó que falta y
+        // quién viene solo esta vez (reagendada, extra o reposición).
+        $cambiosSemana = ClasesDelAlumno::cambiosDeLaSemana($horarios, $inicioSemana);
+
+        return collect(DiaSemana::cases())->map(function (DiaSemana $dia) use ($inicioSemana, $hoy, $horarios, $cambiosSemana) {
             $fecha = $inicioSemana->copy()->addDays($dia->value - 1);
 
-            $clases = $horarios->where('dia_semana', $dia)->map(function (Horario $horario) {
+            $clases = $horarios->where('dia_semana', $dia)->map(function (Horario $horario) use ($cambiosSemana) {
                 $inscritos = $horario->inscripciones->count();
+                $cambios = $cambiosSemana[$horario->id];
 
                 return [
                     'horario' => $horario,
-                    'cupoDisponible' => max(0, $horario->capacidad_maxima - $inscritos),
+                    'cupoDisponible' => max(0, $horario->capacidad_maxima - $inscritos - $cambios['vienen']->count()),
                     'alumnos' => $horario->inscripciones->pluck('alumno')->filter(),
+                    'noVienen' => $cambios['noVienen'],
+                    'vienen' => $cambios['vienen'],
                 ];
             })->values();
 

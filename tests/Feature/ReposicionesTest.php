@@ -90,8 +90,10 @@ class ReposicionesTest extends TestCase
         $nivel = Nivel::factory()->create(['categoria_edad' => 'Niños']);
         [$alumno, $cita] = $this->crearFalta($sucursal, $nivel, now()->startOfMonth()->addDays(2));
 
+        // Grupo de su mismo nivel: solo ahí se puede reponer.
         $horarioDestino = Horario::factory()->create([
             'sucursal_id' => $sucursal->id,
+            'nivel_id' => $nivel->id,
             'dia_semana' => now()->startOfMonth()->addDays(5)->isoWeekday(),
             'capacidad_maxima' => 6,
         ]);
