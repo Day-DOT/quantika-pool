@@ -10,6 +10,7 @@ use App\Models\Horario;
 use App\Models\Inscripcion;
 use App\Models\Instructor;
 use App\Models\Nivel;
+use App\Models\Pago;
 use App\Models\Sucursal;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -120,6 +121,58 @@ class AsistenciaQrTest extends TestCase
                 ->assertSee('name="foto"', false)
                 ->assertDontSee('capture=', false);
         }
+    }
+
+    public function test_al_escanear_se_avisa_si_la_mensualidad_esta_vencida_o_al_corriente(): void
+    {
+        $sucursal = Sucursal::factory()->create();
+        $admin = User::factory()->admin($sucursal->id)->create();
+        $instructor = Instructor::factory()->create(['sucursal_id' => $sucursal->id]);
+        $alumno = $this->crearAlumnoConClaseHoy($sucursal, $instructor);
+
+        $this->actingAs($admin)->get($alumno->qrUrl())
+            ->assertOk()
+            ->assertSee('Pagos al corriente');
+
+        Pago::factory()->create([
+            'alumno_id' => $alumno->id,
+            'sucursal_id' => $sucursal->id,
+            'concepto' => 'mensualidad',
+            'estado' => 'pendiente',
+            'monto' => 990,
+            'fecha_vencimiento' => now()->subDays(6)->toDateString(),
+        ]);
+
+        $aviso = 'Mensualidad vencida desde el '.now()->subDays(6)->format('d/m/Y').' · debe $990.00';
+
+        $this->actingAs($admin)->get($alumno->qrUrl())->assertOk()->assertSee($aviso);
+
+        // También después de registrar la asistencia.
+        $this->actingAs($admin)
+            ->post(route('asistencia.confirmar', $alumno->qr_token))
+            ->assertOk()
+            ->assertSee($aviso);
+    }
+
+    public function test_al_escanear_se_avisa_si_la_mensualidad_vence_en_los_proximos_dias(): void
+    {
+        $sucursal = Sucursal::factory()->create();
+        $admin = User::factory()->admin($sucursal->id)->create();
+        $instructor = Instructor::factory()->create(['sucursal_id' => $sucursal->id]);
+        $alumno = $this->crearAlumnoConClaseHoy($sucursal, $instructor);
+
+        Pago::factory()->create([
+            'alumno_id' => $alumno->id,
+            'sucursal_id' => $sucursal->id,
+            'concepto' => 'mensualidad',
+            'estado' => 'pendiente',
+            'monto' => 1100,
+            'fecha_vencimiento' => now()->addDays(3)->toDateString(),
+        ]);
+
+        $this->actingAs($admin)->get($alumno->qrUrl())
+            ->assertOk()
+            ->assertSee('Su mensualidad vence el '.now()->addDays(3)->format('d/m/Y'));
     }
 
     public function test_alumno_sin_clase_programada_hoy_muestra_mensaje(): void

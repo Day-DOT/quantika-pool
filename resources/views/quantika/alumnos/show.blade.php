@@ -140,7 +140,7 @@
         <div class="stat-card">
             <span class="stat-name">TUTOR / RESPONSABLE</span>
             <div class="stat-value" style="font-size:16px;">{{ $alumno->nombreTutor() ?? 'Sin tutor asignado' }}</div>
-            <div class="stat-change">{{ $alumno->tutorUser?->email }}{{ $alumno->telefonoTutor() ? ' · '.$alumno->telefonoTutor() : '' }}</div>
+            <div class="stat-change">{{ $alumno->correoTutor() }}{{ $alumno->telefonoTutor() ? ' · '.$alumno->telefonoTutor() : '' }}</div>
         </div>
 
         <div class="stat-card">

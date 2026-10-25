@@ -64,6 +64,7 @@ class AdminAlumnosTest extends TestCase
             'fecha_nacimiento' => '2016-05-10',
             'telefono' => '5511223344',
             'email' => 'sofia@example.com',
+            'tiene_tutor' => 1,
             'tutor_nombre' => 'Laura Martínez',
             'tutor_email' => 'laura.tutor@example.com',
             'tutor_telefono' => '5599887766',
@@ -101,6 +102,7 @@ class AdminAlumnosTest extends TestCase
             'nombre' => 'Hermano',
             'apellidos' => 'Repetido',
             'fecha_nacimiento' => '2015-01-01',
+            'tiene_tutor' => 1,
             'tutor_nombre' => $tutor->name,
             'tutor_email' => 'papa@example.com',
         ];
@@ -134,6 +136,87 @@ class AdminAlumnosTest extends TestCase
         // El alumno debe seguir siendo visible y editable sin tutor asignado.
         $this->actingAs($admin)->get(route('alumnos.show', $alumno))->assertOk();
         $this->actingAs($admin)->get(route('alumnos.edit', $alumno))->assertOk();
+    }
+
+    public function test_si_se_desmarca_tiene_tutor_no_se_guardan_los_datos_del_tutor_aunque_se_hayan_escrito(): void
+    {
+        Storage::fake('public');
+
+        $sucursal = Sucursal::factory()->create();
+        $admin = User::factory()->admin($sucursal->id)->create();
+
+        // Se escribieron datos del tutor y después se desmarcó la casilla:
+        // los campos ocultos se envían igual, pero no deben guardarse.
+        $this->actingAs($admin)->post(route('alumnos.store'), [
+            'nombre' => 'Sin',
+            'apellidos' => 'Tutor',
+            'fecha_nacimiento' => '2001-05-05',
+            'tutor_nombre' => 'Tutor Que No Va',
+            'tutor_email' => 'tutor.que.no.va@example.com',
+            'tutor_telefono' => '5550001111',
+            'ine_tutor_frente' => UploadedFile::fake()->image('ine.png'),
+        ])->assertSessionHasNoErrors();
+
+        $alumno = Alumno::where('nombre', 'Sin')->sole();
+
+        $this->assertFalse($alumno->tieneTutor());
+        $this->assertNull($alumno->tutor_user_id);
+        $this->assertNull($alumno->tutor_contacto_nombre);
+        $this->assertNull($alumno->ine_tutor_path);
+        $this->assertFalse(User::where('email', 'tutor.que.no.va@example.com')->exists());
+    }
+
+    public function test_un_alumno_con_su_propia_cuenta_no_aparece_con_tutor_y_se_puede_editar_sin_tutor(): void
+    {
+        $sucursal = Sucursal::factory()->create();
+        $admin = User::factory()->admin($sucursal->id)->create();
+
+        $this->actingAs($admin)->post(route('alumnos.store'), [
+            'nombre' => 'Adulta',
+            'apellidos' => 'Independiente',
+            'fecha_nacimiento' => '1995-02-02',
+            'email' => 'adulta.independiente@example.com',
+        ])->assertSessionHasNoErrors();
+
+        $alumno = Alumno::where('nombre', 'Adulta')->sole();
+
+        // Tiene su propia cuenta del portal, pero eso no es un tutor.
+        $this->assertNotNull($alumno->tutor_user_id);
+        $this->assertTrue($alumno->usaCuentaPropia());
+        $this->assertFalse($alumno->tieneTutor());
+        $this->assertNull($alumno->nombreTutor());
+
+        $this->actingAs($admin)->get(route('alumnos.show', $alumno))
+            ->assertOk()
+            ->assertSee('Sin tutor asignado');
+
+        $this->actingAs($admin)->get(route('alumnos.edit', $alumno))
+            ->assertOk()
+            ->assertDontSee('name="tiene_tutor" value="1" onchange="toggleTutorEditar()" checked', false);
+
+        // Guardarla sin tutor la deja sin tutor (antes volvía a aparecer).
+        $this->actingAs($admin)->put(route('alumnos.update', $alumno), [
+            'nombre' => 'Adulta',
+            'apellidos' => 'Independiente',
+            'fecha_nacimiento' => '1995-02-02',
+            'email' => 'adulta.independiente@example.com',
+            'estado' => 'activo',
+        ])->assertSessionHasNoErrors();
+
+        $this->assertFalse($alumno->fresh()->tieneTutor());
+
+        // Y si después se le asigna un tutor real, ya aparece con él.
+        $this->actingAs($admin)->put(route('alumnos.update', $alumno), [
+            'nombre' => 'Adulta',
+            'apellidos' => 'Independiente',
+            'fecha_nacimiento' => '1995-02-02',
+            'email' => 'adulta.independiente@example.com',
+            'estado' => 'activo',
+            'tiene_tutor' => 1,
+            'tutor_nombre' => 'Mamá De Adulta',
+        ])->assertSessionHasNoErrors();
+
+        $this->assertSame('Mamá De Adulta', $alumno->fresh()->nombreTutor());
     }
 
     public function test_alumno_sin_tutor_pero_con_correo_propio_recibe_su_propia_cuenta_de_portal(): void
@@ -243,6 +326,7 @@ class AdminAlumnosTest extends TestCase
         $admin = User::factory()->admin($sucursal->id)->create();
 
         $this->actingAs($admin)->post(route('alumnos.store'), [
+            'tiene_tutor' => 1,
             'nombre' => 'Sin',
             'apellidos' => 'Documentos',
             'fecha_nacimiento' => '2016-05-10',
@@ -350,6 +434,7 @@ class AdminAlumnosTest extends TestCase
         $admin = User::factory()->admin($sucursal->id)->create();
 
         $this->actingAs($admin)->post(route('alumnos.store'), [
+            'tiene_tutor' => 1,
             'nombre' => 'Test',
             'apellidos' => 'Alumno',
             'fecha_nacimiento' => '2015-01-01',

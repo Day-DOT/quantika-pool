@@ -102,7 +102,7 @@
 
                 <div class="form-group full">
                     <label class="form-check">
-                        <input type="checkbox" id="tieneTutorEditar" name="tiene_tutor" value="1" onchange="toggleTutorEditar()" @checked(old('tiene_tutor', $alumno->nombreTutor() !== null))>
+                        <input type="checkbox" id="tieneTutorEditar" name="tiene_tutor" value="1" onchange="toggleTutorEditar()" @checked(old('tiene_tutor', $alumno->tieneTutor()))>
                         El alumno tiene tutor / responsable
                     </label>
                 </div>
@@ -115,7 +115,7 @@
 
                     <div class="form-group">
                         <label>Correo del tutor / responsable (opcional)</label>
-                        <input type="email" class="form-input" name="tutor_email" value="{{ old('tutor_email', $alumno->tutorUser?->email) }}">
+                        <input type="email" class="form-input" name="tutor_email" value="{{ old('tutor_email', $alumno->correoTutor()) }}">
                         <small>Si no se captura, el tutor solo queda como dato de contacto (sin acceso al portal).</small>
                     </div>
 

@@ -36,6 +36,7 @@ class SuperAdminAlumnoTest extends TestCase
         $sucursal = Sucursal::factory()->create();
 
         $response = $this->actingAs($superAdmin)->post(route('alumnos.store'), [
+            'tiene_tutor' => 1,
             'sucursal_id' => $sucursal->id,
             'nombre' => 'Nuevo',
             'apellidos' => 'Alumno',

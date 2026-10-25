@@ -102,9 +102,20 @@ class AlumnoController extends Controller
     {
         $datos = $request->validated();
 
+        // Si se desmarca "tiene tutor", los campos del tutor solo se ocultan
+        // en el formulario pero se siguen enviando: se descartan aquí.
+        $tieneTutor = $request->boolean('tiene_tutor');
+
+        if (! $tieneTutor) {
+            $datos['tutor_nombre'] = $datos['tutor_email'] = $datos['tutor_telefono'] = null;
+        }
+
         $sucursalId = $this->sucursalId() ?? (int) $datos['sucursal_id'];
 
-        $rutasDocumentos = $this->guardarDocumentos($request);
+        $rutasDocumentos = $this->guardarDocumentos(
+            $request,
+            excluir: $tieneTutor ? [] : ['ine_tutor_frente', 'ine_tutor_reverso'],
+        );
 
         $resultado = DB::transaction(function () use ($datos, $sucursalId, $rutasDocumentos) {
             $tutor = null;

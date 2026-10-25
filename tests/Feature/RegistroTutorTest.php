@@ -40,6 +40,7 @@ class RegistroTutorTest extends TestCase
         $admin = User::factory()->admin($sucursal->id)->create();
 
         $this->actingAs($admin)->post(route('alumnos.store'), [
+            'tiene_tutor' => 1,
             'nombre' => 'Nuevo',
             'apellidos' => 'Alumno',
             'fecha_nacimiento' => '2016-01-01',
@@ -183,6 +184,7 @@ class RegistroTutorTest extends TestCase
         $admin = User::factory()->admin($sucursal->id)->create();
 
         $this->actingAs($admin)->post(route('alumnos.store'), [
+            'tiene_tutor' => 1,
             'nombre' => 'Segundo',
             'apellidos' => 'Menor',
             'fecha_nacimiento' => '2018-06-20',
@@ -202,6 +204,7 @@ class RegistroTutorTest extends TestCase
 
         $this->actingAs($admin)
             ->post(route('alumnos.store'), [
+                'tiene_tutor' => 1,
                 'nombre' => 'Alumno',
                 'apellidos' => 'Prueba',
                 'fecha_nacimiento' => '2016-01-01',

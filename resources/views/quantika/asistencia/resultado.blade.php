@@ -93,6 +93,18 @@
             @if ($alumno->foto_path)
                 <img src="{{ \Illuminate\Support\Facades\Storage::disk('public')->url($alumno->foto_path) }}" alt="Foto de {{ $alumno->nombreCompleto() }}" style="width:110px;height:110px;object-fit:cover;border-radius:20px;border:2px solid var(--cyan);margin-bottom:14px;">
             @endif
+            @isset($estadoPago)
+                @php
+                    $colorPago = match ($estadoPago['tipo']) {
+                        'vencido' => ['#ff6b6b', 'rgba(255,107,107,.12)', '⚠ '],
+                        'por_vencer' => ['#ffc229', 'rgba(255,194,41,.12)', '⏳ '],
+                        default => ['#16e0a4', 'rgba(22,224,164,.10)', '✓ '],
+                    };
+                @endphp
+                <div style="margin:4px 0 14px;padding:12px 14px;border-radius:14px;font-weight:800;font-size:{{ $estadoPago['tipo'] === 'vencido' ? '15px' : '13px' }};color:{{ $colorPago[0] }};background:{{ $colorPago[1] }};border:1px solid {{ $colorPago[0] }};">
+                    {{ $colorPago[2] }}{{ $estadoPago['mensaje'] }}
+                </div>
+            @endisset
             <div style="text-align:left;margin:18px 0;color:var(--muted);font-size:13px;line-height:1.7;">
                 <strong style="color:#eaf6fb;">Ficha rápida</strong><br>
                 Nivel: {{ $alumno->nombreNivelConSubNivel() ?? 'Sin nivel' }}<br>

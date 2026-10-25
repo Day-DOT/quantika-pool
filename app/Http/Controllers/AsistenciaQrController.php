@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Enums\EstadoCita;
+use App\Enums\EstadoPago;
 use App\Models\Alumno;
 use App\Models\Cita;
 use App\Support\ClasesDelAlumno;
@@ -49,6 +50,7 @@ class AsistenciaQrController extends Controller
         $horariosHoy = $this->horariosDeHoy($alumno);
 
         return view('quantika.asistencia.resultado', [
+            'estadoPago' => $this->estadoDePago($alumno),
             'alumno' => $alumno,
             'horariosHoy' => $horariosHoy,
             'exito' => false,
@@ -106,6 +108,7 @@ class AsistenciaQrController extends Controller
         $alumno->load(['nivel', 'sucursal', 'tutorUser']);
 
         return view('quantika.asistencia.resultado', [
+            'estadoPago' => $this->estadoDePago($alumno),
             'alumno' => $alumno,
             'horariosHoy' => $horariosHoy,
             'exito' => $gruposRegistrados->isNotEmpty(),
@@ -130,5 +133,44 @@ class AsistenciaQrController extends Controller
             ->filter()
             ->unique('id')
             ->values();
+    }
+
+    /**
+     * Situación de su mensualidad para avisar al escanear: vencida (con
+     * desde cuándo y cuánto debe), por vencer en los próximos días o al
+     * corriente.
+     *
+     * @return array{tipo: string, mensaje: string}
+     */
+    private function estadoDePago(Alumno $alumno): array
+    {
+        $vencidos = $alumno->pagos()->vencidos()->orderBy('fecha_vencimiento')->get();
+
+        if ($vencidos->isNotEmpty()) {
+            $masAntiguo = $vencidos->first();
+
+            return [
+                'tipo' => 'vencido',
+                'mensaje' => ($vencidos->count() === 1 ? 'Mensualidad vencida' : "{$vencidos->count()} pagos vencidos")
+                    .' desde el '.$masAntiguo->fecha_vencimiento->format('d/m/Y')
+                    .' · debe $'.number_format((float) $vencidos->sum('monto'), 2),
+            ];
+        }
+
+        $proximo = $alumno->pagos()
+            ->where('estado', EstadoPago::Pendiente->value)
+            ->whereDate('fecha_vencimiento', '>=', today())
+            ->whereDate('fecha_vencimiento', '<=', today()->addDays(5))
+            ->orderBy('fecha_vencimiento')
+            ->first();
+
+        if ($proximo) {
+            return [
+                'tipo' => 'por_vencer',
+                'mensaje' => 'Su mensualidad vence el '.$proximo->fecha_vencimiento->format('d/m/Y').' ($'.number_format((float) $proximo->monto, 2).')',
+            ];
+        }
+
+        return ['tipo' => 'al_corriente', 'mensaje' => 'Pagos al corriente'];
     }
 }

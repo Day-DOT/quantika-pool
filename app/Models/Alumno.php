@@ -128,20 +128,44 @@ class Alumno extends Model
         return $this->nivel?->nombreConSubNivel($this->sub_nivel);
     }
 
+    /**
+     * El alumno sin tutor que tiene correo propio entra al portal con su
+     * propia cuenta, que se guarda en el mismo campo que la del tutor. Esa
+     * cuenta no es un tutor y no debe mostrarse como tal.
+     */
+    public function usaCuentaPropia(): bool
+    {
+        return $this->tutorUser !== null
+            && filled($this->email)
+            && mb_strtolower(trim($this->tutorUser->email)) === mb_strtolower(trim($this->email));
+    }
+
     public function nombreTutor(): ?string
     {
-        return $this->tutorUser?->name ?? $this->tutor_contacto_nombre;
+        return $this->usaCuentaPropia()
+            ? $this->tutor_contacto_nombre
+            : ($this->tutorUser?->name ?? $this->tutor_contacto_nombre);
+    }
+
+    /**
+     * Correo del tutor con acceso al portal (no el del propio alumno).
+     */
+    public function correoTutor(): ?string
+    {
+        return $this->usaCuentaPropia() ? null : $this->tutorUser?->email;
     }
 
     public function tieneTutor(): bool
     {
-        return $this->tutor_user_id !== null
-            || $this->tutor_contacto_nombre !== null;
+        return $this->tutor_contacto_nombre !== null
+            || ($this->tutor_user_id !== null && ! $this->usaCuentaPropia());
     }
 
     public function telefonoTutor(): ?string
     {
-        return $this->tutorUser?->telefono ?? $this->tutor_contacto_telefono;
+        return $this->usaCuentaPropia()
+            ? $this->tutor_contacto_telefono
+            : ($this->tutorUser?->telefono ?? $this->tutor_contacto_telefono);
     }
 
     public function tutorUser(): BelongsTo
