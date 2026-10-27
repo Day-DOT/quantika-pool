@@ -15,7 +15,7 @@
     <div class="section-header">
         <h3>Faltas pendientes de reposición este mes</h3>
         <span style="color:var(--muted); font-size:12px;">
-            Máximo {{ $maximoPorMes }} reposiciones por alumno al mes · solo niños y adultos (los bebés no reponen) · en grupos de su mismo nivel
+            Máximo {{ $maximoPorMes }} reposiciones por alumno al mes · solo niños y adultos (los bebés no reponen) · aquí puedes elegir cualquier grupo; los tutores solo ven los de su mismo nivel
         </span>
     </div>
 
@@ -54,16 +54,19 @@
                                 </td>
                                 <td>
                                     @php
-                                        // Solo niños y adultos reponen, y solo en grupos de su
-                                        // mismo nivel (deducido de los alumnos inscritos).
+                                        // La escuela puede reponer en cualquier grupo de la
+                                        // sucursal (los bebés no reponen). Los de su mismo nivel
+                                        // se listan primero y se marcan.
                                         $nivelAlumno = $falta->alumno?->nivel?->nombre;
                                         $admite = \App\Support\Reposiciones::admiteReposicion($falta->alumno);
                                         $horariosCompatibles = $admite
-                                            ? $horariosDisponibles->filter(
-                                                fn ($horario) => $horario->sucursal_id === $falta->sucursal_id
-                                                    && $horario->id !== $falta->horario_id
-                                                    && \App\Support\Reposiciones::grupoCompatible($horario, $falta->alumno)
-                                            )
+                                            ? $horariosDisponibles
+                                                ->filter(fn ($horario) => $horario->sucursal_id === $falta->sucursal_id && $horario->id !== $falta->horario_id)
+                                                ->map(fn ($horario) => [
+                                                    'horario' => $horario,
+                                                    'mismoNivel' => \App\Support\Reposiciones::grupoCompatible($horario, $falta->alumno),
+                                                ])
+                                                ->sortBy(fn ($opcion) => $opcion['mismoNivel'] ? 0 : 1)
                                             : collect();
                                     @endphp
                                     <form method="POST" action="{{ route('citas.reponer', $falta) }}" style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
@@ -73,14 +76,14 @@
                                                 @if (! $admite)
                                                     Las clases de bebés no tienen reposición
                                                 @elseif ($horariosCompatibles->isEmpty())
-                                                    No hay grupos de su nivel{{ $nivelAlumno ? ' ('.$nivelAlumno.')' : '' }}
+                                                    No hay grupos activos en la sucursal
                                                 @else
-                                                    Seleccionar grupo{{ $nivelAlumno ? ' · nivel '.$nivelAlumno : '' }}
+                                                    Seleccionar grupo{{ $nivelAlumno ? ' · su nivel: '.$nivelAlumno : '' }}
                                                 @endif
                                             </option>
-                                            @foreach ($horariosCompatibles as $horarioOpcion)
-                                                <option value="{{ $horarioOpcion->id }}">
-                                                    {{ $horarioOpcion->etiqueta() }}
+                                            @foreach ($horariosCompatibles as $opcion)
+                                                <option value="{{ $opcion['horario']->id }}">
+                                                    {{ $opcion['mismoNivel'] ? '★ Mismo nivel · ' : '' }}{{ $opcion['horario']->etiqueta() }}
                                                 </option>
                                             @endforeach
                                         </select>

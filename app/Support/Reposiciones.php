@@ -141,11 +141,12 @@ class Reposiciones
     /**
      * Revisa todas las reglas y devuelve [campo, mensaje] con el primer
      * motivo por el que la falta no se puede reponer en ese grupo y fecha,
-     * o null si la reposición es válida.
+     * o null si la reposición es válida. Cuando la programa la escuela no se
+     * exige que el grupo sea del mismo nivel.
      *
      * @return array{0: string, 1: string}|null
      */
-    public static function motivoDeRechazo(Cita $falta, Horario $horario, Carbon $fecha): ?array
+    public static function motivoDeRechazo(Cita $falta, Horario $horario, Carbon $fecha, bool $porLaEscuela = false): ?array
     {
         $alumno = $falta->alumno;
 
@@ -177,7 +178,9 @@ class Reposiciones
             return ['horario_id', 'El horario debe estar activo y pertenecer a la misma sucursal.'];
         }
 
-        if (! self::grupoCompatible($horario, $alumno)) {
+        // El tutor solo puede pedir grupos de su mismo nivel; la escuela puede
+        // reponer en el grupo que considere (por mantenimiento, cupo, etc.).
+        if (! $porLaEscuela && ! self::grupoCompatible($horario, $alumno)) {
             return ['horario_id', 'Solo se puede reponer en un grupo del mismo nivel del alumno.'];
         }
 

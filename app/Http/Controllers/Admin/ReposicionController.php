@@ -69,7 +69,7 @@ class ReposicionController extends Controller
         $horario = Horario::findOrFail($datos['horario_id']);
         $fecha = Carbon::parse($datos['fecha'])->startOfDay();
 
-        if ($motivo = Reposiciones::motivoDeRechazo($cita, $horario, $fecha)) {
+        if ($motivo = Reposiciones::motivoDeRechazo($cita, $horario, $fecha, porLaEscuela: true)) {
             return back()->withErrors([$motivo[0] => $motivo[1]]);
         }
 
@@ -103,7 +103,7 @@ class ReposicionController extends Controller
             return back()->withErrors(['solicitud' => 'La fecha que pidió el tutor ya pasó. Rechaza la solicitud para que pueda pedir otra.']);
         }
 
-        if ($motivo = Reposiciones::motivoDeRechazo($solicitud->falta, $solicitud->horario, $solicitud->fecha)) {
+        if ($motivo = Reposiciones::motivoDeRechazo($solicitud->falta, $solicitud->horario, $solicitud->fecha, porLaEscuela: true)) {
             return back()->withErrors(['solicitud' => "No se puede aprobar: {$motivo[1]}"]);
         }
 

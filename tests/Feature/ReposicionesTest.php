@@ -50,7 +50,7 @@ class ReposicionesTest extends TestCase
         $response->assertSee($alumno->nombreCompleto());
     }
 
-    public function test_los_horarios_de_reposicion_se_filtran_por_edad_sin_separar_sexo(): void
+    public function test_la_escuela_ve_todos_los_grupos_y_los_de_su_nivel_primero(): void
     {
         $sucursal = Sucursal::factory()->create();
         $admin = User::factory()->admin($sucursal->id)->create();
@@ -77,10 +77,10 @@ class ReposicionesTest extends TestCase
         $response = $this->actingAs($admin)->get(route('reposiciones.index'));
 
         $response->assertOk();
-        $response->assertSee('Grupo infantil disponible');
         $response->assertSee('Carril 2');
         $response->assertSee($instructor->user->name);
-        $response->assertDontSee('Grupo adulto no compatible');
+        // La escuela puede elegir cualquier grupo; los de su nivel van primero.
+        $response->assertSeeInOrder(['★ Mismo nivel · Grupo infantil disponible', 'Grupo adulto no compatible'], false);
     }
 
     public function test_admin_programa_una_reposicion_correctamente(): void

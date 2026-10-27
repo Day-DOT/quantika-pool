@@ -167,6 +167,33 @@ class PortalReposicionTest extends TestCase
             ->assertSessionHasErrors(['horario_id' => 'Solo se puede reponer en un grupo del mismo nivel del alumno.']);
     }
 
+    public function test_la_escuela_puede_reponer_en_un_grupo_de_otro_nivel_aunque_el_tutor_no(): void
+    {
+        $e = $this->crearEscenario();
+
+        // Grupo de otro nivel (por ejemplo, para mover por mantenimiento).
+        $otroNivel = Nivel::factory()->create(['categoria_edad' => 'Adultos']);
+        $grupoOtroNivel = $this->crearGrupo($e['sucursal'], $e['fecha'], 'Grupo De Otro Nivel');
+        $this->inscribirCompanero($grupoOtroNivel, $otroNivel);
+
+        // El tutor no lo ve ni lo puede pedir.
+        $this->solicitar($e, ['horario_id' => $grupoOtroNivel->id])->assertSessionHasErrors('horario_id');
+
+        // La escuela sí lo ve en su lista (los de su nivel van primero y marcados)…
+        $this->actingAs($e['admin'])
+            ->get(route('reposiciones.index'))
+            ->assertOk()
+            ->assertSeeInOrder(['★ Mismo nivel · Grupo Destino', 'Grupo De Otro Nivel'], false);
+
+        // …y puede programar ahí la reposición.
+        $this->actingAs($e['admin'])->post(route('citas.reponer', $e['falta']), [
+            'horario_id' => $grupoOtroNivel->id,
+            'fecha' => $e['fecha']->toDateString(),
+        ])->assertSessionHasNoErrors();
+
+        $this->assertSame($grupoOtroNivel->id, Cita::whereNotNull('reposicion_de_id')->sole()->horario_id);
+    }
+
     public function test_un_bebe_no_repone_aunque_tenga_nivel_de_ninos_si_esta_en_un_grupo_de_bebes(): void
     {
         $e = $this->crearEscenario();
