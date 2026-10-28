@@ -529,6 +529,13 @@
         font-weight: 700;
     }
 
+    /* Selector de fecha: el icono del navegador es negro y no se ve sobre el fondo oscuro. */
+    input[type="date"] { color-scheme: dark; }
+    input[type="date"]::-webkit-calendar-picker-indicator {
+        width: 20px; height: 20px; opacity: 1; cursor: pointer;
+        background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2342d5ee' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='4' width='18' height='18' rx='2'/%3E%3Cpath d='M16 2v4M8 2v4M3 10h18'/%3E%3C/svg%3E") center / 20px no-repeat;
+    }
+
     .field-label { display: block; color: var(--muted); font-size: 11px; font-weight: 800; letter-spacing: 1px; margin-bottom: 8px; text-transform: uppercase; }
 
     /* ===== CRITERIOS DE EVALUACIÓN (boleta) ===== */
