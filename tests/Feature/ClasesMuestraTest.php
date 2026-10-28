@@ -192,6 +192,43 @@ class ClasesMuestraTest extends TestCase
             ->assertSessionHasErrors(['horario_id' => 'Ese grupo ya no tiene cupo disponible para esa fecha.']);
     }
 
+    public function test_el_formulario_muestra_los_lugares_libres_de_cada_grupo_por_fecha(): void
+    {
+        $this->lunes->update(['capacidad_maxima' => 4]);
+        $inscrito = Alumno::factory()->create(['sucursal_id' => $this->sucursal->id]);
+        Inscripcion::factory()->create([
+            'alumno_id' => $inscrito->id,
+            'horario_id' => $this->lunes->id,
+            'fecha_inicio' => today()->subMonth(),
+            'activa' => true,
+        ]);
+
+        // El 19/10 ya hay una clase muestra y una clase extra; el 26/10 nada más.
+        $this->actingAs($this->admin)->post(route('clases-muestra.store'), $this->datos(['fecha' => '2026-10-19']));
+        \App\Models\Cita::create([
+            'horario_id' => $this->lunes->id,
+            'alumno_id' => Alumno::factory()->create(['sucursal_id' => $this->sucursal->id])->id,
+            'sucursal_id' => $this->sucursal->id,
+            'fecha' => '2026-10-19',
+            'hora_inicio' => '16:00:00',
+            'hora_fin' => '17:00:00',
+            'estado' => 'programada',
+            'es_extra' => true,
+        ]);
+
+        $cupos = $this->actingAs($this->admin)->get(route('horarios.index'))->assertOk()->viewData('cuposClaseMuestra');
+
+        $this->assertSame(3, $cupos[$this->lunes->id]['2026-10-12']);
+        $this->assertSame(1, $cupos[$this->lunes->id]['2026-10-19']);
+        $this->assertSame(3, $cupos[$this->lunes->id]['2026-10-26']);
+        $this->assertArrayNotHasKey('2026-10-13', $cupos[$this->lunes->id]);
+
+        // Coincide con el cupo que se revisa al guardar.
+        foreach ($cupos[$this->lunes->id] as $fecha => $libres) {
+            $this->assertSame(\App\Support\Reposiciones::cupoDisponible($this->lunes, Carbon::parse($fecha)), $libres, $fecha);
+        }
+    }
+
     public function test_no_se_agenda_en_un_dia_distinto_al_del_grupo_ni_en_el_pasado(): void
     {
         $this->actingAs($this->admin)

@@ -1823,17 +1823,24 @@
             <input type="email" name="email" value="{{ old('email') }}" maxlength="150" style="{{ $campoEstilo }}" placeholder="Opcional">
 
             <label>Grupo</label>
-            <select name="horario_id" required style="{{ $campoEstilo }}">
+            <select name="horario_id" required style="{{ $campoEstilo }}" onchange="elegirGrupoClaseMuestra()">
                 <option value="">Seleccionar grupo</option>
                 @foreach ($horariosExistentes as $horarioOpcion)
-                    <option value="{{ $horarioOpcion->id }}" @selected((string) old('horario_id') === (string) $horarioOpcion->id && old('_form') === 'clase_muestra')>
+                    <option value="{{ $horarioOpcion->id }}"
+                            data-etiqueta="{{ $horarioOpcion->etiqueta() }}"
+                            data-capacidad="{{ $horarioOpcion->capacidad_maxima }}"
+                            @selected((string) old('horario_id') === (string) $horarioOpcion->id && old('_form') === 'clase_muestra')>
                         {{ $horarioOpcion->etiqueta() }}
                     </option>
                 @endforeach
             </select>
 
             <label>Fecha</label>
-            <input type="date" name="fecha" value="{{ old('_form') === 'clase_muestra' ? old('fecha') : '' }}" required min="{{ today()->toDateString() }}" style="{{ $campoEstilo }}">
+            <input type="date" name="fecha" value="{{ old('_form') === 'clase_muestra' ? old('fecha') : '' }}" required
+                   min="{{ today()->toDateString() }}" max="{{ $finClaseMuestra->toDateString() }}"
+                   style="{{ $campoEstilo }}" onchange="actualizarCuposClaseMuestra()">
+
+            <p id="cupoClaseMuestra" style="font-size:12px; font-weight:800; margin:-6px 0 12px;"></p>
 
             <p style="color:var(--muted); font-size:12px; margin:-4px 0 12px;">
                 La clase muestra es gratuita y ocupa un lugar del grupo solo ese día. El instructor verá el nombre y la edad.
@@ -2090,8 +2097,95 @@ function claseMuestraDesdeCalendario(horarioId) {
     abrirModalHorario('muestra');
     const formulario = document.getElementById('formClaseMuestra');
     formulario.elements.namedItem('horario_id').value = horarioId;
-    formulario.elements.namedItem('fecha').value = detallesClases[horarioId]?.proxima_fecha || '';
+    formulario.elements.namedItem('fecha').value = '';
+    elegirGrupoClaseMuestra();
 }
+
+// Lugares libres por grupo y fecha: {horarioId: {'2026-11-02': 3, ...}}.
+const cuposClaseMuestra = @json((object) $cuposClaseMuestra);
+
+function fechaCortaClaseMuestra(fecha) {
+    const [anio, mes, dia] = fecha.split('-');
+    const nombre = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'][new Date(anio, mes - 1, dia).getDay()];
+    return `${nombre} ${dia}/${mes}`;
+}
+
+function textoLugares(libres, capacidad) {
+    return libres > 0 ? `${libres} de ${capacidad} lugares libres` : 'Sin lugares';
+}
+
+// Al elegir grupo se propone su próxima fecha con lugar (si la fecha
+// capturada no es de ese grupo) y se actualizan los cupos.
+function elegirGrupoClaseMuestra() {
+    const formulario = document.getElementById('formClaseMuestra');
+    const grupo = formulario.elements.namedItem('horario_id').value;
+    const campoFecha = formulario.elements.namedItem('fecha');
+    const fechasDelGrupo = cuposClaseMuestra[grupo] || {};
+
+    if (grupo && ! (campoFecha.value in fechasDelGrupo)) {
+        const conLugar = Object.keys(fechasDelGrupo).find(function (fecha) { return fechasDelGrupo[fecha] > 0; });
+        campoFecha.value = conLugar || Object.keys(fechasDelGrupo)[0] || '';
+    }
+
+    actualizarCuposClaseMuestra();
+}
+
+// Cada grupo muestra sus lugares libres en la fecha elegida si da clase ese
+// día; si no, los de su próxima clase (al elegirlo, la fecha cambia a esa).
+// Un grupo lleno en la fecha elegida no se puede seleccionar.
+function actualizarCuposClaseMuestra() {
+    const formulario = document.getElementById('formClaseMuestra');
+    const selector = formulario.elements.namedItem('horario_id');
+    const fecha = formulario.elements.namedItem('fecha').value;
+    const aviso = document.getElementById('cupoClaseMuestra');
+    let gruposDelDia = 0;
+    let conLugar = 0;
+
+    Array.from(selector.options).forEach(function (opcion, indice) {
+        if (indice === 0) {
+            return;
+        }
+
+        const fechas = cuposClaseMuestra[opcion.value] || {};
+        const capacidad = opcion.dataset.capacidad;
+
+        if (fecha && fecha in fechas) {
+            gruposDelDia++;
+            conLugar += fechas[fecha] > 0 ? 1 : 0;
+            opcion.disabled = fechas[fecha] <= 0;
+            opcion.textContent = `${opcion.dataset.etiqueta} · ${fechaCortaClaseMuestra(fecha)}: ${textoLugares(fechas[fecha], capacidad)}`;
+        } else {
+            const proxima = Object.keys(fechas).find(function (dia) { return fechas[dia] > 0; }) || Object.keys(fechas)[0];
+            opcion.disabled = false;
+            opcion.textContent = proxima
+                ? `${opcion.dataset.etiqueta} · ${fechaCortaClaseMuestra(proxima)}: ${textoLugares(fechas[proxima], capacidad)}`
+                : opcion.dataset.etiqueta;
+        }
+    });
+
+    const elegido = selector.selectedOptions[0];
+    if (selector.value && elegido && elegido.disabled) {
+        selector.value = '';
+    }
+
+    if (! fecha) {
+        aviso.textContent = '';
+    } else if (selector.value && fecha in (cuposClaseMuestra[selector.value] || {})) {
+        const libres = cuposClaseMuestra[selector.value][fecha];
+        aviso.textContent = `${fechaCortaClaseMuestra(fecha)}: ${textoLugares(libres, selector.selectedOptions[0].dataset.capacidad)}`;
+        aviso.style.color = libres > 0 ? 'var(--cyan)' : '#ff9aa1';
+    } else if (selector.value) {
+        aviso.textContent = `Ese grupo no da clase el ${fechaCortaClaseMuestra(fecha)}.`;
+        aviso.style.color = '#ff9aa1';
+    } else {
+        aviso.textContent = gruposDelDia === 0
+            ? `Ningún grupo da clase el ${fechaCortaClaseMuestra(fecha)}.`
+            : (conLugar > 0 ? `${conLugar} de ${gruposDelDia} grupos del ${fechaCortaClaseMuestra(fecha)} tienen lugar.` : `Todos los grupos del ${fechaCortaClaseMuestra(fecha)} están llenos.`);
+        aviso.style.color = conLugar > 0 ? 'var(--muted)' : '#ff9aa1';
+    }
+}
+
+document.addEventListener('DOMContentLoaded', actualizarCuposClaseMuestra);
 
 function eliminarClase(horarioId) {
     if (! confirm('¿Eliminar esta clase? Si tiene alumnos inscritos o clases futuras, el sistema lo impedirá.')) {

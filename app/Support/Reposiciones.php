@@ -4,6 +4,7 @@ namespace App\Support;
 
 use App\Enums\EstadoAlumno;
 use App\Enums\EstadoCita;
+use App\Enums\EstadoClaseMuestra;
 use App\Models\Alumno;
 use App\Models\Cita;
 use App\Models\ClaseMuestra;
@@ -138,6 +139,65 @@ class Reposiciones
         $muestras = ClaseMuestra::delDia($horario->id, $fecha)->count();
 
         return max(0, $horario->capacidad_maxima - $inscritos - $visitantes - $muestras);
+    }
+
+    /**
+     * Lugares libres de varios grupos en cada fecha en que dan clase dentro
+     * del rango, con el mismo criterio que cupoDisponible pero en pocas
+     * consultas. Devuelve [horario_id => ['Y-m-d' => lugares libres]].
+     *
+     * @param  Collection<int, Horario>  $horarios
+     * @return array<int, array<string, int>>
+     */
+    public static function cuposEnRango(Collection $horarios, Carbon $desde, Carbon $hasta): array
+    {
+        $ids = $horarios->modelKeys();
+        $desde = $desde->copy()->startOfDay();
+        $hasta = $hasta->copy()->startOfDay();
+
+        $inscritos = Inscripcion::whereIn('horario_id', $ids)->where('activa', true)
+            ->get(['horario_id'])->countBy('horario_id');
+
+        $porFecha = fn ($registro) => $registro->horario_id.'|'.$registro->fecha->toDateString();
+
+        $visitantes = Cita::query()
+            ->whereIn('citas.horario_id', $ids)
+            ->whereDate('citas.fecha', '>=', $desde)
+            ->whereDate('citas.fecha', '<=', $hasta)
+            ->whereNotIn('citas.estado', [EstadoCita::Cancelada->value, EstadoCita::Reagendada->value])
+            ->whereNotExists(fn ($inscrito) => $inscrito
+                ->selectRaw('1')
+                ->from('inscripciones')
+                ->whereColumn('inscripciones.alumno_id', 'citas.alumno_id')
+                ->whereColumn('inscripciones.horario_id', 'citas.horario_id')
+                ->where('inscripciones.activa', true))
+            ->get(['citas.horario_id', 'citas.fecha'])
+            ->countBy($porFecha);
+
+        $muestras = ClaseMuestra::query()
+            ->whereIn('horario_id', $ids)
+            ->whereDate('fecha', '>=', $desde)
+            ->whereDate('fecha', '<=', $hasta)
+            ->where('estado', '!=', EstadoClaseMuestra::Cancelada->value)
+            ->get(['horario_id', 'fecha'])
+            ->countBy($porFecha);
+
+        $cupos = [];
+
+        foreach ($horarios as $horario) {
+            $fecha = $desde->copy()->addDays(($horario->dia_semana->value - $desde->isoWeekday() + 7) % 7);
+
+            for (; $fecha->lte($hasta); $fecha->addWeek()) {
+                $clave = $horario->id.'|'.$fecha->toDateString();
+
+                $cupos[$horario->id][$fecha->toDateString()] = max(0, $horario->capacidad_maxima
+                    - $inscritos->get($horario->id, 0)
+                    - $visitantes->get($clave, 0)
+                    - $muestras->get($clave, 0));
+            }
+        }
+
+        return $cupos;
     }
 
     /**

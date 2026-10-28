@@ -20,6 +20,7 @@ use App\Models\Instructor;
 use App\Models\Nivel;
 use App\Models\Sucursal;
 use App\Support\ClasesDelAlumno;
+use App\Support\Reposiciones;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Carbon;
@@ -31,6 +32,9 @@ class HorarioController extends Controller
 {
     use AuthorizesRequests;
     use ScopesSucursal;
+
+    /** Semanas hacia adelante en que se puede agendar una clase muestra. */
+    private const SEMANAS_PARA_CLASE_MUESTRA = 8;
 
     public function index(): View
     {
@@ -145,8 +149,6 @@ class HorarioController extends Controller
                     // se propone al registrar una asistencia o falta a mano.
                     'ultima_fecha' => today()->subDays((today()->isoWeekday() - $horario->dia_semana->value + 7) % 7)->toDateString(),
                     'fecha_semana' => ClasesDelAlumno::fechaCorta($cambiosSemana[$horario->id]['fecha']),
-                    // Próxima fecha (desde hoy) del grupo: se propone al agendar una clase muestra.
-                    'proxima_fecha' => today()->addDays(($horario->dia_semana->value - today()->isoWeekday() + 7) % 7)->toDateString(),
                     'muestras_semana' => $cambiosSemana[$horario->id]['muestras']->map(fn (ClaseMuestra $muestra) => [
                         'nombre' => $muestra->descripcionCorta(),
                         'tutor' => $muestra->nombre_tutor,
@@ -182,6 +184,9 @@ class HorarioController extends Controller
             'esVistaGlobal' => $this->sucursalId() === null,
             'sucursalesTodas' => Sucursal::orderBy('nombre')->get(),
             'clasesParaReagendar' => $clasesParaReagendar,
+            // Lugares libres por grupo y fecha para elegir dónde agendar una clase muestra.
+            'cuposClaseMuestra' => Reposiciones::cuposEnRango($horarios, today(), today()->addWeeks(self::SEMANAS_PARA_CLASE_MUESTRA)),
+            'finClaseMuestra' => today()->addWeeks(self::SEMANAS_PARA_CLASE_MUESTRA),
         ]);
     }
 
