@@ -4,8 +4,10 @@ namespace App\Support;
 
 use App\Enums\EstadoAlumno;
 use App\Enums\EstadoCita;
+use App\Enums\EstadoClaseMuestra;
 use App\Models\Alumno;
 use App\Models\Cita;
+use App\Models\ClaseMuestra;
 use App\Models\Horario;
 use App\Models\Inscripcion;
 use App\Models\User;
@@ -499,11 +501,11 @@ class ClasesDelAlumno
     /**
      * Cambios de una semana en varios grupos, para mostrarlos donde se ve la
      * lista fija de inscritos: quién no viene esa semana (movió su clase o
-     * avisó que faltará) y quién viene solo esa vez (clase extra, reposición
-     * o reagendada desde otro grupo).
+     * avisó que faltará), quién viene solo esa vez (clase extra, reposición
+     * o reagendada desde otro grupo) y las clases muestra de esa semana.
      *
      * @param  Collection<int, Horario>  $horarios
-     * @return array<int, array{fecha: Carbon, noVienen: Collection<int, array{cita: Cita, motivo: string}>, vienen: Collection<int, array{cita: Cita, motivo: string}>}>
+     * @return array<int, array{fecha: Carbon, noVienen: Collection<int, array{cita: Cita, motivo: string}>, vienen: Collection<int, array{cita: Cita, motivo: string}>, muestras: Collection<int, ClaseMuestra>}>
      */
     public static function cambiosDeLaSemana(Collection $horarios, Carbon $inicioSemana): array
     {
@@ -522,6 +524,14 @@ class ClasesDelAlumno
             ->get(['horario_id', 'alumno_id'])
             ->groupBy('horario_id')
             ->map(fn (Collection $grupo) => $grupo->pluck('alumno_id')->all());
+
+        $muestras = ClaseMuestra::query()
+            ->whereIn('horario_id', $ids)
+            ->whereDate('fecha', '>=', $inicioSemana)
+            ->whereDate('fecha', '<=', $inicioSemana->copy()->addDays(6))
+            ->where('estado', '!=', EstadoClaseMuestra::Cancelada->value)
+            ->orderBy('nombre_alumno')
+            ->get();
 
         $cambios = [];
 
@@ -562,7 +572,12 @@ class ClasesDelAlumno
                 ])
                 ->values();
 
-            $cambios[$horario->id] = ['fecha' => $fecha, 'noVienen' => $noVienen, 'vienen' => $vienen];
+            $cambios[$horario->id] = [
+                'fecha' => $fecha,
+                'noVienen' => $noVienen,
+                'vienen' => $vienen,
+                'muestras' => $muestras->filter(fn (ClaseMuestra $muestra) => $muestra->horario_id === $horario->id && $muestra->fecha->isSameDay($fecha))->values(),
+            ];
         }
 
         return $cambios;

@@ -15,6 +15,7 @@ use App\Models\Nivel;
 use App\Models\Pago;
 use App\Models\Sucursal;
 use App\Support\ClasesDelAlumno;
+use App\Support\Cumpleanos;
 use App\Support\SucursalContext;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
@@ -46,6 +47,7 @@ class DashboardController extends Controller
             'calendarioSemana' => $this->calendarioSemana($sucursalId),
             'reservasPendientesCount' => $this->reservasPendientesCount($sucursalId),
             'deudoresCount' => $this->deudoresCount($sucursalId),
+            'cumpleanosProximos' => Cumpleanos::proximos($sucursalId),
         ]);
     }
 

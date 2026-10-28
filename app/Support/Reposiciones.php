@@ -6,6 +6,7 @@ use App\Enums\EstadoAlumno;
 use App\Enums\EstadoCita;
 use App\Models\Alumno;
 use App\Models\Cita;
+use App\Models\ClaseMuestra;
 use App\Models\Horario;
 use App\Models\Inscripcion;
 use App\Models\SolicitudReposicion;
@@ -128,14 +129,15 @@ class Reposiciones
 
     /**
      * Lugares libres de un grupo en una fecha: descuenta a los inscritos y
-     * a quienes van solo ese día (reposiciones y clases extra).
+     * a quienes van solo ese día (reposiciones, clases extra y clases muestra).
      */
     public static function cupoDisponible(Horario $horario, Carbon $fecha): int
     {
         $inscritos = Inscripcion::where('horario_id', $horario->id)->where('activa', true)->count();
         $visitantes = Cita::visitantesDelDia($horario->id, $fecha)->count();
+        $muestras = ClaseMuestra::delDia($horario->id, $fecha)->count();
 
-        return max(0, $horario->capacidad_maxima - $inscritos - $visitantes);
+        return max(0, $horario->capacidad_maxima - $inscritos - $visitantes - $muestras);
     }
 
     /**

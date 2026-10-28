@@ -1316,6 +1316,35 @@
             </div>
 
 
+            <div class="class-row" style="cursor:pointer;" role="button" tabindex="0" onclick="abrirModalHorario('muestra')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();abrirModalHorario('muestra');}">
+
+                <div class="class-row-left">
+
+                    <div class="mini-icon">
+                        ★
+                    </div>
+
+                    <div>
+
+                        <strong>
+                            Clase muestra
+                        </strong>
+
+                        <small>
+                            Agendar una clase gratuita de prueba
+                        </small>
+
+                    </div>
+
+                </div>
+
+                <span class="horario-status">
+                    Agendar
+                </span>
+
+            </div>
+
+
             <div class="class-row" style="cursor:pointer;" role="button" tabindex="0" onclick="abrirModalHorario('cambiar-grupo')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();abrirModalHorario('cambiar-grupo');}">
 
                 <div class="class-row-left">
@@ -1764,6 +1793,59 @@
             </div>
         </form>
 
+        {{-- FORMULARIO: CLASE MUESTRA (gratuita, para quien todavía no es alumno) --}}
+        <form id="formClaseMuestra" method="POST" action="{{ route('clases-muestra.store') }}" style="display:none;">
+            @csrf
+            <input type="hidden" name="_form" value="clase_muestra">
+
+            @if ($errors->has('clase_muestra_repetida'))
+                <div style="margin-bottom:14px;padding:12px 16px;border-radius:12px;background:rgba(255,189,32,.10);border:1px solid rgba(255,189,32,.40);color:#ffd36b;font-size:12px;">
+                    <label style="display:flex;gap:8px;align-items:center;margin:0;cursor:pointer;">
+                        <input type="checkbox" name="confirmar_repetida" value="1">
+                        Agendar de todos modos
+                    </label>
+                </div>
+            @endif
+
+            <label>Nombre del alumno</label>
+            <input type="text" name="nombre_alumno" value="{{ old('nombre_alumno') }}" required maxlength="120" style="{{ $campoEstilo }}" placeholder="Nombre y apellidos">
+
+            <label>Edad</label>
+            <input type="number" name="edad" value="{{ old('edad') }}" required min="0" max="99" style="{{ $campoEstilo }}" placeholder="Años cumplidos">
+
+            <label>Nombre del tutor</label>
+            <input type="text" name="nombre_tutor" value="{{ old('nombre_tutor') }}" required maxlength="120" style="{{ $campoEstilo }}">
+
+            <label>Teléfono</label>
+            <input type="tel" name="telefono" value="{{ old('telefono') }}" required maxlength="30" style="{{ $campoEstilo }}" placeholder="10 dígitos">
+
+            <label>Correo electrónico</label>
+            <input type="email" name="email" value="{{ old('email') }}" maxlength="150" style="{{ $campoEstilo }}" placeholder="Opcional">
+
+            <label>Grupo</label>
+            <select name="horario_id" required style="{{ $campoEstilo }}">
+                <option value="">Seleccionar grupo</option>
+                @foreach ($horariosExistentes as $horarioOpcion)
+                    <option value="{{ $horarioOpcion->id }}" @selected((string) old('horario_id') === (string) $horarioOpcion->id && old('_form') === 'clase_muestra')>
+                        {{ $horarioOpcion->etiqueta() }}
+                    </option>
+                @endforeach
+            </select>
+
+            <label>Fecha</label>
+            <input type="date" name="fecha" value="{{ old('_form') === 'clase_muestra' ? old('fecha') : '' }}" required min="{{ today()->toDateString() }}" style="{{ $campoEstilo }}">
+
+            <p style="color:var(--muted); font-size:12px; margin:-4px 0 12px;">
+                La clase muestra es gratuita y ocupa un lugar del grupo solo ese día. El instructor verá el nombre y la edad.
+                Se revisa el <a href="{{ route('clases-muestra.index') }}" style="color:var(--cyan);">historial</a>
+                para avisar si la persona ya tomó una antes.
+            </p>
+
+            <div style="display:flex;gap:12px;margin-top:6px;">
+                <button type="submit" class="btn-modal-submit">Agendar clase muestra</button>
+            </div>
+        </form>
+
     </div>
 
 </div>
@@ -1832,6 +1914,7 @@ function abrirModalHorario(tipo) {
     document.getElementById('formEditarHorario').style.display = 'none';
     document.getElementById('formAsignarAlumno').style.display = 'none';
     document.getElementById('formCambiarGrupo').style.display = 'none';
+    document.getElementById('formClaseMuestra').style.display = 'none';
 
     const titulo = document.getElementById('modalHorarioTitulo');
 
@@ -1847,6 +1930,9 @@ function abrirModalHorario(tipo) {
     } else if (tipo === 'asignar') {
         titulo.textContent = 'Asignar alumno a una clase';
         document.getElementById('formAsignarAlumno').style.display = 'block';
+    } else if (tipo === 'muestra') {
+        titulo.textContent = 'Agendar clase muestra';
+        document.getElementById('formClaseMuestra').style.display = 'block';
     } else {
         titulo.textContent = 'Cambiar grupo';
         document.getElementById('formCambiarGrupo').style.display = 'block';
@@ -1920,6 +2006,13 @@ function abrirDetalleClase(horarioId) {
             <div class="class-students">${clase.vienen_esta_semana.map(function (visita) {
                 return `<div class="class-student"><div><strong>${escapeHtml(visita.nombre)}</strong><small>${escapeHtml(visita.motivo)}</small></div></div>`;
             }).join('')}</div>
+        </div>` : ''}
+        ${(clase.muestras_semana || []).length ? `
+        <div style="margin-top:14px;">
+            <h3 style="font-size:14px;margin-bottom:9px;">Clases muestra esta semana (${escapeHtml(clase.fecha_semana)})</h3>
+            <div class="class-students">${clase.muestras_semana.map(function (muestra) {
+                return `<div class="class-student"><div><strong>★ ${escapeHtml(muestra.nombre)}</strong><small>Tutor: ${escapeHtml(muestra.tutor)} · ${escapeHtml(muestra.telefono)}</small></div></div>`;
+            }).join('')}</div>
         </div>` : ''}`;
     if (alumnos.length) {
         document.getElementById('detalleClaseContenido').insertAdjacentHTML('beforeend', `
@@ -1970,6 +2063,7 @@ function abrirDetalleClase(horarioId) {
         </form>
         <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:16px;">
             <button type="button" class="btn-modal-submit" onclick="asignarDesdeCalendario(${horarioId})">Asignar alumno a esta clase</button>
+            <button type="button" class="btn-modal-submit" onclick="claseMuestraDesdeCalendario(${horarioId})">Agendar clase muestra</button>
             <button type="button" class="btn-modal-submit" style="background:#7b3541;" onclick="eliminarClase(${horarioId})">Eliminar clase</button>
         </div>`);
     document.getElementById('detalleClaseOverlay').style.display = 'flex';
@@ -1989,6 +2083,14 @@ function asignarDesdeCalendario(horarioId) {
     cerrarDetalleClase();
     abrirModalHorario('asignar');
     document.querySelector('#formAsignarAlumno select[name="horario_id"]').value = horarioId;
+}
+
+function claseMuestraDesdeCalendario(horarioId) {
+    cerrarDetalleClase();
+    abrirModalHorario('muestra');
+    const formulario = document.getElementById('formClaseMuestra');
+    formulario.elements.namedItem('horario_id').value = horarioId;
+    formulario.elements.namedItem('fecha').value = detallesClases[horarioId]?.proxima_fecha || '';
 }
 
 function eliminarClase(horarioId) {
@@ -2046,8 +2148,12 @@ function escapeHtml(value) {
 }
 
 @if ($errors->any())
-    document.addEventListener('DOMContentLoaded', function () { abrirModalHorario('crear'); });
+    document.addEventListener('DOMContentLoaded', function () { abrirModalHorario(@json(old('_form') === 'clase_muestra' ? 'muestra' : 'crear')); });
 @endif
+
+if (window.location.hash === '#clase-muestra') {
+    document.addEventListener('DOMContentLoaded', function () { abrirModalHorario('muestra'); });
+}
 
 </script>
 @endpush

@@ -257,6 +257,9 @@
                             @foreach ($cambios['vienen'] as $visita)
                                 <div class="grupo-meta" style="color:var(--cyan);">+ {{ $visita['cita']->alumno?->nombreCompleto() }} · {{ $visita['motivo'] }}</div>
                             @endforeach
+                            @foreach ($cambios['muestras'] as $muestra)
+                                <div class="grupo-meta" style="color:var(--yellow);">★ {{ $muestra->descripcionCorta() }} · Clase muestra</div>
+                            @endforeach
                             <span class="badge {{ $completa ? 'badge-green' : 'badge-yellow' }}" style="margin-top:10px;">
                                 {{ $completa ? '● Asistencia completa' : '● Pendiente de asistencia' }}
                             </span>
@@ -312,12 +315,16 @@
                                 @php
                                     $cambios = $cambiosSemana[$horario->id];
                                 @endphp
-                                @if ($cambios['noVienen']->isNotEmpty() || $cambios['vienen']->isNotEmpty())
+                                @php
+                                    $resumenSemana = array_filter([
+                                        $cambios['noVienen']->isNotEmpty() ? $cambios['noVienen']->count().' no viene(n)' : null,
+                                        $cambios['vienen']->isNotEmpty() ? '+'.$cambios['vienen']->count().' solo esta vez' : null,
+                                        $cambios['muestras']->isNotEmpty() ? '★ '.$cambios['muestras']->count().' clase(s) muestra' : null,
+                                    ]);
+                                @endphp
+                                @if ($resumenSemana)
                                     <div class="grupo-meta" style="color:var(--yellow);">
-                                        Esta semana ({{ \App\Support\ClasesDelAlumno::fechaCorta($cambios['fecha']) }}):
-                                        @if ($cambios['noVienen']->isNotEmpty()) {{ $cambios['noVienen']->count() }} no viene(n) @endif
-                                        @if ($cambios['noVienen']->isNotEmpty() && $cambios['vienen']->isNotEmpty()) · @endif
-                                        @if ($cambios['vienen']->isNotEmpty()) +{{ $cambios['vienen']->count() }} solo esta vez @endif
+                                        Esta semana ({{ \App\Support\ClasesDelAlumno::fechaCorta($cambios['fecha']) }}): {{ implode(' · ', $resumenSemana) }}
                                     </div>
                                 @endif
                             </a>

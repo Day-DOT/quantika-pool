@@ -80,6 +80,14 @@
                                         @endforeach
                                     </div>
                                 @endif
+                                @if ($cambiosSemana[$horario->id]['muestras']->isNotEmpty())
+                                    <div style="margin-top:8px;font-size:12px;">
+                                        <strong style="color:var(--yellow);">★ Clase muestra ({{ \App\Support\ClasesDelAlumno::fechaCorta($cambiosSemana[$horario->id]['fecha']) }}):</strong>
+                                        @foreach ($cambiosSemana[$horario->id]['muestras'] as $muestra)
+                                            <div>{{ $muestra->descripcionCorta() }} · Clase muestra</div>
+                                        @endforeach
+                                    </div>
+                                @endif
                             </div>
 
                         @endforeach

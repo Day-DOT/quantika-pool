@@ -529,6 +529,8 @@
                 </div>
             </a>
 
+            @include('quantika.partials.acceso-cumpleanos')
+
             <a href="{{ route('horarios.index') }}" class="quick-link-card">
                 <div class="quick-link-icon">▣</div>
                 <div>
@@ -790,6 +792,11 @@
                             @foreach ($fila['vienen'] as $visita)
                                 <div style="font-size:11px;color:var(--cyan);font-weight:700;margin-top:4px;">
                                     + {{ $visita['cita']->alumno?->nombreCompleto() }} · {{ $visita['motivo'] }}
+                                </div>
+                            @endforeach
+                            @foreach ($fila['muestras'] as $muestra)
+                                <div style="font-size:11px;color:var(--cyan);font-weight:700;margin-top:4px;">
+                                    ★ {{ $muestra->descripcionCorta() }} · Clase muestra
                                 </div>
                             @endforeach
                             <span class="week-class-cupo {{ $fila['cupoDisponible'] <= 0 ? 'full' : ($fila['cupoDisponible'] <= 2 ? 'low' : 'ok') }}">

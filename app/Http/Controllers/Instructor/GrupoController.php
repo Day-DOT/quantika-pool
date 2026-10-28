@@ -3,11 +3,13 @@
 namespace App\Http\Controllers\Instructor;
 
 use App\Enums\EstadoCita;
+use App\Enums\EstadoClaseMuestra;
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\Instructor\Concerns\ResuelveInstructor;
 use App\Http\Requests\Instructor\MarcarAsistenciaRequest;
 use App\Models\Alumno;
 use App\Models\Cita;
+use App\Models\ClaseMuestra;
 use App\Models\Horario;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\RedirectResponse;
@@ -53,6 +55,7 @@ class GrupoController extends Controller
         return view('quantika.instructor.grupos.show', [
             'horario' => $horario,
             'alumnos' => $alumnos,
+            'clasesMuestra' => ClaseMuestra::delDia($horario->id, $hoy)->orderBy('nombre_alumno')->get(),
             'citasHoy' => $citasHoy,
             'inscritosIds' => $inscritosIds,
             'hoy' => $hoy,
@@ -112,5 +115,26 @@ class GrupoController extends Controller
         $cita->save();
 
         return back()->with('status', 'Asistencia registrada para '.$alumno->nombreCompleto().'.');
+    }
+
+    /**
+     * Marca si quien venía a su clase muestra de hoy asistió o no.
+     */
+    public function marcarAsistenciaMuestra(Request $request, Horario $horario, ClaseMuestra $claseMuestra): RedirectResponse
+    {
+        $this->instructorActivo($request);
+        $this->authorize('view', $horario);
+
+        abort_unless(
+            $claseMuestra->horario_id === $horario->id
+                && $claseMuestra->fecha->isToday()
+                && $claseMuestra->estado !== EstadoClaseMuestra::Cancelada,
+            404
+        );
+
+        $estado = $request->boolean('asistio') ? EstadoClaseMuestra::Asistio : EstadoClaseMuestra::NoAsistio;
+        $claseMuestra->update(['estado' => $estado->value]);
+
+        return back()->with('status', "Clase muestra de {$claseMuestra->nombre_alumno}: {$estado->label()}.");
     }
 }

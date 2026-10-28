@@ -27,6 +27,9 @@ Route::middleware(['auth', 'role:instructor'])->group(function () {
     Route::post('/instructor/grupos/{horario}/alumnos/{alumno}/asistencia', [GrupoController::class, 'marcarAsistencia'])
         ->name('instructor.grupos.asistencia');
 
+    Route::post('/instructor/grupos/{horario}/clases-muestra/{claseMuestra}/asistencia', [GrupoController::class, 'marcarAsistenciaMuestra'])
+        ->name('instructor.grupos.muestra.asistencia');
+
     Route::get('/instructor/alumnos', [AlumnoController::class, 'index'])
         ->name('instructor.alumnos.index');
 

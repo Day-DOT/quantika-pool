@@ -142,4 +142,61 @@
 
     @endif
 
+    @if ($clasesMuestra->isNotEmpty())
+
+        <div class="section-header" style="margin-top:24px;">
+            <h3>★ Clases muestra de hoy</h3>
+        </div>
+
+        <div class="card">
+            <div class="table-wrap">
+                <table class="quantika-table">
+                    <thead>
+                        <tr>
+                            <th>Nombre</th>
+                            <th>Edad</th>
+                            <th>Asistencia de hoy</th>
+                            <th>Marcar asistencia</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach ($clasesMuestra as $muestra)
+                            <tr>
+                                <td>
+                                    <div class="person-name">{{ $muestra->nombre_alumno }}</div>
+                                    <span class="badge badge-yellow">Clase muestra · solo hoy</span>
+                                </td>
+                                <td>{{ $muestra->edad }} {{ $muestra->edad === 1 ? 'año' : 'años' }}</td>
+                                <td>
+                                    @if ($muestra->estado === \App\Enums\EstadoClaseMuestra::Asistio)
+                                        <span class="badge badge-green">● Asistió</span>
+                                    @elseif ($muestra->estado === \App\Enums\EstadoClaseMuestra::NoAsistio)
+                                        <span class="badge badge-red">● No asistió</span>
+                                    @else
+                                        <span class="badge badge-muted">Sin registrar</span>
+                                    @endif
+                                </td>
+                                <td>
+                                    <div style="display:flex; gap:6px; flex-wrap:wrap;">
+                                        <form method="POST" action="{{ route('instructor.grupos.muestra.asistencia', [$horario, $muestra]) }}">
+                                            @csrf
+                                            <input type="hidden" name="asistio" value="1">
+                                            <button type="submit" class="btn btn-sm btn-outline">Asistió</button>
+                                        </form>
+                                        <form method="POST" action="{{ route('instructor.grupos.muestra.asistencia', [$horario, $muestra]) }}">
+                                            @csrf
+                                            <input type="hidden" name="asistio" value="0">
+                                            <button type="submit" class="btn btn-sm btn-no">No asistió</button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    @endif
+
 @endsection

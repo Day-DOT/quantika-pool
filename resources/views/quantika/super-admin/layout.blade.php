@@ -790,6 +790,10 @@
                     <div class="menu-icon">↻</div>
                     <span>Reposiciones de clases</span>
                 </a>
+                <a href="{{ route('clases-muestra.index') }}" class="menu-item {{ request()->routeIs('clases-muestra.*') ? 'active' : '' }}">
+                    <div class="menu-icon">★</div>
+                    <span>Clases muestra</span>
+                </a>
                 <a href="{{ route('evaluaciones.index') }}" class="menu-item {{ request()->routeIs('evaluaciones.*') ? 'active' : '' }}">
                     <div class="menu-icon">📈</div>
                     <span>Evaluaciones</span>

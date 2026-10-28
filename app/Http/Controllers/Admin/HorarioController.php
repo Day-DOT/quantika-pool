@@ -13,6 +13,7 @@ use App\Http\Requests\Admin\ReagendarHorarioRequest;
 use App\Http\Requests\Admin\StoreHorarioRequest;
 use App\Models\Alumno;
 use App\Models\Carril;
+use App\Models\ClaseMuestra;
 use App\Models\Horario;
 use App\Models\Inscripcion;
 use App\Models\Instructor;
@@ -144,6 +145,13 @@ class HorarioController extends Controller
                     // se propone al registrar una asistencia o falta a mano.
                     'ultima_fecha' => today()->subDays((today()->isoWeekday() - $horario->dia_semana->value + 7) % 7)->toDateString(),
                     'fecha_semana' => ClasesDelAlumno::fechaCorta($cambiosSemana[$horario->id]['fecha']),
+                    // Próxima fecha (desde hoy) del grupo: se propone al agendar una clase muestra.
+                    'proxima_fecha' => today()->addDays(($horario->dia_semana->value - today()->isoWeekday() + 7) % 7)->toDateString(),
+                    'muestras_semana' => $cambiosSemana[$horario->id]['muestras']->map(fn (ClaseMuestra $muestra) => [
+                        'nombre' => $muestra->descripcionCorta(),
+                        'tutor' => $muestra->nombre_tutor,
+                        'telefono' => $muestra->telefono,
+                    ])->values(),
                     'vienen_esta_semana' => $cambiosSemana[$horario->id]['vienen']->map(fn (array $cambio) => [
                         'nombre' => $cambio['cita']->alumno?->nombreCompleto() ?? 'Alumno',
                         'motivo' => $cambio['motivo'],

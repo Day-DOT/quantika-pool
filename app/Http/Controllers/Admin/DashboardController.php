@@ -16,6 +16,7 @@ use App\Models\Instructor;
 use App\Models\Nivel;
 use App\Models\Pago;
 use App\Support\ClasesDelAlumno;
+use App\Support\Cumpleanos;
 use Illuminate\Support\Carbon;
 use Illuminate\View\View;
 
@@ -160,10 +161,11 @@ class DashboardController extends Controller
                 return [
                     'horario' => $horario,
                     // Mismo criterio que Reposiciones::cupoDisponible: los
-                    // visitantes de la semana también ocupan lugar.
-                    'cupoDisponible' => max(0, $horario->capacidad_maxima - $inscritos - $cambios['vienen']->count()),
+                    // visitantes y las clases muestra de la semana también ocupan lugar.
+                    'cupoDisponible' => max(0, $horario->capacidad_maxima - $inscritos - $cambios['vienen']->count() - $cambios['muestras']->count()),
                     'noVienen' => $cambios['noVienen'],
                     'vienen' => $cambios['vienen'],
+                    'muestras' => $cambios['muestras'],
                 ];
             })->values();
 
@@ -184,6 +186,9 @@ class DashboardController extends Controller
         $deudoresQuery = Pago::vencidos();
         $this->aplicarSucursal($deudoresQuery);
         $deudoresCount = $deudoresQuery->distinct()->count('alumno_id');
+
+        // --- Cumpleaños de hoy y de los próximos días (acceso al calendario de cumpleaños) ---
+        $cumpleanosProximos = Cumpleanos::proximos($sucursalId);
 
         // --- Niveles destacados ---
         $nivelesPreview = Nivel::ordenados()->where('activo', true)->take(4)->get()->map(function (Nivel $nivel) use ($sucursalId) {
@@ -229,6 +234,7 @@ class DashboardController extends Controller
             'calendarioSemana' => $calendarioSemana,
             'reservasPendientesCount' => $reservasPendientesCount,
             'deudoresCount' => $deudoresCount,
+            'cumpleanosProximos' => $cumpleanosProximos,
             'nivelesPreview' => $nivelesPreview,
             'alumnosRecientes' => $alumnosRecientes,
         ]);

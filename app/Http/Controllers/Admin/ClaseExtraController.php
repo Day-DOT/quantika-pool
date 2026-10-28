@@ -15,6 +15,7 @@ use App\Models\Horario;
 use App\Models\Inscripcion;
 use App\Models\Pago;
 use App\Support\ClasesDelAlumno;
+use App\Support\Reposiciones;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Carbon;
@@ -68,9 +69,7 @@ class ClaseExtraController extends Controller
             ]);
         }
 
-        $inscritos = Inscripcion::where('horario_id', $horario->id)->where('activa', true)->count();
-
-        if (($inscritos + Cita::visitantesDelDia($horario->id, $fecha)->count()) >= $horario->capacidad_maxima) {
+        if (Reposiciones::cupoDisponible($horario, $fecha) <= 0) {
             return back()->withErrors(['clase_extra' => 'Ese grupo ya no tiene cupo disponible para esa fecha.']);
         }
 

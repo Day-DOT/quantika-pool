@@ -4,8 +4,10 @@ use App\Http\Controllers\Admin\AlumnoController;
 use App\Http\Controllers\Admin\CarrilController;
 use App\Http\Controllers\Admin\CitaController;
 use App\Http\Controllers\Admin\ClaseExtraController;
+use App\Http\Controllers\Admin\ClaseMuestraController;
 use App\Http\Controllers\Admin\ConfiguracionController;
 use App\Http\Controllers\Admin\ContratoController;
+use App\Http\Controllers\Admin\CumpleanosController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\EvaluacionMonitorController;
 use App\Http\Controllers\Admin\HorarioController;
@@ -92,6 +94,14 @@ Route::middleware(['auth', 'role:admin,super_admin'])->group(function () {
     // --- Clases extra (una sola fecha, fuera del plan) ---
     Route::post('/alumnos/{alumno}/clase-extra', [ClaseExtraController::class, 'store'])->name('alumnos.clase-extra.store');
     Route::delete('/citas/{cita}/clase-extra', [ClaseExtraController::class, 'destroy'])->name('citas.clase-extra.destroy');
+
+    // --- Clases muestra (gratuitas, para quien todavía no es alumno) ---
+    Route::get('/clases-muestra', [ClaseMuestraController::class, 'index'])->name('clases-muestra.index');
+    Route::post('/clases-muestra', [ClaseMuestraController::class, 'store'])->name('clases-muestra.store');
+    Route::patch('/clases-muestra/{claseMuestra}/estado', [ClaseMuestraController::class, 'actualizarEstado'])->name('clases-muestra.estado');
+
+    // --- Cumpleaños de los alumnos (calendario propio) ---
+    Route::get('/cumpleanos', [CumpleanosController::class, 'index'])->name('cumpleanos.index');
 
     // --- Reservas (aprobación de reservas hechas por alumnos/tutores) ---
     Route::get('/reservas', [ReservaController::class, 'index'])->name('reservas.index');

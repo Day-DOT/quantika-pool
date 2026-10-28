@@ -94,6 +94,8 @@
                 </div>
             </a>
 
+            @include('quantika.partials.acceso-cumpleanos')
+
             <a href="{{ route('horarios.index') }}" class="quick-link-card">
                 <div class="quick-link-icon">▣</div>
                 <div>
