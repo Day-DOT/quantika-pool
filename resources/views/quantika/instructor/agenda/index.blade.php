@@ -3,6 +3,17 @@
 @section('title', 'Mi Agenda')
 @section('page-title', 'Mi Agenda')
 
+@push('styles')
+<style>
+    .agenda-alumnos { margin-top: 10px; padding-top: 10px; border-top: 1px solid rgba(66, 216, 239, .12); display: flex; flex-direction: column; gap: 6px; }
+    .agenda-alumno { display: flex; flex-direction: column; gap: 1px; font-size: 12px; line-height: 1.35; }
+    .agenda-alumno-nombre { color: #fff; font-weight: 800; }
+    .agenda-alumno-datos { color: var(--muted); font-size: 11.5px; }
+    .agenda-alumno-cambio { color: var(--yellow); font-size: 11.5px; font-weight: 800; margin-top: -3px; }
+    .agenda-alumno-vacio { color: var(--muted); font-size: 12px; }
+</style>
+@endpush
+
 @section('content')
 
     @php
@@ -57,26 +68,21 @@
                                 <div class="grupo-meta">{{ substr($horario->hora_inicio, 0, 5) }} – {{ substr($horario->hora_fin, 0, 5) }}</div>
                                 <div class="grupo-meta">{{ $alumnosPorHorario->get($horario->id, 0) }} / {{ $horario->capacidad_maxima }} alumno(s)</div>
                                 </a>
-                                <details style="margin-top:10px;">
-                                    <summary style="cursor:pointer;color:var(--cyan);font-size:12px;">Ver alumnos inscritos</summary>
-                                    <div style="margin-top:7px;font-size:12px;">
-                                        @forelse ($horario->inscripciones as $inscripcion)
-                                            <div>
-                                                {{ $inscripcion->alumno?->nombreCompleto() }}
-                                                @foreach ($cambiosSemana[$horario->id]['noVienen']->where('cita.alumno_id', $inscripcion->alumno_id) as $cambio)
-                                                    <span style="color:var(--yellow);font-weight:800;">· {{ $cambio['motivo'] }}</span>
-                                                @endforeach
-                                            </div>
-                                        @empty
-                                            <div>Sin alumnos inscritos.</div>
-                                        @endforelse
-                                    </div>
-                                </details>
+                                <div class="agenda-alumnos">
+                                    @forelse ($horario->inscripciones->sortBy(fn ($inscripcion) => $inscripcion->alumno?->nombreCompleto()) as $inscripcion)
+                                        @include('quantika.instructor.partials.alumno-agenda', ['alumno' => $inscripcion->alumno])
+                                        @foreach ($cambiosSemana[$horario->id]['noVienen']->where('cita.alumno_id', $inscripcion->alumno_id) as $cambio)
+                                            <div class="agenda-alumno-cambio">{{ $cambio['motivo'] }}</div>
+                                        @endforeach
+                                    @empty
+                                        <div class="agenda-alumno-vacio">Sin alumnos inscritos.</div>
+                                    @endforelse
+                                </div>
                                 @if ($cambiosSemana[$horario->id]['vienen']->isNotEmpty())
-                                    <div style="margin-top:8px;font-size:12px;">
-                                        <strong style="color:var(--cyan);">Vienen solo esta semana ({{ \App\Support\ClasesDelAlumno::fechaCorta($cambiosSemana[$horario->id]['fecha']) }}):</strong>
+                                    <div class="agenda-alumnos">
+                                        <strong style="color:var(--cyan);font-size:12px;">Vienen solo esta semana ({{ \App\Support\ClasesDelAlumno::fechaCorta($cambiosSemana[$horario->id]['fecha']) }}):</strong>
                                         @foreach ($cambiosSemana[$horario->id]['vienen'] as $visita)
-                                            <div>{{ $visita['cita']->alumno?->nombreCompleto() }} · {{ $visita['motivo'] }}</div>
+                                            @include('quantika.instructor.partials.alumno-agenda', ['alumno' => $visita['cita']->alumno, 'motivo' => $visita['motivo']])
                                         @endforeach
                                     </div>
                                 @endif

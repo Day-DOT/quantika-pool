@@ -299,8 +299,7 @@ class ClasesDelAlumnoTest extends TestCase
         $this->actingAs($miercoles->instructor->user)
             ->get(route('instructor.agenda'))
             ->assertOk()
-            ->assertSee('Vienen solo esta semana', false)
-            ->assertSee('Leonardo Padilla · Reagendada', false);
+            ->assertSeeInOrder(['Vienen solo esta semana', 'Leonardo Padilla', '· Reagendada'], false);
     }
 
     public function test_la_clase_reagendada_se_ve_en_el_dashboard_del_admin_y_del_instructor(): void

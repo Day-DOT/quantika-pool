@@ -62,6 +62,7 @@ Route::middleware(['auth', 'role:admin,super_admin'])->group(function () {
     Route::get('/pagos/alumno/{alumno}', [PagoController::class, 'alumno'])->name('pagos.alumno');
     Route::get('/pagos/deudores', [PagoController::class, 'deudores'])->name('pagos.deudores');
     Route::patch('/pagos/{pago}/marcar-pagado', [PagoController::class, 'marcarPagado'])->name('pagos.marcar-pagado');
+    Route::get('/pagos/{pago}/comprobante', [PagoController::class, 'comprobante'])->name('pagos.comprobante');
     Route::delete('/pagos/{pago}', [PagoController::class, 'destroy'])->name('pagos.destroy');
 
     // --- Horarios ---

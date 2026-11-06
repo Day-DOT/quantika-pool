@@ -7,6 +7,7 @@ use App\Enums\EstadoAlumno;
 use App\Enums\EstadoPago;
 use App\Models\Alumno;
 use App\Models\Pago;
+use App\Support\Anualidades;
 use Illuminate\Console\Command;
 
 class GenerarMensualidadesPendientes extends Command
@@ -80,7 +81,10 @@ class GenerarMensualidadesPendientes extends Command
                 }
             });
 
-        $this->info("Se marcaron {$vencidos} pagos como vencidos y se generaron {$generados} mensualidades pendientes.");
+        // La anualidad del año siguiente, para quien ya pagó la más reciente.
+        $anualidades = Anualidades::agendarPendientes();
+
+        $this->info("Se marcaron {$vencidos} pagos como vencidos y se generaron {$generados} mensualidades y {$anualidades} anualidades pendientes.");
 
         return self::SUCCESS;
     }

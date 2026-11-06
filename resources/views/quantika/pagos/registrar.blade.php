@@ -136,6 +136,12 @@
                 <div class="form-group full">
                     <label>Comprobante</label>
                     <input type="file" name="comprobante" class="form-input" accept=".jpg,.jpeg,.png,.pdf">
+                    @if ($pago?->comprobante_path)
+                        <span class="form-hint">
+                            <a href="{{ route('pagos.comprobante', $pago) }}" target="_blank" rel="noopener" style="color:var(--cyan);">Ver comprobante actual</a>
+                            · Si subes otro, reemplaza al actual.
+                        </span>
+                    @endif
                 </div>
 
                 <div class="form-group full">

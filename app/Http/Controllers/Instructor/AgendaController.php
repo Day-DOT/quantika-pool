@@ -24,7 +24,7 @@ class AgendaController extends Controller
     {
         $instructor = $this->instructorActivo($request);
 
-        $horarios = Horario::with(['nivel', 'carril', 'sucursal', 'inscripciones' => fn ($q) => $q->where('activa', true)->with('alumno')])
+        $horarios = Horario::with(['nivel', 'carril', 'sucursal', 'inscripciones' => fn ($q) => $q->where('activa', true)->with('alumno.nivel')])
             ->delInstructor($instructor->id)
             ->orderBy('dia_semana')
             ->orderBy('hora_inicio')

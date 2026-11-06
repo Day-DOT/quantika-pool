@@ -104,7 +104,12 @@
                 <tbody>
                     @forelse ($pagos as $pago)
                         <tr>
-                            <td>{{ $pago->concepto->label() }}</td>
+                            <td>
+                                {{ $pago->concepto->label() }}
+                                @if ($pago->esAnualidad() && $pago->estaVencido())
+                                    <div style="color:var(--red);font-size:11px;font-weight:800;">Anualidad vencida</div>
+                                @endif
+                            </td>
                             <td>{{ $pago->periodo ?? '—' }}</td>
                             <td>{{ $pago->fecha_vencimiento?->format('d/m/Y') ?? '—' }}</td>
                             <td>${{ number_format((float) $pago->monto, 2) }}</td>
@@ -117,6 +122,9 @@
                             <td>
                                 <div style="display:flex; gap:8px; flex-wrap:wrap;">
                                     <a href="{{ route('pagos.edit', $pago) }}" class="btn btn-outline" style="padding:8px 14px;font-size:12px;">Editar</a>
+                                    @if ($pago->comprobante_path)
+                                        <a href="{{ route('pagos.comprobante', $pago) }}" target="_blank" rel="noopener" class="btn btn-outline" style="padding:8px 14px;font-size:12px;">Ver comprobante</a>
+                                    @endif
                                     @if ($pago->estado->value !== 'pagado')
                                         <form action="{{ route('pagos.marcar-pagado', $pago) }}" method="POST" onsubmit="return confirm('¿Marcar este pago como pagado?');">
                                             @csrf

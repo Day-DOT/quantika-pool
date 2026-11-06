@@ -344,6 +344,15 @@
     .calendar-event-green { color: #6ff2c7; background: rgba(22,224,164,.13); border-left: 3px solid #16e0a4; }
     .calendar-event-yellow { color: #ffd76d; background: rgba(255,189,32,.13); border-left: 3px solid #ffbd20; }
     .calendar-event-red { color: #ff9aa0; background: rgba(255,107,107,.13); border-left: 3px solid #ff6b6b; }
+    .calendar-event-purple { color: #dcb6ff; background: rgba(187,85,255,.16); border-left: 3px solid #bb55ff; }
+    .calendar-event-concepto { display: block; font-size: 9px; font-weight: 800; letter-spacing: .4px; text-transform: uppercase; opacity: .85; }
+    .calendar-event-tag { display: inline-block; margin-top: 3px; padding: 1px 6px; border-radius: 20px; font-size: 9px; font-weight: 800; }
+    .calendar-event-tag-red { color: #fff; background: #d94b55; }
+    .calendar-event-detalle { margin-top: 4px; font-size: 11px; opacity: .9; }
+    .calendar-event-pagar { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 8px; margin-top: 8px; padding-top: 8px; border-top: 1px solid rgba(255,255,255,.08); }
+    .calendar-event-pagar label { display: flex; flex-direction: column; gap: 3px; font-size: 10px; font-weight: 700; }
+    .calendar-event-pagar select { min-height: 32px; padding: 0 8px; border-radius: 8px; border: 1px solid rgba(83,214,238,.25); background: #042337; color: #fff; font-size: 12px; }
+    .calendar-event-pagar button { min-height: 32px; padding: 0 12px; border: 0; border-radius: 8px; background: #16e0a4; color: #04281d; font-size: 12px; font-weight: 800; cursor: pointer; }
     .calendar-event-actions { display: flex; gap: 6px; margin-top: 4px; }
     .calendar-event-actions a, .calendar-event-actions button {
         color: inherit; background: transparent; border: 0; cursor: pointer; font-size: 9px; padding: 0;
@@ -391,6 +400,7 @@
     .calendar-dot-green { background: #16e0a4; }
     .calendar-dot-yellow { background: #ffbd20; }
     .calendar-dot-red { background: #ff6b6b; }
+    .calendar-dot-purple { background: #bb55ff; }
 
     /* =========================
        RESPONSIVE
@@ -563,6 +573,7 @@
             <span><i class="calendar-dot calendar-dot-green"></i> Próximo o pagado</span>
             <span><i class="calendar-dot calendar-dot-yellow"></i> Vencido de 1 a 4 días</span>
             <span><i class="calendar-dot calendar-dot-red"></i> Vencido 5 días o más</span>
+            <span><i class="calendar-dot calendar-dot-purple"></i> Anualidad (inscripción)</span>
         </div>
 
         <div class="calendar">
@@ -577,47 +588,23 @@
             @for ($dia = 1; $dia <= $calendarioMes->daysInMonth; $dia++)
                 @php
                     $fechaCalendario = $calendarioMes->copy()->day($dia);
-                    $pagosDelDia = $calendarioPagos->filter(fn ($pago) => $pago->fecha_vencimiento->isSameDay($fechaCalendario));
-                    $pagosVisibles = $pagosDelDia->take(2);
+                    $pagosDelDia = $calendarioPagos->filter(fn ($pago) => $pago->fechaCalendario()->isSameDay($fechaCalendario));
+                    $dialogoDelDia = 'pagos-dia-'.$fechaCalendario->format('Y-m-d');
                 @endphp
                 <div class="calendar-day {{ $fechaCalendario->isToday() ? 'is-today' : '' }}">
                     <div class="calendar-number">{{ $dia }}</div>
-                    @foreach ($pagosVisibles as $pagoCalendario)
-                        @php
-                            $diasVencido = $pagoCalendario->estado->value !== 'pagado' && $pagoCalendario->fecha_vencimiento->isPast()
-                                ? $pagoCalendario->fecha_vencimiento->diffInDays($hoy)
-                                : 0;
-                            $colorCalendario = $diasVencido >= 5 ? 'red' : ($diasVencido > 0 ? 'yellow' : 'green');
-                        @endphp
-                        <div class="calendar-event calendar-event-{{ $colorCalendario }}">
-                            <strong>{{ $pagoCalendario->alumno->nombreCompleto() }}</strong>
-                            ${{ number_format((float) $pagoCalendario->monto, 0) }}
-                            <div class="calendar-event-actions">
-                                <a href="{{ route('pagos.edit', $pagoCalendario) }}">Editar</a>
-                                @if ($pagoCalendario->estado->value !== 'pagado')
-                                    <form action="{{ route('pagos.marcar-pagado', $pagoCalendario) }}" method="POST" onsubmit="return confirm('¿Marcar este pago como pagado y agendar el siguiente mes?');">
-                                        @csrf
-                                        @method('PATCH')
-                                        <button type="submit">Marcar pagado</button>
-                                    </form>
-                                    <form action="{{ route('pagos.destroy', $pagoCalendario) }}" method="POST" onsubmit="return confirm('¿Eliminar este pago?');">
-                                        @csrf
-                                        @method('DELETE')
-                                        <button type="submit">Eliminar</button>
-                                    </form>
-                                @endif
-                            </div>
-                        </div>
+                    @foreach ($pagosDelDia->take(2) as $pagoCalendario)
+                        @include('quantika.pagos.partials.evento-calendario', ['pago' => $pagoCalendario, 'completo' => false, 'dialogo' => $dialogoDelDia])
                     @endforeach
                     @if ($pagosDelDia->isNotEmpty())
-                        <button type="button" class="calendar-more" data-dialog-target="pagos-dia-{{ $fechaCalendario->format('Y-m-d') }}">
+                        <button type="button" class="calendar-more" data-dialog-target="{{ $dialogoDelDia }}">
                             Ver todos ({{ $pagosDelDia->count() }})
                         </button>
                     @endif
                 </div>
 
                 @if ($pagosDelDia->isNotEmpty())
-                    <dialog id="pagos-dia-{{ $fechaCalendario->format('Y-m-d') }}" class="calendar-payments-dialog">
+                    <dialog id="{{ $dialogoDelDia }}" class="calendar-payments-dialog">
                         <div class="calendar-payments-dialog-content">
                             <div class="calendar-payments-dialog-header">
                                 <div>
@@ -628,31 +615,7 @@
                             </div>
 
                             @foreach ($pagosDelDia as $pagoCalendario)
-                                @php
-                                    $diasVencido = $pagoCalendario->estado->value !== 'pagado' && $pagoCalendario->fecha_vencimiento->isPast()
-                                        ? $pagoCalendario->fecha_vencimiento->diffInDays($hoy)
-                                        : 0;
-                                    $colorCalendario = $diasVencido >= 5 ? 'red' : ($diasVencido > 0 ? 'yellow' : 'green');
-                                @endphp
-                                <div class="calendar-event calendar-modal-event calendar-event-{{ $colorCalendario }}">
-                                    <strong>{{ $pagoCalendario->alumno->nombreCompleto() }}</strong>
-                                    ${{ number_format((float) $pagoCalendario->monto, 0) }}
-                                    <div class="calendar-event-actions">
-                                        <a href="{{ route('pagos.edit', $pagoCalendario) }}">Editar</a>
-                                        @if ($pagoCalendario->estado->value !== 'pagado')
-                                            <form action="{{ route('pagos.marcar-pagado', $pagoCalendario) }}" method="POST" onsubmit="return confirm('¿Marcar este pago como pagado y agendar el siguiente mes?');">
-                                                @csrf
-                                                @method('PATCH')
-                                                <button type="submit">Marcar pagado</button>
-                                            </form>
-                                            <form action="{{ route('pagos.destroy', $pagoCalendario) }}" method="POST" onsubmit="return confirm('¿Eliminar este pago?');">
-                                                @csrf
-                                                @method('DELETE')
-                                                <button type="submit">Eliminar</button>
-                                            </form>
-                                        @endif
-                                    </div>
-                                </div>
+                                @include('quantika.pagos.partials.evento-calendario', ['pago' => $pagoCalendario, 'completo' => true, 'dialogo' => $dialogoDelDia])
                             @endforeach
                         </div>
                     </dialog>

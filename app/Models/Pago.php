@@ -8,6 +8,7 @@ use App\Enums\MetodoPago;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Carbon;
 
 class Pago extends Model
 {
@@ -53,6 +54,30 @@ class Pago extends Model
     public function registradoPor(): BelongsTo
     {
         return $this->belongsTo(User::class, 'registrado_por');
+    }
+
+    /**
+     * Día en que el pago aparece en el calendario: su vencimiento, o el día
+     * en que se pagó si se registró sin fecha de vencimiento.
+     */
+    public function fechaCalendario(): ?Carbon
+    {
+        return $this->fecha_vencimiento ?? $this->fecha_pago;
+    }
+
+    public function esAnualidad(): bool
+    {
+        return $this->concepto === ConceptoPago::Inscripcion;
+    }
+
+    /**
+     * Sin pagar y con la fecha de vencimiento ya pasada.
+     */
+    public function estaVencido(): bool
+    {
+        return $this->estado !== EstadoPago::Pagado
+            && $this->fecha_vencimiento !== null
+            && $this->fecha_vencimiento->lt(today());
     }
 
     public function scopeDeSucursal($query, int $sucursalId)

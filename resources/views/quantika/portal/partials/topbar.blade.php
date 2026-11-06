@@ -61,6 +61,18 @@
 
 </header>
 
+@php
+    $anualidadVencida = $alumno ? \App\Support\Anualidades::vencida($alumno) : null;
+@endphp
+
+@if ($anualidadVencida)
+    <div role="alert" style="margin: 24px 34px 0; padding: 16px 20px; border-radius: 16px; background: rgba(255,107,107,.12); border: 1px solid rgba(255,107,107,.45); color: #ffb3b3; font-size: 14px; line-height: 1.5;">
+        <strong style="display:block; color:#fff; font-size:15px; margin-bottom:4px;">⚠ Se venció la anualidad de {{ $alumno->nombreCompleto() }}</strong>
+        Venció el {{ $anualidadVencida->fecha_vencimiento->format('d/m/Y') }} (${{ number_format((float) $anualidadVencida->monto, 2) }}).
+        Les pedimos pagarla lo antes posible para evitar la suspensión del servicio.
+    </div>
+@endif
+
 @if (session('status'))
     <div class="flash-status" style="margin: 24px 34px 0;">{{ session('status') }}</div>
 @endif

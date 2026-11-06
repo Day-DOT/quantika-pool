@@ -16,8 +16,11 @@ use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
+use App\Support\Anualidades;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\Rule;
 use Illuminate\View\View;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class PagoController extends Controller
 {
@@ -32,7 +35,9 @@ class PagoController extends Controller
         $mesCalendario = $request->validate([
             'mes' => ['nullable', 'date_format:Y-m'],
         ])['mes'] ?? $hoy->format('Y-m');
-        $calendarioMes = Carbon::createFromFormat('Y-m', $mesCalendario)->startOfMonth();
+        // El "!" pone el día en 1: sin él toma el día de hoy y, un 29, 30 o
+        // 31, el mes se desborda (p. ej. "31 de septiembre" pasa a octubre).
+        $calendarioMes = Carbon::createFromFormat('!Y-m', $mesCalendario)->startOfMonth();
         $periodoSeleccionado = $calendarioMes->format('Y-m');
 
         $cobradoMesQuery = Pago::query()
@@ -127,16 +132,22 @@ class PagoController extends Controller
             ])
             ->values();
 
+        // Cada pago va en el día en que vence; los que se registraron ya
+        // pagados sin fecha de vencimiento, en el día en que se pagaron.
+        $inicioMes = $calendarioMes->toDateString();
+        $finMes = $calendarioMes->copy()->endOfMonth()->toDateString();
         $calendarioPagosQuery = Pago::query()
-            ->whereNotNull('fecha_vencimiento')
-            ->whereBetween('fecha_vencimiento', [
-                $calendarioMes->toDateString(),
-                $calendarioMes->copy()->endOfMonth()->toDateString(),
-            ])
-            ->with('alumno')
-            ->orderBy('fecha_vencimiento');
+            ->where(fn ($query) => $query
+                ->where(fn ($conVencimiento) => $conVencimiento
+                    ->whereDate('fecha_vencimiento', '>=', $inicioMes)
+                    ->whereDate('fecha_vencimiento', '<=', $finMes))
+                ->orWhere(fn ($sinVencimiento) => $sinVencimiento
+                    ->whereNull('fecha_vencimiento')
+                    ->whereDate('fecha_pago', '>=', $inicioMes)
+                    ->whereDate('fecha_pago', '<=', $finMes)))
+            ->with('alumno');
         $this->aplicarSucursal($calendarioPagosQuery);
-        $calendarioPagos = $calendarioPagosQuery->get();
+        $calendarioPagos = $calendarioPagosQuery->get()->sortBy(fn (Pago $pago) => $pago->fechaCalendario()->toDateString())->values();
 
         return view('quantika.pagos.index', [
             'cobradoMes' => $cobradoMes,
@@ -203,7 +214,7 @@ class PagoController extends Controller
         ]);
 
         if ($pago->estado === EstadoPago::Pagado) {
-            $this->agendarSiguienteMensualidad($pago);
+            $this->agendarSiguientePago($pago);
         }
 
         return redirect()->route('pagos.alumno', $alumno)->with('status', "Pago de {$alumno->nombreCompleto()} registrado correctamente.");
@@ -265,7 +276,7 @@ class PagoController extends Controller
         $pago->update($actualizacion);
 
         if ($pago->estado === EstadoPago::Pagado) {
-            $this->agendarSiguienteMensualidad($pago);
+            $this->agendarSiguientePago($pago);
         }
 
         return redirect()->route('pagos.alumno', $alumno)->with('status', 'Pago actualizado correctamente.');
@@ -304,16 +315,44 @@ class PagoController extends Controller
     {
         $this->authorize('update', $pago);
 
-        $metodo = $request->input('metodo_pago', MetodoPago::Efectivo->value);
+        $metodo = MetodoPago::from($request->validate([
+            'metodo_pago' => ['nullable', Rule::enum(MetodoPago::class)],
+        ])['metodo_pago'] ?? MetodoPago::Efectivo->value);
 
         $pago->update([
             'estado' => EstadoPago::Pagado->value,
             'fecha_pago' => now()->toDateString(),
-            'metodo_pago' => $metodo,
+            'metodo_pago' => $metodo->value,
         ]);
-        $this->agendarSiguienteMensualidad($pago);
+        $this->agendarSiguientePago($pago);
 
-        return back()->with('status', 'Pago marcado como pagado.');
+        return back()->with('status', "Pago marcado como pagado ({$metodo->label()}).");
+    }
+
+    /**
+     * Muestra el comprobante de un pago. Se sirve desde aquí (y no con un
+     * enlace público) para que solo lo vea quien tiene acceso al pago.
+     */
+    public function comprobante(Pago $pago): StreamedResponse
+    {
+        $this->authorize('view', $pago);
+
+        abort_unless(
+            $pago->comprobante_path && Storage::disk('public')->exists($pago->comprobante_path),
+            404,
+            'El archivo del comprobante no está disponible. Vuelve a subirlo desde "Editar".'
+        );
+
+        return Storage::disk('public')->response($pago->comprobante_path);
+    }
+
+    /**
+     * Al pagarse una mensualidad o una anualidad se agenda la siguiente.
+     */
+    private function agendarSiguientePago(Pago $pago): void
+    {
+        $this->agendarSiguienteMensualidad($pago);
+        Anualidades::agendarSiguiente($pago);
     }
 
     /**

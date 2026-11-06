@@ -12,7 +12,7 @@ enum ConceptoPago: string
     {
         return match ($this) {
             self::Mensualidad => 'Mensualidad',
-            self::Inscripcion => 'Inscripción',
+            self::Inscripcion => 'Inscripción (anualidad)',
             self::Otro => 'Concepto adicional',
         };
     }
