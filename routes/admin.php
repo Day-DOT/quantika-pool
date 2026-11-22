@@ -10,6 +10,7 @@ use App\Http\Controllers\Admin\ContratoController;
 use App\Http\Controllers\Admin\CumpleanosController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\EvaluacionMonitorController;
+use App\Http\Controllers\Admin\FechaBloqueadaController;
 use App\Http\Controllers\Admin\HorarioController;
 use App\Http\Controllers\Admin\InstructorController;
 use App\Http\Controllers\Admin\NivelController;
@@ -56,6 +57,7 @@ Route::middleware(['auth', 'role:admin,super_admin'])->group(function () {
     // --- Pagos ---
     Route::get('/pagos', [PagoController::class, 'index'])->name('pagos.index');
     Route::get('/pagos/registrar', [PagoController::class, 'create'])->name('pagos.registrar');
+    Route::get('/pagos/buscar', [PagoController::class, 'buscar'])->name('pagos.buscar');
     Route::post('/pagos', [PagoController::class, 'store'])->name('pagos.store');
     Route::get('/pagos/{pago}/editar', [PagoController::class, 'edit'])->name('pagos.edit');
     Route::put('/pagos/{pago}', [PagoController::class, 'update'])->name('pagos.update');
@@ -100,6 +102,13 @@ Route::middleware(['auth', 'role:admin,super_admin'])->group(function () {
     Route::get('/clases-muestra', [ClaseMuestraController::class, 'index'])->name('clases-muestra.index');
     Route::post('/clases-muestra', [ClaseMuestraController::class, 'store'])->name('clases-muestra.store');
     Route::patch('/clases-muestra/{claseMuestra}/estado', [ClaseMuestraController::class, 'actualizarEstado'])->name('clases-muestra.estado');
+
+    // --- Fechas bloqueadas (festivos y vacaciones: sin reposiciones) ---
+    Route::get('/fechas-bloqueadas', [FechaBloqueadaController::class, 'index'])->name('fechas-bloqueadas.index');
+    Route::post('/fechas-bloqueadas', [FechaBloqueadaController::class, 'store'])->name('fechas-bloqueadas.store');
+    Route::get('/fechas-bloqueadas/{fechaBloqueada}/editar', [FechaBloqueadaController::class, 'edit'])->name('fechas-bloqueadas.edit');
+    Route::put('/fechas-bloqueadas/{fechaBloqueada}', [FechaBloqueadaController::class, 'update'])->name('fechas-bloqueadas.update');
+    Route::delete('/fechas-bloqueadas/{fechaBloqueada}', [FechaBloqueadaController::class, 'destroy'])->name('fechas-bloqueadas.destroy');
 
     // --- Cumpleaños de los alumnos (calendario propio) ---
     Route::get('/cumpleanos', [CumpleanosController::class, 'index'])->name('cumpleanos.index');

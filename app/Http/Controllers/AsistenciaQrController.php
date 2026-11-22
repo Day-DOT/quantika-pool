@@ -2,10 +2,12 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\ConceptoPago;
 use App\Enums\EstadoCita;
 use App\Enums\EstadoPago;
 use App\Models\Alumno;
 use App\Models\Cita;
+use App\Models\Pago;
 use App\Support\ClasesDelAlumno;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\Request;
@@ -136,25 +138,35 @@ class AsistenciaQrController extends Controller
     }
 
     /**
-     * Situación de su mensualidad para avisar al escanear: vencida (con
-     * desde cuándo y cuánto debe), por vencer en los próximos días o al
+     * Situación de sus pagos para avisar al escanear. La anualidad y la
+     * mensualidad se revisan por separado, para decir cuál está vencida
+     * (con desde cuándo y cuánto debe), cuál vence pronto o si está al
      * corriente.
      *
      * @return array{tipo: string, mensaje: string}
      */
     private function estadoDePago(Alumno $alumno): array
     {
-        $vencidos = $alumno->pagos()->vencidos()->orderBy('fecha_vencimiento')->get();
+        $vencidos = $alumno->pagos()->vencidos()->orderBy('fecha_vencimiento')->get()
+            ->groupBy(fn (Pago $pago) => $pago->concepto->value);
 
-        if ($vencidos->isNotEmpty()) {
-            $masAntiguo = $vencidos->first();
+        $avisos = collect([
+            ConceptoPago::Inscripcion->value => ['Anualidad vencida', 'Anualidades vencidas'],
+            ConceptoPago::Mensualidad->value => ['Mensualidad vencida', 'mensualidades vencidas'],
+            ConceptoPago::Otro->value => ['Otro pago vencido', 'otros pagos vencidos'],
+        ])
+            ->filter(fn ($etiquetas, string $concepto) => $vencidos->has($concepto))
+            ->map(function (array $etiquetas, string $concepto) use ($vencidos) {
+                $delConcepto = $vencidos[$concepto];
+                $titulo = $delConcepto->count() === 1 ? $etiquetas[0] : $delConcepto->count().' '.mb_strtolower($etiquetas[1]);
 
-            return [
-                'tipo' => 'vencido',
-                'mensaje' => ($vencidos->count() === 1 ? 'Mensualidad vencida' : "{$vencidos->count()} pagos vencidos")
-                    .' desde el '.$masAntiguo->fecha_vencimiento->format('d/m/Y')
-                    .' · debe $'.number_format((float) $vencidos->sum('monto'), 2),
-            ];
+                return mb_strtoupper(mb_substr($titulo, 0, 1)).mb_substr($titulo, 1)
+                    .' desde el '.$delConcepto->first()->fecha_vencimiento->format('d/m/Y')
+                    .' · debe $'.number_format((float) $delConcepto->sum('monto'), 2);
+            });
+
+        if ($avisos->isNotEmpty()) {
+            return ['tipo' => 'vencido', 'mensaje' => $avisos->implode(' | ')];
         }
 
         $proximo = $alumno->pagos()
@@ -165,9 +177,15 @@ class AsistenciaQrController extends Controller
             ->first();
 
         if ($proximo) {
+            $que = match ($proximo->concepto) {
+                ConceptoPago::Inscripcion => 'Su anualidad',
+                ConceptoPago::Mensualidad => 'Su mensualidad',
+                default => 'Un pago',
+            };
+
             return [
                 'tipo' => 'por_vencer',
-                'mensaje' => 'Su mensualidad vence el '.$proximo->fecha_vencimiento->format('d/m/Y').' ($'.number_format((float) $proximo->monto, 2).')',
+                'mensaje' => "{$que} vence el ".$proximo->fecha_vencimiento->format('d/m/Y').' ($'.number_format((float) $proximo->monto, 2).')',
             ];
         }
 

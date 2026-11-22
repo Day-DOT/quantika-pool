@@ -601,6 +601,16 @@
 
 
     <div class="section-header">
+        <h3>Historial de pagos</h3>
+        <a href="{{ route('pagos.registrar', ['alumno' => $alumno->id]) }}" class="section-link">Registrar pago →</a>
+    </div>
+
+    <div class="panel">
+        @include('quantika.pagos.partials.historial', ['pagos' => $historialPagos])
+    </div>
+
+
+    <div class="section-header">
         <h3>Acciones</h3>
     </div>
 

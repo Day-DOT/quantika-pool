@@ -132,6 +132,12 @@
                             </select>
                         </div>
 
+                        @if ($bloqueo)
+                            <div role="alert" style="margin:0 0 16px;padding:14px 18px;border-radius:14px;background:rgba(255,189,32,.12);border:1px solid rgba(255,189,32,.45);color:#ffd36b;font-weight:700;">
+                                ⛔ {{ $bloqueo->mensaje() }}
+                            </div>
+                        @endif
+
                         <div class="section-header">
                             <h3>Grupos del {{ $fecha->translatedFormat('l d \d\e F') }}</h3>
                         </div>
@@ -183,8 +189,12 @@
                                 </div>
                             @empty
                                 <div class="empty-state" style="grid-column: 1 / -1;">
-                                    <h3>No hay grupos ese día</h3>
-                                    <p>Ese día no hay grupos del nivel de {{ $alumno->nombreCompleto() }}{{ $alumno->nivel ? ' ('.$alumno->nivel->nombre.')' : '' }} con lugar en su sucursal. Prueba con otra fecha.</p>
+                                    <h3>{{ $bloqueo ? 'Día no disponible' : 'No hay grupos ese día' }}</h3>
+                                    @if ($bloqueo)
+                                        <p>Elige otra fecha para reponer.</p>
+                                    @else
+                                        <p>Ese día no hay grupos del nivel de {{ $alumno->nombreCompleto() }}{{ $alumno->nivel ? ' ('.$alumno->nivel->nombre.')' : '' }} con lugar en su sucursal. Prueba con otra fecha.</p>
+                                    @endif
                                 </div>
                             @endforelse
 

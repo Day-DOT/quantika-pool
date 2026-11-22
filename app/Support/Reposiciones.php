@@ -8,6 +8,7 @@ use App\Enums\EstadoClaseMuestra;
 use App\Models\Alumno;
 use App\Models\Cita;
 use App\Models\ClaseMuestra;
+use App\Models\FechaBloqueada;
 use App\Models\Horario;
 use App\Models\Inscripcion;
 use App\Models\SolicitudReposicion;
@@ -226,6 +227,10 @@ class Reposiciones
 
         if (! self::admiteReposicion($alumno)) {
             return ['fecha', 'Las clases de bebés no tienen reposición.'];
+        }
+
+        if ($bloqueo = FechaBloqueada::en($fecha, $falta->sucursal_id)) {
+            return ['fecha', $bloqueo->mensaje()];
         }
 
         if (! $fecha->isSameMonth($falta->fecha)) {

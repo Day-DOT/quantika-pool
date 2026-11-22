@@ -829,6 +829,58 @@
                     </select>
                 </div>
 
+                <div class="form-group full" style="margin-top:6px;">
+                    <h4 style="font-size:14px;">Fechas de pago</h4>
+                    <small class="form-hint">Opcional. Quedan agendadas como pendientes; la mensualidad sigue su ciclo mes a mes desde su fecha de corte.</small>
+                </div>
+
+                <div class="form-group">
+                    <label>Fecha de corte de la mensualidad</label>
+                    <input type="date" class="form-input" name="fecha_corte_mensualidad" value="{{ old('fecha_corte_mensualidad') }}">
+                    @error('fecha_corte_mensualidad') <span class="form-error">{{ $message }}</span> @enderror
+                </div>
+
+                <div class="form-group">
+                    <label>Monto de la mensualidad</label>
+                    <input type="number" class="form-input" name="monto_mensualidad" min="0" step="0.01" value="{{ old('monto_mensualidad') }}">
+                    @error('monto_mensualidad') <span class="form-error">{{ $message }}</span> @enderror
+                </div>
+
+                <div class="form-group">
+                    <label>Fecha de pago de la anualidad</label>
+                    <input type="date" class="form-input" name="fecha_pago_anualidad" value="{{ old('fecha_pago_anualidad') }}">
+                    @error('fecha_pago_anualidad') <span class="form-error">{{ $message }}</span> @enderror
+                </div>
+
+                <div class="form-group">
+                    <label>Monto de la anualidad</label>
+                    <input type="number" class="form-input" name="monto_anualidad" min="0" step="0.01" value="{{ old('monto_anualidad') }}">
+                    @error('monto_anualidad') <span class="form-error">{{ $message }}</span> @enderror
+                </div>
+
+                <div class="form-group full" style="margin-top:6px;">
+                    <h4 style="font-size:14px;">Días y horarios de clase</h4>
+                    <small class="form-hint">Opcional. Al guardar queda inscrito en los grupos que marques (aparece en el cronograma de clases).</small>
+                    @error('horario_ids') <span class="form-error">{{ $message }}</span> @enderror
+                    @error('horario_ids.*') <span class="form-error">{{ $message }}</span> @enderror
+                </div>
+
+                <div class="form-group full" id="listaHorariosInscripcion" style="display:grid; gap:6px; max-height:220px; overflow-y:auto;">
+                    @forelse ($horariosParaInscribir as $horarioOpcion)
+                        @php($llenos = $horarioOpcion->inscritos_count >= $horarioOpcion->capacidad_maxima)
+                        <label data-sucursal="{{ $horarioOpcion->sucursal_id }}" style="display:flex; gap:8px; align-items:center; font-weight:500; {{ $llenos ? 'opacity:.5;' : '' }}">
+                            <input type="checkbox" name="horario_ids[]" value="{{ $horarioOpcion->id }}" @disabled($llenos)
+                                   @checked(in_array($horarioOpcion->id, (array) old('horario_ids', [])))>
+                            <span>
+                                {{ $horarioOpcion->etiqueta() }}
+                                · {{ $llenos ? 'Sin cupo' : ($horarioOpcion->capacidad_maxima - $horarioOpcion->inscritos_count).' de '.$horarioOpcion->capacidad_maxima.' lugares' }}
+                            </span>
+                        </label>
+                    @empty
+                        <span class="form-hint">Todavía no hay grupos creados.</span>
+                    @endforelse
+                </div>
+
                 <div class="form-group">
                     <label>Tipo de sangre</label>
                     <input type="text" class="form-input" name="tipo_sangre" value="{{ old('tipo_sangre') }}" maxlength="5" placeholder="Ej. O+">
@@ -890,6 +942,28 @@
 @endsection
 
 @push('scripts')
+<script>
+    // Solo se ofrecen los grupos de la sucursal elegida para el alumno.
+    (function () {
+        const selector = document.querySelector('#formAlumnoCrear select[name="sucursal_id"]');
+        const lista = document.getElementById('listaHorariosInscripcion');
+
+        if (! selector || ! lista) {
+            return;
+        }
+
+        function filtrar() {
+            lista.querySelectorAll('label[data-sucursal]').forEach(function (fila) {
+                const visible = selector.value !== '' && fila.dataset.sucursal === selector.value;
+                fila.style.display = visible ? 'flex' : 'none';
+                if (! visible) { fila.querySelector('input').checked = false; }
+            });
+        }
+
+        selector.addEventListener('change', filtrar);
+        filtrar();
+    })();
+</script>
 <script>
 
     function toggleTutorCrear() {

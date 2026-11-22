@@ -27,6 +27,8 @@ class PagoController extends Controller
     use AuthorizesRequests;
     use ScopesSucursal;
 
+    private const MAXIMO_RESULTADOS_BUSQUEDA = 50;
+
     public function index(Request $request): View
     {
         $this->authorize('viewAny', Pago::class);
@@ -167,7 +169,94 @@ class PagoController extends Controller
             'hoy' => $hoy,
             'calendarioMes' => $calendarioMes,
             'calendarioPagos' => $calendarioPagos,
+            'busqueda' => $this->resultadosBusqueda($request),
         ]);
+    }
+
+    /**
+     * Resultados del buscador de pagos (los pide la página mientras se
+     * escribe y se reemplazan sin recargarla).
+     */
+    public function buscar(Request $request): View
+    {
+        $this->authorize('viewAny', Pago::class);
+
+        return view('quantika.pagos.partials.resultados-busqueda', $this->resultadosBusqueda($request));
+    }
+
+    /**
+     * Pagos que coinciden con el buscador: alumno (nombre, apellidos,
+     * matrícula o ID), estado, concepto y rango de fechas de corte (o de
+     * pago, si no tiene corte).
+     *
+     * @return array{pagos: \Illuminate\Support\Collection<int, Pago>, total: int, buscando: bool}
+     */
+    private function resultadosBusqueda(Request $request): array
+    {
+        $filtros = $request->validate([
+            'q' => ['nullable', 'string', 'max:100'],
+            'estado' => ['nullable', Rule::in(['pagado', 'pendiente', 'vencido', 'en_revision'])],
+            'concepto' => ['nullable', Rule::enum(ConceptoPago::class)],
+            'desde' => ['nullable', 'date'],
+            'hasta' => ['nullable', 'date'],
+        ]);
+
+        $buscando = collect($filtros)->filter(fn ($valor) => filled($valor))->isNotEmpty();
+
+        if (! $buscando) {
+            return ['pagos' => collect(), 'total' => 0, 'buscando' => false];
+        }
+
+        $query = Pago::query()->with('alumno');
+        $this->aplicarSucursal($query);
+
+        foreach (preg_split('/\s+/', trim($filtros['q'] ?? ''), -1, PREG_SPLIT_NO_EMPTY) as $palabra) {
+            $query->whereHas('alumno', fn ($alumno) => $alumno->where(fn ($coincide) => $coincide
+                ->where('nombre', 'like', "%{$palabra}%")
+                ->orWhere('apellidos', 'like', "%{$palabra}%")
+                ->orWhere('matricula', 'like', "%{$palabra}%")
+                ->when(ctype_digit($palabra), fn ($porId) => $porId->orWhere('id', (int) $palabra))));
+        }
+
+        match ($filtros['estado'] ?? null) {
+            'pagado' => $query->where('estado', EstadoPago::Pagado->value),
+            'en_revision' => $query->where('estado', EstadoPago::EnRevision->value),
+            'vencido' => $query->where(fn ($vencido) => $vencido
+                ->where('estado', EstadoPago::Vencido->value)
+                ->orWhere(fn ($sinPagar) => $sinPagar->where('estado', '!=', EstadoPago::Pagado->value)->whereDate('fecha_vencimiento', '<', today()))),
+            'pendiente' => $query->where('estado', EstadoPago::Pendiente->value)
+                ->where(fn ($aTiempo) => $aTiempo->whereNull('fecha_vencimiento')->orWhereDate('fecha_vencimiento', '>=', today())),
+            default => null,
+        };
+
+        if (! empty($filtros['concepto'])) {
+            $query->where('concepto', $filtros['concepto']);
+        }
+
+        if (! empty($filtros['desde']) || ! empty($filtros['hasta'])) {
+            $enRango = function ($q, string $columna) use ($filtros) {
+                if (! empty($filtros['desde'])) {
+                    $q->whereDate($columna, '>=', $filtros['desde']);
+                }
+                if (! empty($filtros['hasta'])) {
+                    $q->whereDate($columna, '<=', $filtros['hasta']);
+                }
+            };
+
+            $query->where(fn ($fecha) => $fecha
+                ->where(fn ($conCorte) => $enRango($conCorte->whereNotNull('fecha_vencimiento'), 'fecha_vencimiento'))
+                ->orWhere(fn ($sinCorte) => $enRango($sinCorte->whereNull('fecha_vencimiento'), 'fecha_pago')));
+        }
+
+        $total = (clone $query)->count();
+
+        $pagos = $query
+            ->orderByRaw('COALESCE(fecha_vencimiento, fecha_pago) DESC')
+            ->orderByDesc('id')
+            ->limit(self::MAXIMO_RESULTADOS_BUSQUEDA)
+            ->get();
+
+        return ['pagos' => $pagos, 'total' => $total, 'buscando' => true];
     }
 
     public function create(Request $request): View
@@ -196,6 +285,37 @@ class PagoController extends Controller
             $comprobantePath = $request->file('comprobante')->store('comprobantes', 'public');
         }
 
+        $fechaPago = $datos['estado'] === EstadoPago::Pagado->value
+            ? ($datos['fecha_pago'] ?? now()->toDateString())
+            : ($datos['fecha_pago'] ?? null);
+
+        // Un pago de mensualidad o anualidad que llega cuando ya hay un cargo
+        // sin pagar de ese concepto liquida ese cargo (el más antiguo) y
+        // conserva su fecha de corte. Antes se creaba uno nuevo con la fecha
+        // en que llegó el dinero: el cargo original quedaba como deuda y el
+        // ciclo se recorría (corte del 12 pagado el 16 → siguiente el 16).
+        $adeudo = $datos['estado'] === EstadoPago::Pagado->value
+            ? $this->adeudoPorLiquidar($alumno, ConceptoPago::from($datos['concepto']))
+            : null;
+
+        if ($adeudo) {
+            $adeudo->update([
+                'monto' => $datos['monto'],
+                'fecha_pago' => $fechaPago,
+                'metodo_pago' => $datos['metodo_pago'] ?? null,
+                'estado' => EstadoPago::Pagado->value,
+                'comprobante_path' => $comprobantePath ?? $adeudo->comprobante_path,
+                'observaciones' => $datos['observaciones'] ?? $adeudo->observaciones,
+                'registrado_por' => auth()->id(),
+            ]);
+            $this->agendarSiguientePago($adeudo);
+
+            return redirect()->route('pagos.alumno', $alumno)->with(
+                'status',
+                "Se liquidó el cargo de {$alumno->nombreCompleto()} con corte el {$adeudo->fecha_vencimiento->format('d/m/Y')}; el siguiente se agendó a partir de esa fecha."
+            );
+        }
+
         $pago = Pago::create([
             'alumno_id' => $alumno->id,
             'sucursal_id' => $alumno->sucursal_id,
@@ -203,9 +323,7 @@ class PagoController extends Controller
             'periodo' => $datos['periodo'] ?? now()->format('Y-m'),
             'monto' => $datos['monto'],
             'fecha_vencimiento' => $datos['fecha_vencimiento'] ?? null,
-            'fecha_pago' => $datos['estado'] === EstadoPago::Pagado->value
-                ? ($datos['fecha_pago'] ?? now()->toDateString())
-                : ($datos['fecha_pago'] ?? null),
+            'fecha_pago' => $fechaPago,
             'metodo_pago' => $datos['metodo_pago'] ?? null,
             'estado' => $datos['estado'],
             'comprobante_path' => $comprobantePath,
@@ -344,6 +462,24 @@ class PagoController extends Controller
         );
 
         return Storage::disk('public')->response($pago->comprobante_path);
+    }
+
+    /**
+     * Cargo sin pagar más antiguo (con fecha de corte) de una mensualidad o
+     * anualidad del alumno; los demás conceptos siempre son pagos nuevos.
+     */
+    private function adeudoPorLiquidar(Alumno $alumno, ConceptoPago $concepto): ?Pago
+    {
+        if (! in_array($concepto, [ConceptoPago::Mensualidad, ConceptoPago::Inscripcion], true)) {
+            return null;
+        }
+
+        return $alumno->pagos()
+            ->where('concepto', $concepto->value)
+            ->whereIn('estado', [EstadoPago::Pendiente->value, EstadoPago::Vencido->value, EstadoPago::EnRevision->value])
+            ->whereNotNull('fecha_vencimiento')
+            ->orderBy('fecha_vencimiento')
+            ->first();
     }
 
     /**

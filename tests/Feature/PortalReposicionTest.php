@@ -592,4 +592,80 @@ class PortalReposicionTest extends TestCase
 
         $this->assertTrue(Cita::whereNotNull('reposicion_de_id')->sole()->asistio);
     }
+
+    public function test_no_se_puede_reponer_en_una_fecha_bloqueada_ni_desde_el_portal_ni_desde_la_administracion(): void
+    {
+        $e = $this->crearEscenario();
+
+        \App\Models\FechaBloqueada::create([
+            'sucursal_id' => $e['sucursal']->id,
+            'fecha_inicio' => $e['fecha']->copy()->subDay(),
+            'fecha_fin' => $e['fecha']->copy()->addDay(),
+            'motivo' => 'Vacaciones de invierno',
+        ]);
+
+        $mensaje = 'Vacaciones de invierno';
+
+        // Portal: aviso claro y no se ofrece ningún grupo.
+        $this->actingAs($e['tutor'])
+            ->get(route('portal.reservar.index', ['alumno' => $e['alumno']->id, 'fecha' => $e['fecha']->toDateString()]))
+            ->assertOk()
+            ->assertSee($mensaje)
+            ->assertSee('Día no disponible')
+            ->assertDontSee('Grupo Destino');
+
+        $this->solicitar($e)->assertSessionHasErrors(['fecha']);
+        $this->assertSame(0, SolicitudReposicion::count());
+
+        // Administración: tampoco la programa.
+        $this->actingAs($e['admin'])
+            ->post(route('citas.reponer', $e['falta']), ['horario_id' => $e['destino']->id, 'fecha' => $e['fecha']->toDateString()])
+            ->assertSessionHasErrors(['fecha']);
+        $this->assertSame(0, Cita::whereNotNull('reposicion_de_id')->count());
+    }
+
+    public function test_un_bloqueo_de_otra_sucursal_no_afecta_pero_uno_general_si(): void
+    {
+        $e = $this->crearEscenario();
+
+        $otra = \App\Models\FechaBloqueada::create([
+            'sucursal_id' => Sucursal::factory()->create()->id,
+            'fecha_inicio' => $e['fecha'],
+            'fecha_fin' => $e['fecha'],
+            'motivo' => 'Mantenimiento en otra sucursal',
+        ]);
+        $this->solicitar($e)->assertSessionHasNoErrors();
+
+        SolicitudReposicion::query()->delete();
+        $otra->delete();
+
+        \App\Models\FechaBloqueada::create(['sucursal_id' => null, 'fecha_inicio' => $e['fecha'], 'fecha_fin' => $e['fecha'], 'motivo' => 'Día festivo']);
+        $this->solicitar($e)->assertSessionHasErrors('fecha');
+    }
+
+    public function test_el_administrador_gestiona_las_fechas_bloqueadas(): void
+    {
+        $e = $this->crearEscenario();
+
+        $this->actingAs($e['admin'])->post(route('fechas-bloqueadas.store'), [
+            'fecha_inicio' => '2026-12-24', 'fecha_fin' => '2027-01-02', 'motivo' => 'Vacaciones de diciembre',
+        ])->assertSessionHasNoErrors();
+
+        $bloqueo = \App\Models\FechaBloqueada::sole();
+        $this->assertSame($e['sucursal']->id, $bloqueo->sucursal_id);
+
+        $this->actingAs($e['admin'])->get(route('fechas-bloqueadas.index'))->assertOk()->assertSee('24/12/2026 al 02/01/2027')->assertSee('Vacaciones de diciembre');
+
+        $this->actingAs($e['admin'])->put(route('fechas-bloqueadas.update', $bloqueo), ['fecha_inicio' => '2026-12-25', 'motivo' => 'Navidad'])->assertSessionHasNoErrors();
+        $this->assertSame('2026-12-25', $bloqueo->fresh()->fecha_fin->toDateString());
+
+        $this->actingAs($e['admin'])->post(route('fechas-bloqueadas.store'), ['fecha_inicio' => '2026-12-30', 'fecha_fin' => '2026-12-01', 'motivo' => 'X'])->assertSessionHasErrors('fecha_fin');
+
+        // Una sucursal no toca los bloqueos de otra.
+        $ajeno = \App\Models\FechaBloqueada::create(['sucursal_id' => Sucursal::factory()->create()->id, 'fecha_inicio' => '2026-12-01', 'fecha_fin' => '2026-12-01', 'motivo' => 'Ajeno']);
+        $this->actingAs($e['admin'])->delete(route('fechas-bloqueadas.destroy', $ajeno))->assertForbidden();
+
+        $this->actingAs($e['admin'])->delete(route('fechas-bloqueadas.destroy', $bloqueo))->assertRedirect();
+        $this->assertSame(1, \App\Models\FechaBloqueada::count());
+    }
 }

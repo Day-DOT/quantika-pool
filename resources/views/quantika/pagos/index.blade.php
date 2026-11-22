@@ -436,6 +436,39 @@
     </div>
 
 
+    <!-- BUSCADOR DE PAGOS -->
+    <div class="card" style="margin-bottom:22px;">
+        <div class="card-header">
+            <div>
+                <div class="card-title">Buscar pagos</div>
+                <div class="card-description">Por nombre, apellidos o matrícula del alumno; combina con estado, concepto y fechas.</div>
+            </div>
+        </div>
+
+        <form id="formBuscarPagos" action="{{ route('pagos.index') }}" method="GET" onsubmit="return false;" style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:12px;">
+            <input type="search" name="q" value="{{ request('q') }}" class="form-input" style="flex:2; min-width:220px;" placeholder="Nombre, apellidos o matrícula..." autocomplete="off">
+            <select name="estado" class="form-select" style="flex:1; min-width:140px;">
+                <option value="">Todos los estados</option>
+                @foreach (['pagado' => 'Pagado', 'pendiente' => 'Pendiente', 'vencido' => 'Vencido', 'en_revision' => 'En revisión'] as $valor => $texto)
+                    <option value="{{ $valor }}" @selected(request('estado') === $valor)>{{ $texto }}</option>
+                @endforeach
+            </select>
+            <select name="concepto" class="form-select" style="flex:1; min-width:140px;">
+                <option value="">Todos los conceptos</option>
+                @foreach (\App\Enums\ConceptoPago::cases() as $conceptoOpcion)
+                    <option value="{{ $conceptoOpcion->value }}" @selected(request('concepto') === $conceptoOpcion->value)>{{ $conceptoOpcion->label() }}</option>
+                @endforeach
+            </select>
+            <input type="date" name="desde" value="{{ request('desde') }}" class="form-input" style="flex:1; min-width:140px;" aria-label="Desde">
+            <input type="date" name="hasta" value="{{ request('hasta') }}" class="form-input" style="flex:1; min-width:140px;" aria-label="Hasta">
+            <button type="button" id="limpiarBusquedaPagos" class="btn btn-outline btn-sm">Limpiar</button>
+        </form>
+
+        <div id="resultadosBusquedaPagos">
+            @include('quantika.pagos.partials.resultados-busqueda', $busqueda)
+        </div>
+    </div>
+
     <!-- SUCURSAL -->
     <div class="branch">
         ◉ QUANTIKA POOL · {{ \App\Support\SucursalContext::actualId() ? \App\Models\Sucursal::find(\App\Support\SucursalContext::actualId())->nombre : 'TODAS LAS SUCURSALES' }}
@@ -793,6 +826,45 @@
 @endsection
 
 @push('scripts')
+<script>
+    // Buscador de pagos: pide los resultados mientras se escribe (con una
+    // pequeña espera) y descarta respuestas viejas si llega una más nueva.
+    (function () {
+        const formulario = document.getElementById('formBuscarPagos');
+        const resultados = document.getElementById('resultadosBusquedaPagos');
+        let espera = null;
+        let ultimaPeticion = 0;
+
+        function buscar() {
+            const peticion = ++ultimaPeticion;
+            const parametros = new URLSearchParams(new FormData(formulario));
+            [...parametros.keys()].forEach(function (clave) {
+                if (parametros.get(clave) === '') { parametros.delete(clave); }
+            });
+            history.replaceState(null, '', parametros.toString() ? '?' + parametros : window.location.pathname);
+
+            fetch(@json(route('pagos.buscar')) + '?' + parametros, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+                .then(function (respuesta) { return respuesta.ok ? respuesta.text() : Promise.reject(); })
+                .then(function (html) { if (peticion === ultimaPeticion) { resultados.innerHTML = html; } })
+                .catch(function () {
+                    if (peticion === ultimaPeticion) {
+                        resultados.innerHTML = '<div class="empty-state" style="padding:18px 0;">No se pudo buscar. Revisa las fechas e inténtalo de nuevo.</div>';
+                    }
+                });
+        }
+
+        formulario.addEventListener('input', function () {
+            clearTimeout(espera);
+            espera = setTimeout(buscar, 250);
+        });
+        formulario.addEventListener('change', buscar);
+        document.getElementById('limpiarBusquedaPagos').addEventListener('click', function () {
+            formulario.reset();
+            [...formulario.elements].forEach(function (campo) { if (campo.name) { campo.value = ''; } });
+            buscar();
+        });
+    })();
+</script>
 <script>
     document.querySelectorAll('[data-dialog-target]').forEach(function (button) {
         button.addEventListener('click', function () {

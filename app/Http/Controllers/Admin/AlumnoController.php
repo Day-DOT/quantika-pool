@@ -2,8 +2,11 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Enums\ConceptoPago;
 use App\Enums\EstadoAlumno;
 use App\Enums\EstadoCita;
+use App\Enums\EstadoInscripcion;
+use App\Enums\EstadoPago;
 use App\Enums\Rol;
 use App\Http\Controllers\Admin\Concerns\ScopesSucursal;
 use App\Http\Controllers\Controller;
@@ -12,14 +15,17 @@ use App\Http\Requests\Admin\UpdateAlumnoRequest;
 use App\Models\Alumno;
 use App\Models\AlumnoNivelHistorial;
 use App\Models\Horario;
+use App\Models\Inscripcion;
 use App\Models\Instructor;
 use App\Models\Nivel;
+use App\Models\Pago;
 use App\Models\Plan;
 use App\Models\User;
 use App\Support\ClasesDelAlumno;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
@@ -78,6 +84,8 @@ class AlumnoController extends Controller
             'alumnos' => $alumnos,
             'niveles' => Nivel::ordenados()->get(),
             'planes' => Plan::activos()->orderBy('clases_por_semana')->get(),
+            // Días y horarios que se pueden elegir al inscribir, con sus lugares libres.
+            'horariosParaInscribir' => $this->horariosParaInscribir(),
             'sucursales' => $this->sucursalesVisibles(),
             'esVistaGlobal' => $this->sucursalId() === null,
             'totalRegistrados' => $totalRegistrados,
@@ -220,6 +228,9 @@ class AlumnoController extends Controller
                 ]);
             }
 
+            $this->inscribirEnGrupos($alumno, $datos['horario_ids'] ?? []);
+            $this->iniciarFechasDePago($alumno, $datos);
+
             return ['alumno' => $alumno, 'cuentaPendienteActivar' => $cuentaPendienteActivar, 'tutor' => $tutor];
         });
 
@@ -232,6 +243,88 @@ class AlumnoController extends Controller
         }
 
         return redirect()->route('alumnos.show', $resultado['alumno'])->with('status', $mensaje);
+    }
+
+    /**
+     * Grupos activos (de la sucursal actual, o de todas en vista global)
+     * ordenados por día y hora, con inscritos para mostrar el cupo.
+     */
+    private function horariosParaInscribir()
+    {
+        $query = Horario::query()
+            ->where('activo', true)
+            ->with(['carril', 'instructor.user'])
+            ->withCount(['inscripciones as inscritos_count' => fn ($q) => $q->where('activa', true)]);
+        $this->aplicarSucursal($query);
+
+        return $query->orderBy('dia_semana')->orderBy('hora_inicio')->get();
+    }
+
+    /**
+     * Inscribe al alumno en los grupos (días y horarios) elegidos al
+     * registrarlo, con las mismas reglas que "Asignar alumno": grupo activo,
+     * de su sucursal y con cupo. Si alguno falla, no se guarda nada.
+     *
+     * @param  list<int>  $horarioIds
+     */
+    private function inscribirEnGrupos(Alumno $alumno, array $horarioIds): void
+    {
+        foreach ($horarioIds as $horarioId) {
+            $horario = Horario::where('id', $horarioId)->lockForUpdate()->first();
+
+            if (! $horario?->activo || $horario->sucursal_id !== $alumno->sucursal_id) {
+                throw ValidationException::withMessages([
+                    'horario_ids' => 'Uno de los grupos elegidos no está disponible en la sucursal del alumno.',
+                ]);
+            }
+
+            $inscritos = Inscripcion::where('horario_id', $horario->id)->where('activa', true)->count();
+
+            if ($inscritos >= $horario->capacidad_maxima) {
+                throw ValidationException::withMessages([
+                    'horario_ids' => "El grupo {$horario->nombre_grupo} ({$horario->dia_semana->label()} ".substr($horario->hora_inicio, 0, 5).') ya no tiene cupo.',
+                ]);
+            }
+
+            Inscripcion::create([
+                'horario_id' => $horario->id,
+                'alumno_id' => $alumno->id,
+                'fecha_inicio' => $alumno->fecha_inscripcion,
+                'activa' => true,
+                'estado' => EstadoInscripcion::Aprobada->value,
+                'aprobado_por' => auth()->id(),
+                'aprobado_en' => now(),
+            ]);
+        }
+    }
+
+    /**
+     * Deja agendados como pendientes el corte de la mensualidad y el pago de
+     * la anualidad indicados al inscribir. A partir de ahí la mensualidad
+     * sigue su ciclo desde esa fecha de corte (ver PagoController).
+     *
+     * @param  array<string, mixed>  $datos
+     */
+    private function iniciarFechasDePago(Alumno $alumno, array $datos): void
+    {
+        $pendiente = fn (ConceptoPago $concepto, string $fecha, mixed $monto) => Pago::create([
+            'alumno_id' => $alumno->id,
+            'sucursal_id' => $alumno->sucursal_id,
+            'concepto' => $concepto->value,
+            'periodo' => Carbon::parse($fecha)->format('Y-m'),
+            'monto' => $monto,
+            'fecha_vencimiento' => $fecha,
+            'estado' => EstadoPago::Pendiente->value,
+            'registrado_por' => auth()->id(),
+        ]);
+
+        if (! empty($datos['fecha_corte_mensualidad'])) {
+            $pendiente(ConceptoPago::Mensualidad, $datos['fecha_corte_mensualidad'], $datos['monto_mensualidad']);
+        }
+
+        if (! empty($datos['fecha_pago_anualidad'])) {
+            $pendiente(ConceptoPago::Inscripcion, $datos['fecha_pago_anualidad'], $datos['monto_anualidad']);
+        }
     }
 
     public function show(Alumno $alumno): View
@@ -290,6 +383,11 @@ class AlumnoController extends Controller
                 'Contrato firmado' => $alumno->contrato_firmado_path,
             ])->filter(fn ($ruta) => ! $ruta)->keys()->values(),
             'pagosVencidos' => $alumno->pagos()->vencidos()->orderBy('fecha_vencimiento')->get(),
+            // Todos sus pagos, del corte más reciente al más antiguo.
+            'historialPagos' => $alumno->pagos()
+                ->orderByRaw('COALESCE(fecha_vencimiento, fecha_pago) DESC')
+                ->orderByDesc('id')
+                ->get(),
             // Se calculan desde sus grupos: no dependen de que exista una
             // Cita guardada para cada fecha.
             'proximasClases' => ClasesDelAlumno::proximas($alumno),

@@ -8,6 +8,7 @@ use App\Http\Controllers\Alumno\Concerns\ResuelveAlumnoActivo;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Alumno\ReservarClaseRequest;
 use App\Models\Alumno;
+use App\Models\FechaBloqueada;
 use App\Models\Horario;
 use App\Models\SolicitudReposicion;
 use App\Support\Reposiciones;
@@ -66,6 +67,7 @@ class ReservaController extends Controller
         $puedeSolicitar = $estaActivo && $admiteReposicion && $faltasLibres->isNotEmpty() && $restantesDelMes > 0;
 
         $fecha = $this->fechaElegida($request);
+        $bloqueo = FechaBloqueada::en($fecha, $alumno->sucursal_id);
 
         return view('quantika.portal.reservar', [
             'alumnos' => $alumnos,
@@ -80,7 +82,8 @@ class ReservaController extends Controller
             'puedeSolicitar' => $puedeSolicitar,
             'fecha' => $fecha,
             'finDeMes' => today()->endOfMonth(),
-            'grupos' => $puedeSolicitar ? Reposiciones::gruposParaReponer($alumno, $fecha) : collect(),
+            'bloqueo' => $bloqueo,
+            'grupos' => $puedeSolicitar && ! $bloqueo ? Reposiciones::gruposParaReponer($alumno, $fecha) : collect(),
         ]);
     }
 
