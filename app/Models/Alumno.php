@@ -220,9 +220,13 @@ class Alumno extends Model
      */
     public function ultimoPagoMensualidad(): HasOne
     {
-        return $this->hasOne(Pago::class)
-            ->where('concepto', ConceptoPago::Mensualidad->value)
-            ->ofMany('fecha_vencimiento', 'max');
+        // El filtro por concepto va dentro de ofMany: si se pone fuera, se busca
+        // el vencimiento más lejano entre todos los pagos y, cuando es una
+        // anualidad, parece que el alumno no tiene ninguna mensualidad.
+        return $this->hasOne(Pago::class)->ofMany(
+            ['fecha_vencimiento' => 'max', 'id' => 'max'],
+            fn ($query) => $query->where('concepto', ConceptoPago::Mensualidad->value),
+        );
     }
 
     public function scopeDeSucursal($query, int $sucursalId)
